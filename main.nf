@@ -10,26 +10,8 @@ indices = file(params.rg)
 cutoff = params.cutoff
 
 
-/* idxChannel = Channel
-                .from(indices)
-                .splitCsv(header: true, sep: '\t')
-
-process getIndices {
-
-    input:
-    set val(index), val(lib) from idxChannel
-
-    output:
-    stdout result
-
-    """
-    printf "${index} -- $lib"
-    """
-} */
-
-
 process splitBam {
-    conda 'envs/sediment.yaml'
+    conda "$baseDir/envs/sediment.yaml"
 
     input:
     file 'input.bam' from bamfile
@@ -42,13 +24,11 @@ process splitBam {
     mkdir split
     splitbam -d split -f indices.tsv --minscore 10 --maxnumber 0 input.bam
     """
-
-
 }
 
 
 process removeDups {
-    conda 'envs/sediment.yaml'
+    conda "$baseDir/envs/sediment.yaml"
     //publishDir 'data'
 
     input:
@@ -65,9 +45,8 @@ process removeDups {
     """
 }
 
-
 process toFasta {
-    conda 'envs/bam2fasta.yaml'
+    conda "$baseDir/envs/bam2fasta.yaml"
     // publishDir 'data'
 
     input:
@@ -84,7 +63,7 @@ process toFasta {
 }
 
 process runKraken {
-    conda 'envs/sediment.yaml'
+    conda "$baseDir/envs/sediment.yaml"
     // publishDir 'data'
 
     input:
@@ -103,7 +82,7 @@ process runKraken {
 }
 
 process reportKraken {
-    conda 'envs/sediment.yaml'
+    conda "$baseDir/envs/sediment.yaml"
     publishDir 'kraken'
 
     input:
