@@ -62,13 +62,15 @@ process toFasta {
 
 process runKraken {
     conda "$baseDir/envs/sediment.yaml"
-    publishDir 'kraken'
+    publishDir 'kraken', mode: 'copy'
 
     input:
     set rg, 'input.fa' from dedup_fasta
 
     output:
     set rg, "${kraken_translate}" into kraken_assignments
+    file "${kraken_out}" into kraken_raw
+    file "${kraken_report}" into kraken_stats
 
     script:
     kraken_out = "${rg}.kraken"
@@ -78,5 +80,6 @@ process runKraken {
     kraken -db $params.db --output $kraken_out input.fa
     kraken-translate -db $params.db --mpa-format $kraken_out >$kraken_translate
     kraken-mpa-report --db $params.db $kraken_out >$kraken_report
+    sleep 5
     """
 }
