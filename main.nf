@@ -9,7 +9,6 @@ bamfile = file(params.bam)
 indices = file(params.rg)
 cutoff = params.cutoff
 
-
 process splitBam {
     conda "$baseDir/envs/sediment.yaml"
 
@@ -25,7 +24,6 @@ process splitBam {
     splitbam -d split -f indices.tsv --minscore 10 --maxnumber 0 input.bam
     """
 }
-
 
 process removeDups {
     conda "$baseDir/envs/sediment.yaml"
@@ -64,36 +62,21 @@ process toFasta {
 
 process runKraken {
     conda "$baseDir/envs/sediment.yaml"
-    // publishDir 'data'
+    publishDir 'kraken'
 
     input:
     set rg, 'input.fa' from dedup_fasta
 
     output:
-    set rg, 'out.translate' into (assigned_to_filter, assigned_to_report)
+    set rg, "${kraken_translate}" into kraken_assignments
 
     script:
-    // krakenfile = "${rg}.kraken"
-    // kraken_translate = "${rg}.translate"
+    kraken_out = "${rg}.kraken"
+    kraken_translate = "${rg}.translate"
+    kraken_report = "${rg}.report"
     """
-    kraken -db $params.db --output out.kraken input.fa
-    kraken-translate -db $params.db --mpa-format out.kraken >out.translate
-    """
-}
-
-process reportKraken {
-    conda "$baseDir/envs/sediment.yaml"
-    publishDir 'kraken'
-
-    input:
-    set rg, 'kraken.translate' from assigned_to_report
-
-    output:
-    file "${krakenreport}"
-
-    script:
-    krakenreport = "${rg}.report"
-    """
-    kraken-mpa-report --db $params.db kraken.translate >$krakenreport
+    kraken -db $params.db --output $kraken_out input.fa
+    kraken-translate -db $params.db --mpa-format $kraken_out >$kraken_translate
+    kraken-mpa-report --db $params.db $kraken_out >$kraken_report
     """
 }
