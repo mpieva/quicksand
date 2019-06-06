@@ -1,0 +1,5 @@
+name: sm_sediment-bam2fasta
+channels:
+  - bioconda
+dependencies:
+  - tophat

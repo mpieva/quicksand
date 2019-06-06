@@ -1,0 +1,11 @@
+name: sm_sediment
+channels:
+  - conda-forge
+  - bioconda
+dependencies:
+  - python=3.7
+  - pip>=19
+  - pysam=0.15.2
+  - kraken=1.1.1
+  - pip:
+      - git+http://vcs.eva.mpg.de/visagie/pysplitbam@v0.1.3#egg=splitbam
