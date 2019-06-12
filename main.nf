@@ -33,13 +33,12 @@ process removeDups {
     file input_bam from splitfiles
     
     output:
-    set rg, "${dedupfile}" into dedup
+    set rg, 'dedup.bam' into dedup_to_assign, dedup_to_extract
 
     script:
     rg = "${input_bam.baseName}"
-    dedupfile = "${rg}-dedup.bam"
     """
-    countdups.py -o $dedupfile -s stat.txt -c $cutoff $input_bam
+    countdups.py -o dedup.bam -s stat.txt -c $cutoff $input_bam
     """
 }
 
@@ -48,15 +47,14 @@ process toFasta {
     // publishDir 'data'
 
     input:
-    set rg, 'input.bam' from dedup
+    set rg, 'input.bam' from dedup_to_assign
 
     output:
-    set rg, "${fastafile}" into dedup_fasta
+    set rg, 'output.fa' into dedup_fasta
 
     script:
-    fastafile = "${rg}-dedup.fa"
     """
-    bam2fastx -a -Q -A -o ${fastafile} input.bam
+    bam2fastx -a -Q -A -o output.fa input.bam
     """
 }
 
