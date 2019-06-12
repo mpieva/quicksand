@@ -1,4 +1,4 @@
-name: sm_sediment
+name: nxf_sediment
 channels:
   - conda-forge
   - bioconda
