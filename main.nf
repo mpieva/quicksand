@@ -19,6 +19,7 @@ process splitBam {
     output:
     file 'split/*.bam' into splitfiles mode flatten
 
+    // can use:  file('split').mkDir()
     """
     mkdir split
     splitbam -d split -f indices.tsv --minscore 10 --maxnumber 0 input.bam
@@ -81,3 +82,31 @@ process runKraken {
     sleep 5
     """
 }
+// look into executor.exitReadTimeOut instead of `sleep`
+
+// - Match split/deduped bam to kraken output based on readgroup.
+// - Filter for families under Mammalia.
+// - Emit a (bamfile, seq_id, family_name) triple.
+//
+dedup_to_extract
+    .cross(kraken_assignments)
+    .map { [it[0][1], it[1][1].readLines()] }
+    .transpose()
+    .map { bam, line -> [bam].plus(line.split('\t')).flatten() }
+    .filter { it[2] =~ /c__Mammalia.*f__/ }
+    .map { bam, id, asn -> [bam, id, (asn =~ /f__([^|]*)/)[0][1]] }
+    .set { for_extraction }
+
+process extractBam {
+    conda "$baseDir/envs/sediment.yaml"
+
+    input:
+    set 'input.bam', seq_id, family from for_extraction
+
+    // output:
+    // file "${rg}_*.bam"
+
+    script:
+    """
+    extract_bam.py -f $family -o output.bam 
+    """
