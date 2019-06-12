@@ -79,34 +79,36 @@ process runKraken {
     kraken -db $params.db --output $kraken_out input.fa
     kraken-translate -db $params.db --mpa-format $kraken_out >$kraken_translate
     kraken-mpa-report --db $params.db $kraken_out >$kraken_report
-    sleep 5
     """
 }
 // look into executor.exitReadTimeOut instead of `sleep`
 
-// - Match split/deduped bam to kraken output based on readgroup.
-// - Filter for families under Mammalia.
-// - Emit a (bamfile, seq_id, family_name) triple.
+// - Match split/deduped bam to kraken output based on readgroup
+// - Filter for families under Mammalia
+// - Emit unique (rg, bamfile, kraken_translate_file, family_name)
 //
 dedup_to_extract
     .cross(kraken_assignments)
-    .map { [it[0][1], it[1][1].readLines()] }
+    .map { [it[0][0], it[0][1], it[1][1], it[1][1].readLines()] }
     .transpose()
-    .map { bam, line -> [bam].plus(line.split('\t')).flatten() }
-    .filter { it[2] =~ /c__Mammalia.*f__/ }
-    .map { bam, id, asn -> [bam, id, (asn =~ /f__([^|]*)/)[0][1]] }
+    .filter { it[3] =~ /c__Mammalia.*f__/ }
+    .map { rg, bam, kraken, asn -> [rg, bam, kraken, (asn =~ /f__([^|]*)/)[0][1]] }
+    .unique()
     .set { for_extraction }
 
 process extractBam {
     conda "$baseDir/envs/sediment.yaml"
+    publishDir 'out', mode: 'copy', overwrite: true, saveAs: { "${out_bam}" }
 
     input:
-    set 'input.bam', seq_id, family from for_extraction
+    set rg, 'input.bam', 'kraken.translate', family from for_extraction
 
-    // output:
-    // file "${rg}_*.bam"
+    output:
+    file 'output.bam' into extracted_reads
 
     script:
+    out_bam = "${rg}_extracted_reads-${family}.bam"
     """
-    extract_bam.py -f $family -o output.bam 
+    extract_bam.py -f $family -k kraken.translate -o output.bam input.bam
     """
+}
