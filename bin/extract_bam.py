@@ -17,6 +17,12 @@ def cli():
         help="Output from kraken-translate"
     )
     parser.add_argument(
+        '-c', '--compression-level', type=int, metavar='N',
+        choices=(0, 1, 2, 3, 4, 5, 6, 7, 8, 9), default=6,
+        help="compression level for output BAM files [0..9]\n"
+             "(default: %(default)s)"
+    )
+    parser.add_argument(
         '-o', '--outfile', type=str,
         help="Output file"
     )
@@ -36,6 +42,7 @@ if __name__ == '__main__':
                    if "c__Mammalia" in l and f"f__{cfg.family}" in l]
 
     with AlignmentFile(cfg.bamfile, 'rb') as bf:
+        bf.add_hts_options([f"level={cfg.compression_level}".encode('UTF-8')])
         with AlignmentFile(cfg.outfile, 'wb', template=bf) as of:
             for read in bf.fetch(until_eof=True):
                 if read.query_name in seq_ids:

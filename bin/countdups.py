@@ -35,6 +35,12 @@ def cli():
         help='Cutoff length for calculating statistics (default: %(default)s)'
     )
     parser.add_argument(
+        '-l', '--compression-level', type=int, metavar='N',
+        choices=(0, 1, 2, 3, 4, 5, 6, 7, 8, 9), default=6,
+        help="compression level for output BAM files [0..9]\n"
+             "(default: %(default)s)"
+    )
+    parser.add_argument(
         'inputfile', nargs='?', type=FileType('rb'), default=sys.stdin,
         help="Input file (default: STDIN)"
     )
@@ -67,6 +73,7 @@ if __name__ == '__main__':
     #
     if CFG.outputfile:
         with AlignmentFile(CFG.outputfile, 'wb', header=hdr) as outbam:
+            outbam.add_hts_options([f"level={CFG.compression_level}".encode('UTF-8')])
             for n, seq in enumerate(long_seqs):
                 s = AlignedSegment()
                 s.query_name = f'seq_{n}'

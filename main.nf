@@ -4,10 +4,12 @@ params.bam = ''
 params.rg = ''
 params.db = '/mnt/ramdisk/refseqReleaseKraken'
 params.cutoff = 35
+params.level = 0
 
 bamfile = file(params.bam)
 indices = file(params.rg)
 cutoff = params.cutoff
+level = params.level        // bgzf compression level for intermediate files, 0..9
 
 process splitBam {
     conda "$baseDir/envs/sediment.yaml"
@@ -22,7 +24,7 @@ process splitBam {
     // can use:  file('split').mkDir()
     """
     mkdir split
-    splitbam -d split -f indices.tsv --minscore 10 --maxnumber 0 input.bam
+    splitbam -c $level -d split -f indices.tsv --minscore 10 --maxnumber 0 input.bam
     """
 }
 
@@ -39,7 +41,7 @@ process removeDups {
     script:
     rg = "${input_bam.baseName}"
     """
-    countdups.py -o dedup.bam -s stat.txt -c $cutoff $input_bam
+    countdups.py -l $level -o dedup.bam -s stat.txt -c $cutoff $input_bam
     """
 }
 
@@ -109,6 +111,6 @@ process extractBam {
     script:
     out_bam = "${rg}_extracted_reads-${family}.bam"
     """
-    extract_bam.py -f $family -k kraken.translate -o output.bam input.bam
+    extract_bam.py -f $family -k kraken.translate -c $level -o output.bam input.bam
     """
 }
