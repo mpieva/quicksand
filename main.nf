@@ -4,6 +4,7 @@ params.bam = ''
 params.rg = ''
 params.db = '/mnt/ramdisk/refseqReleaseKraken'
 params.cutoff = 35
+params.dedup = false
 params.level = 0
 
 bamfile = file(params.bam)
@@ -19,29 +20,40 @@ process splitBam {
     file 'indices.tsv' from indices
 
     output:
-    file 'split/*.bam' into splitfiles mode flatten
+    file 'split/*.bam' into splitfiles, split_to_extract mode flatten
 
-    // can use:  file('split').mkDir()
     """
     mkdir split
     splitbam -c $level -d split -f indices.tsv --minscore 10 --maxnumber 0 input.bam
     """
 }
 
+splitfiles
+    .map { [it.baseName, it] }
+    .set { splitfiles }
+
+split_to_extract
+    .map { [it.baseName, it] }
+    .set { split_to_extract }
+
+(dedup_input, tofasta_input) = ( params.dedup
+                             ? [splitfiles, Channel.empty()]
+                             : [Channel.empty(), splitfiles] )
+
 process removeDups {
     conda "$baseDir/envs/sediment.yaml"
     //publishDir 'data'
 
     input:
-    file input_bam from splitfiles
+    set rg, 'input.bam' from dedup_input
     
     output:
     set rg, 'dedup.bam' into dedup_to_assign, dedup_to_extract
 
     script:
-    rg = "${input_bam.baseName}"
+    // rg = "${input_bam.baseName}"
     """
-    countdups.py -l $level -o dedup.bam -s stat.txt -c $cutoff $input_bam
+    countdups.py -l $level -o dedup.bam -s stat.txt -c $cutoff input.bam
     """
 }
 
@@ -50,7 +62,7 @@ process toFasta {
     // publishDir 'data'
 
     input:
-    set rg, 'input.bam' from dedup_to_assign
+    set rg, 'input.bam' from tofasta_input.mix(dedup_to_assign)
 
     output:
     set rg, 'output.fa' into dedup_fasta
@@ -85,11 +97,13 @@ process runKraken {
 }
 // look into executor.exitReadTimeOut instead of `sleep`
 
+for_extraction = ( params.dedup ? dedup_to_extract : split_to_extract )
+
 // - Match split/deduped bam to kraken output based on readgroup
 // - Filter for families under Mammalia
 // - Emit unique (rg, bamfile, kraken_translate_file, family_name)
 //
-dedup_to_extract
+for_extraction
     .cross(kraken_assignments)
     .map { [it[0][0], it[0][1], it[1][1], it[1][1].readLines()] }
     .transpose()
