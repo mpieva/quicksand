@@ -4,27 +4,24 @@ params.bam = ''
 params.rg = ''
 params.db = '/mnt/ramdisk/refseqReleaseKraken'
 params.cutoff = 35
-params.dedup = false
-params.level = 0
+params.dedup = false    // deduplicate after splitting
+params.level = 0        // bgzf compression level for intermediate files, 0..9
 
-bamfile = file(params.bam)
-indices = file(params.rg)
-cutoff = params.cutoff
-level = params.level        // bgzf compression level for intermediate files, 0..9
 
 process splitBam {
     conda "$baseDir/envs/sediment.yaml"
 
     input:
-    file 'input.bam' from bamfile
-    file 'indices.tsv' from indices
+    file 'input.bam' from file(params.bam)
+    file 'indices.tsv' from file(params.rg)
 
     output:
     file 'split/*.bam' into splitfiles, split_to_extract mode flatten
 
+    script:
     """
     mkdir split
-    splitbam -c $level -d split -f indices.tsv --minscore 10 --maxnumber 0 input.bam
+    splitbam -c $params.level -d split -f indices.tsv --minscore 10 --maxnumber 0 input.bam
     """
 }
 
@@ -42,7 +39,6 @@ split_to_extract
 
 process removeDups {
     conda "$baseDir/envs/sediment.yaml"
-    //publishDir 'data'
 
     input:
     set rg, 'input.bam' from dedup_input
@@ -53,13 +49,12 @@ process removeDups {
     script:
     // rg = "${input_bam.baseName}"
     """
-    countdups.py -l $level -o dedup.bam -s stat.txt -c $cutoff input.bam
+    countdups.py -l $params.level -o dedup.bam -s stat.txt -c $params.cutoff input.bam
     """
 }
 
 process toFasta {
     conda "$baseDir/envs/bam2fasta.yaml"
-    // publishDir 'data'
 
     input:
     set rg, 'input.bam' from tofasta_input.mix(dedup_to_assign)
@@ -75,27 +70,40 @@ process toFasta {
 
 process runKraken {
     conda "$baseDir/envs/sediment.yaml"
-    publishDir 'kraken', mode: 'copy'
+    publishDir 'kraken', mode: 'link'
 
     input:
     set rg, 'input.fa' from dedup_fasta
 
     output:
     set rg, "${kraken_translate}" into kraken_assignments
-    file "${kraken_out}" into kraken_raw
-    file "${kraken_report}" into kraken_stats
+    set rg, "${kraken_out}" into kraken_raw
 
     script:
     kraken_out = "${rg}.kraken"
     kraken_translate = "${rg}.translate"
-    kraken_report = "${rg}.report"
     """
     kraken -db $params.db --output $kraken_out input.fa
     kraken-translate -db $params.db --mpa-format $kraken_out >$kraken_translate
-    kraken-mpa-report --db $params.db $kraken_out >$kraken_report
     """
 }
-// look into executor.exitReadTimeOut instead of `sleep`
+
+process statsKraken {
+    conda "$baseDir/envs/sediment.yaml"
+    publishDir 'kraken', mode: 'link', overwrite: true, saveAs: { "${rg}.report" }
+
+
+    input:
+    set rg, 'input.kraken' from kraken_raw
+
+    output:
+    file 'kraken.report'
+
+    script:
+    """
+    kraken-mpa-report --db $params.db input.kraken >kraken.report
+    """
+}
 
 for_extraction = ( params.dedup ? dedup_to_extract : split_to_extract )
 
@@ -114,7 +122,7 @@ for_extraction
 
 process extractBam {
     conda "$baseDir/envs/sediment.yaml"
-    publishDir 'out', mode: 'copy', overwrite: true, saveAs: { "${out_bam}" }
+    publishDir 'out', mode: 'link', overwrite: true, saveAs: { out_bam }
 
     input:
     set rg, 'input.bam', 'kraken.translate', family from for_extraction
@@ -125,6 +133,6 @@ process extractBam {
     script:
     out_bam = "${rg}_extracted_reads-${family}.bam"
     """
-    extract_bam.py -f $family -k kraken.translate -c $level -o output.bam input.bam
+    extract_bam.py -f $family -k kraken.translate -c $params.level -o output.bam input.bam
     """
 }
