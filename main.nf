@@ -122,7 +122,7 @@ for_extraction
 
 process extractBam {
     conda "$baseDir/envs/sediment.yaml"
-    publishDir 'out', mode: 'link', saveAs: { out_bam }
+    publishDir 'out/blast', mode: 'link', saveAs: { out_bam }
 
     input:
     set rg, 'input.bam', 'kraken.translate', family from for_extraction
@@ -132,13 +132,13 @@ process extractBam {
     set rg, family, stdout into extracted_read_count
 
     script:
-    out_bam = "${rg}_extracted_reads-${family}.bam"
+    out_bam = "${family}/${rg}_extractedReads-${family}.bam"
     """
     extract_bam.py -f $family -k kraken.translate -c $params.level -o output.bam input.bam
     """
 }
 
 extracted_read_count
-    .collectFile(storeDir: 'out') { rg, family, count ->
+    .collectFile(storeDir: 'out/blast') { rg, family, count ->
         [ "${rg}.tsv", "${family}\t${count}"]
     }
