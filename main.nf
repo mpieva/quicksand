@@ -129,6 +129,7 @@ process extractBam {
 
     output:
     file 'output.bam' into extracted_reads
+    set rg, family, stdout into extracted_read_count
 
     script:
     out_bam = "${rg}_extracted_reads-${family}.bam"
@@ -136,3 +137,8 @@ process extractBam {
     extract_bam.py -f $family -k kraken.translate -c $params.level -o output.bam input.bam
     """
 }
+
+extracted_read_count
+    .collectFile(storeDir: 'out') { rg, family, count ->
+        [ "${rg}.tsv", "${family}\t${count}"]
+    }

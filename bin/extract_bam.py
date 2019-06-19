@@ -47,3 +47,5 @@ if __name__ == '__main__':
             for read in bf.fetch(until_eof=True):
                 if read.query_name in seq_ids:
                     of.write(read)
+
+    print(len(seq_ids))
