@@ -90,7 +90,7 @@ process runKraken {
 
 process statsKraken {
     conda "$baseDir/envs/sediment.yaml"
-    publishDir 'kraken', mode: 'link', overwrite: true, saveAs: { "${rg}.report" }
+    publishDir 'kraken', mode: 'link', saveAs: { "${rg}.report" }
 
 
     input:
@@ -122,7 +122,7 @@ for_extraction
 
 process extractBam {
     conda "$baseDir/envs/sediment.yaml"
-    publishDir 'out', mode: 'link', overwrite: true, saveAs: { out_bam }
+    publishDir 'out', mode: 'link', saveAs: { out_bam }
 
     input:
     set rg, 'input.bam', 'kraken.translate', family from for_extraction
