@@ -1,11 +1,13 @@
 #!/usr/bin/env nextflow
 
-params.bam = ''
-params.rg = ''
-params.db = '/mnt/ramdisk/refseqReleaseKraken'
+params.bam    = ''
+params.rg     = ''
+params.db     = '/mnt/ramdisk/refseqReleaseKraken'
 params.cutoff = 35
-params.dedup = false    // deduplicate after splitting
-params.level = 0        // bgzf compression level for intermediate files, 0..9
+params.dedup  = false       // deduplicate after splitting
+params.level  = 0           // bgzf compression level for intermediate files, 0..9
+params.bwa    = '/home/public/usr/bin/bwa'
+params.genome = '/home/frederic_romagne/MetaGen/refseq/MammalianMT'
 
 
 process splitBam {
@@ -128,8 +130,8 @@ process extractBam {
     set rg, 'input.bam', 'kraken.translate', family from for_extraction
 
     output:
-    file 'output.bam' into extracted_reads
-    set rg, family, stdout into extracted_read_count
+    set family, rg, 'output.bam' into extracted_reads
+    set family, rg, stdout into extracted_read_count
 
     script:
     out_bam = "${family}/${rg}_extractedReads-${family}.bam"
@@ -139,6 +141,32 @@ process extractBam {
 }
 
 extracted_read_count
-    .collectFile(storeDir: 'out/blast') { rg, family, count ->
+    .collectFile(storeDir: 'out/blast') { family, rg, count ->
         [ "${rg}.tsv", "${family}\t${count}"]
     }
+
+Channel.fromPath("${params.genome}/*", type: 'dir')
+    .map { [it.baseName, file("${it}/*.fasta")] }
+    .cross(extracted_reads)
+    .map { x, y -> [x[0], y[1], y[2], x[1]] }   // family, rg, bamfile, fasta_list
+    .transpose(by: 3)
+    .set { for_mapping }
+
+process mapBwa {
+    conda "$baseDir/envs/sediment.yaml"
+    publishDir 'out/blast', mode: 'link', saveAs: { out_bam }
+
+    input:
+    set family, rg, 'input.bam', genome_fasta from for_mapping
+
+    output:
+    file 'output.bam'
+
+    script:
+    species = genome_fasta.baseName
+    out_bam = "${family}/aligned/${rg}.${species}.bam"
+    """
+    $params.bwa bam2bam -g $genome_fasta -n 0.01 -o 2 -l 16500 --only-aligned input.bam \
+    | samtools sort -o output.bam
+    """
+}
