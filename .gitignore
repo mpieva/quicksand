@@ -1,4 +1,3 @@
 .idea
-.nextflow
-.nextflow.log*
+.nextflow*
 work
