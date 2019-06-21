@@ -18,12 +18,11 @@ process splitBam {
     file 'indices.tsv' from file(params.rg)
 
     output:
-    file 'split/*.bam' into splitfiles, split_to_extract mode flatten
+    file '*.bam' into splitfiles, split_to_extract mode flatten
 
     script:
     """
-    mkdir split
-    splitbam -c $params.level -d split -f indices.tsv --minscore 10 --maxnumber 0 input.bam
+    splitbam -c $params.level -f indices.tsv --minscore 10 --maxnumber 0 input.bam
     """
 }
 
@@ -49,7 +48,6 @@ process removeDups {
     set rg, 'dedup.bam' into dedup_to_assign, dedup_to_extract
 
     script:
-    // rg = "${input_bam.baseName}"
     """
     countdups.py -l $params.level -o dedup.bam -s stat.txt -c $params.cutoff input.bam
     """
@@ -93,7 +91,6 @@ process runKraken {
 process statsKraken {
     conda "$baseDir/envs/sediment.yaml"
     publishDir 'kraken', mode: 'link', saveAs: { "${rg}.report" }
-
 
     input:
     set rg, 'input.kraken' from kraken_raw
