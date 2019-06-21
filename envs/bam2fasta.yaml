@@ -1,4 +1,4 @@
-name: sm_sediment-bam2fasta
+name: nxf_bam2fasta
 channels:
   - bioconda
 dependencies:
