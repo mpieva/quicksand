@@ -1,6 +1,6 @@
 name: nxf_sediment
 channels:
-  - conda-forge
+  - defaults
   - bioconda
 dependencies:
   - python=3.7
