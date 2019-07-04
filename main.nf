@@ -12,6 +12,8 @@ params.genome = '/home/frederic_romagne/MetaGen/refseq/MammalianMT'
 
 process splitBam {
     conda "$baseDir/envs/sediment.yaml"
+    maxForks 1
+    label 'local'
 
     input:
     file 'input.bam' from file(params.bam)
@@ -40,6 +42,7 @@ split_to_extract
 
 process removeDups {
     conda "$baseDir/envs/sediment.yaml"
+    tag "$rg"
 
     input:
     set rg, 'input.bam' from dedup_input
@@ -55,6 +58,7 @@ process removeDups {
 
 process toFasta {
     conda "$baseDir/envs/bam2fasta.yaml"
+    tag "$rg"
 
     input:
     set rg, 'input.bam' from tofasta_input.mix(dedup_to_assign)
@@ -71,6 +75,10 @@ process toFasta {
 process runKraken {
     conda "$baseDir/envs/sediment.yaml"
     publishDir 'kraken', mode: 'link'
+    memory '16GB'   // XXX make dynamic based on size of params.db
+    label 'bigmem'
+    label 'local'   // Currently having issued with bigmem jobs on SGE
+    tag "$rg"
 
     input:
     set rg, 'input.fa' from dedup_fasta
@@ -83,14 +91,16 @@ process runKraken {
     kraken_out = "${rg}.kraken"
     kraken_translate = "${rg}.translate"
     """
-    kraken -db $params.db --output $kraken_out input.fa
-    kraken-translate -db $params.db --mpa-format $kraken_out >$kraken_translate
+    kraken --db $params.db --output $kraken_out input.fa
+    kraken-translate --db $params.db --mpa-format $kraken_out >$kraken_translate
     """
 }
 
 process statsKraken {
     conda "$baseDir/envs/sediment.yaml"
     publishDir 'kraken', mode: 'link', saveAs: { "${rg}.report" }
+    label 'local'
+    tag "$rg"
 
     input:
     set rg, 'input.kraken' from kraken_raw
@@ -122,6 +132,7 @@ for_extraction
 process extractBam {
     conda "$baseDir/envs/sediment.yaml"
     publishDir 'out/blast', mode: 'link', saveAs: { out_bam }
+    tag "$rg:$family"
 
     input:
     set rg, 'input.bam', 'kraken.translate', family from for_extraction
@@ -152,6 +163,7 @@ Channel.fromPath("${params.genome}/*", type: 'dir')
 process mapBwa {
     conda "$baseDir/envs/sediment.yaml"
     publishDir 'out/blast', mode: 'link', saveAs: { out_bam }
+    tag "$rg:$family"
 
     input:
     set family, rg, 'input.bam', genome_fasta from for_mapping
