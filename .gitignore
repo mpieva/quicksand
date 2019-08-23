@@ -1,3 +1,8 @@
 .idea
 .nextflow*
 work
+
+# Project exclude paths
+/example/
+/legacy/
+/reports/
