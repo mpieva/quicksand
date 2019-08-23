@@ -4,6 +4,7 @@ params.bam    = ''
 params.rg     = ''
 params.db     = '/mnt/ramdisk/refseqReleaseKraken'
 params.cutoff = 35
+params.filter = false       // filter out unmapped and paired
 params.dedup  = false       // deduplicate after splitting
 params.level  = 0           // bgzf compression level for intermediate files, 0..9
 params.bwa    = '/home/public/usr/bin/bwa'
@@ -20,7 +21,7 @@ process splitBam {
     file 'indices.tsv' from file(params.rg)
 
     output:
-    file '*.bam' into splitfiles, split_to_extract mode flatten
+    file '*.bam' into splitfiles mode flatten
 
     script:
     """
@@ -32,23 +33,37 @@ splitfiles
     .map { [it.baseName, it] }
     .set { splitfiles }
 
-split_to_extract
-    .map { [it.baseName, it] }
-    .set { split_to_extract }
+filter_in = params.filter ? splitfiles : Channel.empty()
 
-(dedup_input, tofasta_input) = ( params.dedup
-                             ? [splitfiles, Channel.empty()]
-                             : [Channel.empty(), splitfiles] )
+process filterBam {
+    conda "$baseDir/envs/sediment.yaml"
+    tag "$rg"
+
+    input:
+    set rg, 'input.bam' from filter_in
+
+    output:
+    set rg, 'output.bam' into filter_out
+
+    script:
+    """
+    samtools view -b -u -F 5 -o output.bam input.bam
+    """
+}
+
+post_filter = params.filter ? filter_out : splitfiles
+
+dedup_in = params.dedup ? post_filter : Channel.empty()
 
 process removeDups {
     conda "$baseDir/envs/sediment.yaml"
     tag "$rg"
 
     input:
-    set rg, 'input.bam' from dedup_input
+    set rg, 'input.bam' from dedup_in
     
     output:
-    set rg, 'dedup.bam' into dedup_to_assign, dedup_to_extract
+    set rg, 'dedup.bam' into dedup_out
 
     script:
     """
@@ -56,12 +71,15 @@ process removeDups {
     """
 }
 
+(params.dedup ? dedup_out : post_filter)
+    .into{ tofasta_in; for_extraction }
+
 process toFasta {
     conda "$baseDir/envs/bam2fasta.yaml"
     tag "$rg"
 
     input:
-    set rg, 'input.bam' from tofasta_input.mix(dedup_to_assign)
+    set rg, 'input.bam' from tofasta_in
 
     output:
     set rg, 'output.fa' into dedup_fasta
@@ -114,7 +132,7 @@ process statsKraken {
     """
 }
 
-for_extraction = ( params.dedup ? dedup_to_extract : split_to_extract )
+//for_extraction = ( params.dedup ? dedup_to_extract : split_to_extract )
 
 // - Match split/deduped bam to kraken output based on readgroup
 // - Filter for families under Mammalia

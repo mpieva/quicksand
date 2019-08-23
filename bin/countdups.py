@@ -58,7 +58,6 @@ if __name__ == '__main__':
         ctr = Counter(
             a.get_forward_sequence() if a.is_reverse else a.query_sequence
             for a in inbam.fetch(until_eof=True)
-            if not a.flag & 0b101   # not a.is_unmapped and not a.is_paired
         )
 
     # Build list of sequences above length cutoff
