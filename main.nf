@@ -1,14 +1,52 @@
 #!/usr/bin/env nextflow
 
+def helpMessage() {
+    log.info"""
+    Usage: nextflow run sediment_nf --bam PATH --rg PATH --db PATH --genome PATH
+                                    [--cutoff N] [--level N] [--filter] [--dedup]
+           
+    Run sediment analysis pipeline.
+    
+    required arguments:
+      --bam PATH      input BAM file
+      --rg  PATH      tab-separated file containing index combinations
+                      - format of file: 'LibID<tab>P7<tab>P5'
+      --db PATH       Kraken database
+      --genome PATH   genome for alignment
+      
+    optional arguments:
+      --cutoff N      length cutoff (default: 35)
+      --filter        filter out unmapped and paired reads
+      --dedup         dedupicate input
+      --level N       set BGZF compression level (default: 6)
+      
+    A selection of built-in Nextflow flags that may be of use:
+      -resume         resume processing; do not re-run completed processes
+      -profile NAME   use named execution profile
+      -qs N           queue size; number of CPU cores to use (default: all)
+      -N EMAIL        send completion notifcation to email address
+    
+    The following execution profiles are available (see '-profile' above):
+      * standard      execute all processes on local host
+      * cluster       execute certain CPU-intenisve processes on SGE cluster
+    """.stripIndent()
+}
+
+params.help = false
+if (params.help) {
+    helpMessage()
+    exit 0
+}
+
 params.bam    = ''
 params.rg     = ''
-params.db     = '/mnt/ramdisk/refseqReleaseKraken'
+params.db     = ''
+params.genome = ''
 params.cutoff = 35
 params.filter = false       // filter out unmapped and paired
 params.dedup  = false       // deduplicate after splitting
 params.level  = 0           // bgzf compression level for intermediate files, 0..9
-params.bwa    = '/home/public/usr/bin/bwa'
-params.genome = '/home/frederic_romagne/MetaGen/refseq/MammalianMT'
+params.bwa    = '/home/public/usr/bin/bwa'  // not intended to be set by user
 
 
 process splitBam {
