@@ -170,8 +170,6 @@ process statsKraken {
     """
 }
 
-//for_extraction = ( params.dedup ? dedup_to_extract : split_to_extract )
-
 // - Match split/deduped bam to kraken output based on readgroup
 // - Filter for families under Mammalia
 // - Emit unique (rg, bamfile, kraken_translate_file, family_name)
@@ -200,7 +198,9 @@ process extractBam {
     script:
     out_bam = "${family}/${rg}_extractedReads-${family}.bam"
     """
-    extract_bam.py -f $family -k kraken.translate -c $params.level -o output.bam input.bam
+    grep "c__Mammalia.*f__$family" kraken.translate | cut -f1 > ids.txt
+    cat <(samtools view -H input.bam) <(samtools view input.bam|grep -Ff ids.txt) \
+    | samtools view -b -o output.bam
     """
 }
 
@@ -219,7 +219,7 @@ Channel.fromPath("${params.genome}/*", type: 'dir')
 process mapBwa {
     conda "$baseDir/envs/sediment.yaml"
     publishDir 'out/blast', mode: 'link', saveAs: { out_bam }
-    tag "$rg:$family"
+    tag "$rg:$family:$species"
 
     input:
     set family, rg, 'input.bam', genome_fasta from for_mapping
