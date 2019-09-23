@@ -201,6 +201,7 @@ process extractBam {
     grep "c__Mammalia.*f__$family" kraken.translate | cut -f1 > ids.txt
     cat <(samtools view -H input.bam) <(samtools view input.bam|idfilter.py ids.txt) \
     | samtools sort -n -l $params.level -o output.bam
+    wc -l < ids.txt
     """
 }
 
