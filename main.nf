@@ -16,6 +16,7 @@ def helpMessage() {
       
     optional arguments:
       --cutoff N         length cutoff (default: 35)
+      --quality N        quality filter (default: 25)
       --filterpaired     filter paired reads
       --filterunmapped   filter unmapped reads
       --level N          set BGZF compression level (default: 6)
@@ -43,6 +44,7 @@ params.rg             = ''
 params.db             = ''
 params.genome         = ''
 params.cutoff         = 35
+params.quality        = 25
 params.filterpaired   = false  // filter out paired
 params.filterunmapped = false  // filter out unmapped
 params.dedup          = false  // deduplicate after splitting
@@ -205,7 +207,7 @@ for_extraction
 
 process extractBam {
     conda "$baseDir/envs/sediment.yaml"
-    publishDir 'out/blast', mode: 'link', saveAs: { out_bam }
+    publishDir 'out', mode: 'link', saveAs: { out_bam }
     tag "$rg:$family"
 
     input:
@@ -221,13 +223,13 @@ process extractBam {
     grep "c__Mammalia.*f__$family" kraken.translate | cut -f1 > ids.txt
     cat <(samtools view -H input.bam) <(samtools view input.bam|idfilter.py ids.txt) \
     | samtools sort -n -l $params.level -o output.bam
-    wc -l < ids.txt
+    samtools view -c output.bam
     """
 }
 
 extracted_read_count
-    .collectFile(storeDir: 'out/blast') { family, rg, count ->
-        [ "${rg}.tsv", "${family}\t${count}"]
+    .collectFile(storeDir: 'stats') { family, rg, count ->
+        [ "${rg}_extracted.tsv", "${family}\t${count}"]
     }
 
 Channel.fromPath("${params.genome}/*", type: 'dir')
@@ -239,20 +241,50 @@ Channel.fromPath("${params.genome}/*", type: 'dir')
 
 process mapBwa {
     conda "$baseDir/envs/sediment.yaml"
-    publishDir 'out/blast', mode: 'link', saveAs: { out_bam }
     tag "$rg:$family:$species"
 
     input:
     set family, rg, 'input.bam', genome_fasta from for_mapping
 
     output:
-    file 'output.bam'
+    set family, rg, species, 'output.bam' into mapped_bam
+    set family, rg, species, stdout into mapped_count
 
     script:
     species = genome_fasta.baseName
     out_bam = "${family}/aligned/${rg}.${species}.bam"
     """
     $params.bwa bam2bam -g $genome_fasta -n 0.01 -o 2 -l 16500 --only-aligned input.bam \
-    | samtools sort -o output.bam
+    | samtools view -b -u -q $params.quality \
+    | samtools sort -l $params.level -o output.bam
+    samtools view -c output.bam
     """
 }
+
+mapped_count
+        .collectFile(storeDir: 'stats') { family, rg, species, count ->
+            [ "${rg}_mapped.tsv", "${family}\t${species}\t${count}"]
+        }
+
+process dedupBam {
+    publishDir 'out', mode: 'link', saveAs: { out_bam}
+    tag "$rg:family:$species"
+
+    input:
+    set family, rg, species, 'input.bam' from mapped_bam
+
+    output:
+    set family, rg, species, stdout into deduped_count
+
+    script:
+    out_bam = "${family}/aligned/${rg}.${species}.bam"
+    """
+    $params.bamrmdup -r -o output.bam input.bam >rmdup.txt
+    samtools view -c output.bam
+    """
+}
+
+deduped_count
+        .collectFile(storeDir: 'stats') { family, rg, species, count ->
+            [ "${rg}_unique_mapped.tsv", "${family}\t${species}\t${count}"]
+        }
