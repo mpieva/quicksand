@@ -8,27 +8,28 @@ def helpMessage() {
     Run sediment analysis pipeline.
     
     required arguments:
-      --bam PATH      input BAM file
-      --rg  PATH      tab-separated file containing index combinations
-                      - format of file: 'LibID<tab>P7<tab>P5'
-      --db PATH       Kraken database
-      --genome PATH   genome for alignment
+      --bam PATH         input BAM file
+      --rg  PATH         tab-separated file containing index combinations
+                         - format of file: 'LibID<tab>P7<tab>P5'
+      --db PATH          Kraken database
+      --genome PATH      genome for alignment
       
     optional arguments:
-      --cutoff N      length cutoff (default: 35)
-      --filter        filter out unmapped and paired reads
-      --dedup         dedupicate input
-      --level N       set BGZF compression level (default: 6)
+      --cutoff N         length cutoff (default: 35)
+      --filterpaired     filter paired reads
+      --filterunmapped   filter unmapped reads
+      --dedup            dedupicate input
+      --level N          set BGZF compression level (default: 6)
       
     A selection of built-in Nextflow flags that may be of use:
-      -resume         resume processing; do not re-run completed processes
-      -profile NAME   use named execution profile
-      -qs N           queue size; number of CPU cores to use (default: all)
-      -N EMAIL        send completion notifcation to email address
+      -resume            resume processing; do not re-run completed processes
+      -profile NAME      use named execution profile
+      -qs N              queue size; number of CPU cores to use (default: all)
+      -N EMAIL           send completion notifcation to email address
     
     The following execution profiles are available (see '-profile' above):
-      * standard      execute all processes on local host
-      * cluster       execute certain CPU-intenisve processes on SGE cluster
+      * standard         execute all processes on local host
+      * cluster          execute certain CPU-intenisve processes on SGE cluster
     """.stripIndent()
 }
 
@@ -38,15 +39,16 @@ if (params.help) {
     exit 0
 }
 
-params.bam    = ''
-params.rg     = ''
-params.db     = ''
-params.genome = ''
-params.cutoff = 35
-params.filter = false       // filter out unmapped and paired
-params.dedup  = false       // deduplicate after splitting
-params.level  = 0           // bgzf compression level for intermediate files, 0..9
-params.bwa    = '/home/public/usr/bin/bwa'  // not intended to be set by user
+params.bam            = ''
+params.rg             = ''
+params.db             = ''
+params.genome         = ''
+params.cutoff         = 35
+params.filterpaired   = false  // filter out paired
+params.filterunmapped = false  // filter out unmapped
+params.dedup          = false  // deduplicate after splitting
+params.level          = 0      // bgzf compression level for intermediate files, 0..9
+params.bwa            = '/home/public/usr/bin/bwa'  // not intended to be set by user
 
 
 process splitBam {
@@ -71,27 +73,47 @@ splitfiles
     .map { [it.baseName, it] }
     .set { splitfiles }
 
-filter_in = params.filter ? splitfiles : Channel.empty()
+filter_paired_in = params.filterpaired ? splitfiles : Channel.empty()
 
-process filterBam {
+process filterPaired {
     conda "$baseDir/envs/sediment.yaml"
     tag "$rg"
 
     input:
-    set rg, 'input.bam' from filter_in
+    set rg, 'input.bam' from filter_paired_in
 
     output:
-    set rg, 'output.bam' into filter_out
+    set rg, 'output.bam' into filter_paired_out
 
     script:
     """
-    samtools view -b -u -F 5 -o output.bam input.bam
+    samtools view -b -u -F 1 -o output.bam input.bam
     """
 }
 
-post_filter = params.filter ? filter_out : splitfiles
+post_filter_paired = params.filterpaired ? filter_paired_out : splitfiles
 
-dedup_in = params.dedup ? post_filter : Channel.empty()
+filter_unampped_in = params.filterunmapped ? post_filter_paired : Channel.empty()
+
+process filterUnmapped {
+    conda "$baseDir/envs/sediment.yaml"
+    tag "$rg"
+
+    input:
+    set rg, 'input.bam' from filter_unampped_in
+
+    output:
+    set rg, 'output.bam' into filter_unmapped_out
+
+    script:
+    """
+    samtools view -b -u -F 4 -o output.bam input.bam
+    """
+}
+
+post_filter_unmapped = params.filterunmapped ? filter_unmapped_out : post_filter_paired
+
+dedup_in = params.dedup ? post_filter_unmapped : Channel.empty()
 
 process removeDups {
     conda "$baseDir/envs/sediment.yaml"
@@ -109,7 +131,7 @@ process removeDups {
     """
 }
 
-(params.dedup ? dedup_out : post_filter)
+(params.dedup ? dedup_out : post_filter_unmapped)
     .into{ tofasta_in; for_extraction }
 
 process toFasta {
