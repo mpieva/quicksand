@@ -18,7 +18,6 @@ def helpMessage() {
       --cutoff N         length cutoff (default: 35)
       --filterpaired     filter paired reads
       --filterunmapped   filter unmapped reads
-      --dedup            dedupicate input
       --level N          set BGZF compression level (default: 6)
       
     A selection of built-in Nextflow flags that may be of use:
@@ -48,7 +47,11 @@ params.filterpaired   = false  // filter out paired
 params.filterunmapped = false  // filter out unmapped
 params.dedup          = false  // deduplicate after splitting
 params.level          = 0      // bgzf compression level for intermediate files, 0..9
-params.bwa            = '/home/public/usr/bin/bwa'  // not intended to be set by user
+
+// The following parameters are not meant to be set by the end user:
+params.bwa            = '/home/public/usr/bin/bwa'
+params.bammangle      = '/home/bioinf/usr/bin/bam-mangle'
+params.bamrmdup       = '/home/bioinf/usr/bin/bam-rmdup'
 
 
 process splitBam {
@@ -113,26 +116,21 @@ process filterUnmapped {
 
 post_filter_unmapped = params.filterunmapped ? filter_unmapped_out : post_filter_paired
 
-dedup_in = params.dedup ? post_filter_unmapped : Channel.empty()
-
-process removeDups {
-    conda "$baseDir/envs/sediment.yaml"
+process filterLength {
     tag "$rg"
 
     input:
-    set rg, 'input.bam' from dedup_in
-    
+    set rg, 'input.bam' from post_filter_unmapped
+
     output:
-    set rg, 'dedup.bam' into dedup_out
+    set rg, 'output.bam' into tofasta_in
+    set rg, 'output.bam' into for_extraction
 
     script:
     """
-    countdups.py -l $params.level -o dedup.bam -s stat.txt -c $params.cutoff input.bam
+    $params.bammangle -e "LENGTH >= $params.cutoff" -o output.bam input.bam
     """
 }
-
-(params.dedup ? dedup_out : post_filter_unmapped)
-    .into{ tofasta_in; for_extraction }
 
 process toFasta {
     conda "$baseDir/envs/bam2fasta.yaml"
@@ -142,7 +140,7 @@ process toFasta {
     set rg, 'input.bam' from tofasta_in
 
     output:
-    set rg, 'output.fa' into dedup_fasta
+    set rg, 'output.fa' into tofasta_out
 
     script:
     """
@@ -159,7 +157,7 @@ process runKraken {
     tag "$rg"
 
     input:
-    set rg, 'input.fa' from dedup_fasta
+    set rg, 'input.fa' from tofasta_out
 
     output:
     set rg, "${kraken_translate}" into kraken_assignments
