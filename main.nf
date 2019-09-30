@@ -135,7 +135,7 @@ process filterLength {
 }
 
 process toFasta {
-    conda "$baseDir/envs/bam2fasta.yaml"
+    conda "$baseDir/envs/sediment.yaml"
     tag "$rg"
 
     input:
@@ -146,7 +146,7 @@ process toFasta {
 
     script:
     """
-    bam2fastx -a -Q -A -o output.fa input.bam
+    samtools fasta input.bam > output.fa
     """
 }
 

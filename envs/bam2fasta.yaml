@@ -1,6 +1,0 @@
-name: nxf_bam2fasta
-channels:
-  - defaults
-  - bioconda
-dependencies:
-  - tophat
