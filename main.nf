@@ -267,7 +267,7 @@ mapped_count
         }
 
 process dedupBam {
-    publishDir 'out', mode: 'link', saveAs: { out_bam}
+    publishDir 'out', mode: 'link', saveAs: { out_bam }
     tag "$rg:family:$species"
 
     input:
@@ -275,6 +275,7 @@ process dedupBam {
 
     output:
     set family, rg, species, stdout into deduped_count
+    file 'output.bam'
 
     script:
     out_bam = "${family}/aligned/${rg}.${species}.bam"
