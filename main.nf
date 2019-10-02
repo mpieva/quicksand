@@ -20,6 +20,7 @@ def helpMessage() {
       --filterpaired     filter paired reads
       --filterunmapped   filter unmapped reads
       --level N          set BGZF compression level (default: 6)
+      --krakenthreads N  numbrer of threads per Kraken process (default: 4)
       
     A selection of built-in Nextflow flags that may be of use:
       -resume            resume processing; do not re-run completed processes
@@ -49,6 +50,7 @@ params.filterpaired   = false  // filter out paired
 params.filterunmapped = false  // filter out unmapped
 params.dedup          = false  // deduplicate after splitting
 params.level          = 0      // bgzf compression level for intermediate files, 0..9
+params.krakenthreads  = 4      // number of threads per kraken process
 
 // The following parameters are not meant to be set by the end user:
 params.bwa            = '/home/public/usr/bin/bwa'
@@ -177,9 +179,10 @@ process toFasta {
 process runKraken {
     conda "$baseDir/envs/sediment.yaml"
     publishDir 'kraken', mode: 'link'
+    cpus "${params.krakenthreads}"
     memory '16GB'   // XXX make dynamic based on size of params.db
     label 'bigmem'
-    label 'local'   // Currently having issued with bigmem jobs on SGE
+    label 'local'   // Currently having issues with bigmem jobs on SGE
     tag "$rg"
 
     input:
@@ -193,7 +196,7 @@ process runKraken {
     kraken_out = "${rg}.kraken"
     kraken_translate = "${rg}.translate"
     """
-    kraken --db $params.db --output $kraken_out input.fa
+    kraken --threads ${task.cpus} --db $params.db --output $kraken_out input.fa
     kraken-translate --db $params.db --mpa-format $kraken_out >$kraken_translate
     """
 }
