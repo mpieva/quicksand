@@ -11,5 +11,6 @@ dependencies:
   - kraken=1.1.1
   - samtools=1.9
   - bamfilter=0.2.8
+  - bam-lengthfilter=0.1.1
   - pip:
-      - git+http://vcs.eva.mpg.de/visagie/pysplitbam@v0.1.4#egg=splitbam
+      - git+http://vcs.eva.mpg.de/visagie/pysplitbam@v0.1.5#egg=splitbam

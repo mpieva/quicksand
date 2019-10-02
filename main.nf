@@ -54,7 +54,6 @@ params.krakenthreads  = 4      // number of threads per kraken process
 
 // The following parameters are not meant to be set by the end user:
 params.bwa            = '/home/public/usr/bin/bwa'
-params.bammangle      = '/home/bioinf/usr/bin/bam-mangle'
 params.bamrmdup       = '/home/bioinf/usr/bin/bam-rmdup'
 
 
@@ -138,6 +137,7 @@ process filterUnmapped {
 post_filter_unmapped = params.filterunmapped ? filter_unmapped_out : post_filter_paired
 
 process filterLength {
+    conda "$baseDir/envs/sediment.yaml"
     tag "$rg"
 
     input:
@@ -150,13 +150,9 @@ process filterLength {
 
     script:
     """
-    $params.bammangle -e "LENGTH >= $params.cutoff" input.bam \
-      | samtools view -h \
-      | samtools view -b -1 -o output.bam
+    bam-lengthfilter -c $params.cutoff -l $params.level -o output.bam input.bam
     samtools view -c output.bam
     """
-    // bam-mangle doesn't write @SQ fields; samtools fixes this
-    // XXX get rid of this ridiculous workaround!!!
 }
 
 filtercounts.join(splitcounts)
