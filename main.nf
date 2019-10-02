@@ -59,6 +59,7 @@ params.bamrmdup       = '/home/bioinf/usr/bin/bam-rmdup'
 process splitBam {
     conda "$baseDir/envs/sediment.yaml"
     maxForks 1
+    publishDir 'split', mode: 'link'
     label 'local'
 
     input:
@@ -76,7 +77,23 @@ process splitBam {
 
 splitfiles
     .map { [it.baseName, it] }
-    .set { splitfiles }
+    .into { splitfiles; splitstats }
+
+process splitStats {
+    conda "$baseDir/envs/sediment.yaml"
+    tag "$rg"
+
+    input:
+    set rg, 'input.bam' from splitstats
+
+    output:
+    set rg, stdout into splitcounts
+
+    script:
+    """
+    samtools view -c input.bam
+    """
+}
 
 filter_paired_in = params.filterpaired ? splitfiles : Channel.empty()
 
@@ -127,12 +144,19 @@ process filterLength {
     output:
     set rg, 'output.bam' into tofasta_in
     set rg, 'output.bam' into for_extraction
+    set rg, stdout into filtercounts
 
     script:
     """
     $params.bammangle -e "LENGTH >= $params.cutoff" -o output.bam input.bam
+    samtools view -c output.bam
     """
 }
+
+filtercounts.join(splitcounts)
+    .map { rg, fc, sc -> "${rg}\t${sc.trim()}\t${fc.trim()}"}
+    .collectFile(storeDir: 'stats', name: "splitcounts.tsv", newLine: true,
+                 seed: "readgroup\tsplit count\tfiltered count")
 
 process toFasta {
     conda "$baseDir/envs/sediment.yaml"
