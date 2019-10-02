@@ -150,9 +150,13 @@ process filterLength {
 
     script:
     """
-    $params.bammangle -e "LENGTH >= $params.cutoff" -o output.bam input.bam
+    $params.bammangle -e "LENGTH >= $params.cutoff" input.bam \
+      | samtools view -h \
+      | samtools view -b -1 -o output.bam
     samtools view -c output.bam
     """
+    // bam-mangle doesn't write @SQ fields; samtools fixes this
+    // XXX get rid of this ridiculous workaround!!!
 }
 
 filtercounts.join(splitcounts)
@@ -248,8 +252,8 @@ process extractBam {
     out_bam = "${family}/${rg}_extractedReads-${family}.bam"
     """
     grep "c__Mammalia.*f__$family" kraken.translate | cut -f1 > ids.txt
-    cat <(samtools view -H input.bam) <(samtools view input.bam|idfilter.py ids.txt) \
-    | samtools sort -n -l $params.level -o output.bam
+    bamfilter -i ids.txt -l0 input.bam \
+      | samtools sort -n -l $params.level -o output.bam
     samtools view -c output.bam
     """
 }

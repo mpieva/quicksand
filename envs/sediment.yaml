@@ -3,11 +3,13 @@ channels:
   - defaults
   - bioconda
   - conda-forge
+  - /home/public/conda
 dependencies:
   - python=3.7
   - pip>=19
   - pysam=0.15.2
   - kraken=1.1.1
   - samtools=1.9
+  - bamfilter=0.2.8
   - pip:
       - git+http://vcs.eva.mpg.de/visagie/pysplitbam@v0.1.4#egg=splitbam
