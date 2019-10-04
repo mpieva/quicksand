@@ -69,12 +69,16 @@ process splitBam {
 
     output:
     file '*.bam' into splitfiles mode flatten
+    stdout into splitscriptstats
 
     script:
     """
-    splitbam -c $params.level -f indices.tsv --minscore 10 --maxnumber 0 input.bam
+    splitbam -s -c $params.level -f indices.tsv --minscore 10 --maxnumber 0 input.bam
     """
 }
+
+splitscriptstats
+    .collectFile(storeDir: 'stats', name: "splitstats.tsv", newLine: true)
 
 splitfiles
     .map { [it.baseName, it] }
