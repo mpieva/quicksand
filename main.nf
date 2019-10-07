@@ -17,6 +17,7 @@ def helpMessage() {
     optional arguments:
       --cutoff N         length cutoff (default: 35)
       --quality N        quality filter (default: 25)
+      --bwacutoff N      cutoff for number of kraken matches (default: 0)
       --filterpaired     filter paired reads
       --filterunmapped   filter unmapped reads
       --level N          set BGZF compression level (default: 6)
@@ -46,6 +47,7 @@ params.db             = ''
 params.genome         = ''
 params.cutoff         = 35
 params.quality        = 25
+params.bwacutoff      = 0
 params.filterpaired   = false  // filter out paired
 params.filterunmapped = false  // filter out unmapped
 params.dedup          = false  // deduplicate after splitting
@@ -236,31 +238,50 @@ for_extraction
     .unique()
     .set { for_extraction }
 
-process extractBam {
-    conda "$baseDir/envs/sediment.yaml"
-    publishDir 'out', mode: 'link', saveAs: { out_bam }
+process gatherByFamily {
     tag "$rg:$family"
 
     input:
     set rg, 'input.bam', 'kraken.translate', family from for_extraction
 
     output:
-    set family, rg, 'output.bam' into extracted_reads
-    set family, rg, stdout into extracted_read_count
+    set family, rg, 'input.bam', 'ids.txt', stdout into prepared_for_extraction
 
     script:
     out_bam = "${family}/${rg}_extractedReads-${family}.bam"
     """
-    grep "c__Mammalia.*f__$family" kraken.translate | cut -f1 > ids.txt
-    bamfilter -i ids.txt -l $params.level -o output.bam input.bam
-    samtools view -c output.bam
+    grep "c__Mammalia.*f__$family" kraken.translate | cut -f1 | tee ids.txt | wc -l
     """
 }
 
-extracted_read_count
-    .collectFile(storeDir: 'stats') { family, rg, count ->
-        [ "${rg}_extracted.tsv", "${family}\t${count}"]
-    }
+prepared_for_extraction
+    .into { count_for_stats; prepared_for_extraction }
+
+count_for_stats
+        .collectFile(storeDir: 'stats') { family, rg, bamf, idf, count ->
+            [ "${rg}_extracted.tsv", "${family}\t${count}"]
+        }
+
+process extractBam {
+    conda "$baseDir/envs/sediment.yaml"
+    publishDir 'out', mode: 'link', saveAs: { out_bam }
+    tag "$rg:$family"
+
+    input:
+    set family, rg, 'input.bam', 'ids.txt', idcount from prepared_for_extraction
+
+    output:
+    set family, rg, 'output.bam' into extracted_reads
+
+    when:
+    idcount.toInteger() >= params.bwacutoff
+
+    script:
+    out_bam = "${family}/${rg}_extractedReads-${family}.bam"
+    """
+    bamfilter -i ids.txt -l $params.level -o output.bam input.bam
+    """
+}
 
 Channel.fromPath("${params.genome}/*", type: 'dir')
     .map { [it.baseName, file("${it}/*.fasta")] }
