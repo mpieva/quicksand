@@ -252,8 +252,7 @@ process extractBam {
     out_bam = "${family}/${rg}_extractedReads-${family}.bam"
     """
     grep "c__Mammalia.*f__$family" kraken.translate | cut -f1 > ids.txt
-    bamfilter -i ids.txt -l0 input.bam \
-      | samtools sort -n -l $params.level -o output.bam
+    bamfilter -i ids.txt -l $params.level -o output.bam input.bam
     samtools view -c output.bam
     """
 }
@@ -285,7 +284,8 @@ process mapBwa {
     species = genome_fasta.baseName
     out_bam = "${family}/aligned/${rg}.${species}.bam"
     """
-    $params.bwa bam2bam -g $genome_fasta -n 0.01 -o 2 -l 16500 --only-aligned input.bam \
+    samtools sort -n -l0 input.bam \
+    | $params.bwa bam2bam -g $genome_fasta -n 0.01 -o 2 -l 16500 --only-aligned - \
     | samtools view -b -u -q $params.quality \
     | samtools sort -l $params.level -o output.bam
     samtools view -c output.bam
