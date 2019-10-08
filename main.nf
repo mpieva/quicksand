@@ -150,7 +150,7 @@ process filterLength {
     set rg, 'input.bam' from post_filter_unmapped
 
     output:
-    set rg, 'output.bam' into tofasta_in
+    set rg, 'output.bam', stdout into tofasta_in
     set rg, 'output.bam' into for_extraction
     set rg, stdout into filtercounts
 
@@ -171,10 +171,13 @@ process toFasta {
     tag "$rg"
 
     input:
-    set rg, 'input.bam' from tofasta_in
+    set rg, 'input.bam', filtered_count from tofasta_in
 
     output:
     set rg, 'output.fa' into tofasta_out
+
+    when:
+    filtered_count.toInteger() > 0
 
     script:
     """
@@ -202,7 +205,7 @@ process runKraken {
     kraken_out = "${rg}.kraken"
     kraken_translate = "${rg}.translate"
     """
-    kraken --threads ${task.cpus} --db $params.db --output $kraken_out input.fa
+    kraken --threads ${task.cpus} --db $params.db --output $kraken_out --fasta-input input.fa
     kraken-translate --db $params.db --mpa-format $kraken_out >$kraken_translate
     """
 }
