@@ -308,7 +308,7 @@ process mapBwa {
 
     script:
     species = genome_fasta.baseName
-    out_bam = "${family}/aligned/${rg}.${species}_dededup.bam"
+    out_bam = "${family}/aligned/${rg}.${species}.bam"
     """
     samtools sort -n -l0 input.bam \
     | $params.bwa bam2bam -g $genome_fasta -n 0.01 -o 2 -l 16500 --only-aligned - \
@@ -335,7 +335,7 @@ process dedupBam {
     file 'output.bam'
 
     script:
-    out_bam = "${family}/aligned/${rg}.${species}.bam"
+    out_bam = "${family}/aligned/${rg}.${species}_deduped.bam"
     """
     $params.bamrmdup -r -o output.bam input.bam >rmdup.txt
     samtools view -c output.bam
