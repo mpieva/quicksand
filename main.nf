@@ -294,6 +294,7 @@ Channel.fromPath("${params.genome}/*", type: 'dir')
     .set { for_mapping }
 
 process mapBwa {
+    publishDir 'out', mode: 'link', saveAs: { out_bam }
     conda "$baseDir/envs/sediment.yaml"
     tag "$rg:$family:$species"
 
@@ -301,12 +302,13 @@ process mapBwa {
     set family, rg, 'input.bam', genome_fasta from for_mapping
 
     output:
+    file 'output.bam'
     set family, rg, species, 'output.bam' into mapped_bam
     set family, rg, species, stdout into mapped_count
 
     script:
     species = genome_fasta.baseName
-    out_bam = "${family}/aligned/${rg}.${species}.bam"
+    out_bam = "${family}/aligned/${rg}.${species}_dededup.bam"
     """
     samtools sort -n -l0 input.bam \
     | $params.bwa bam2bam -g $genome_fasta -n 0.01 -o 2 -l 16500 --only-aligned - \
