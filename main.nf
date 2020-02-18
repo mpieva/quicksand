@@ -198,7 +198,7 @@ process runKraken {
     set rg, 'input.fa' from tofasta_out
 
     output:
-    set rg, "${kraken_translate}" into kraken_assignments
+    set rg, "${kraken_translate_filter}" into kraken_assignments
     set rg, "${kraken_out}" into kraken_raw
 
     script:
@@ -207,6 +207,8 @@ process runKraken {
     """
     kraken --threads ${task.cpus} --db $params.db --output $kraken_out --fasta-input input.fa
     kraken-translate --db $params.db --mpa-format $kraken_out >$kraken_translate
+    kraken-filter -threshold 0.1' --db $params.db $kraken_out >$kraken_filter_out
+    kraken-translate --db $params.db --mpa-format $k$kraken_filter_out >$kraken_translate_filter
     """
 }
 
