@@ -204,6 +204,8 @@ process runKraken {
     script:
     kraken_out = "${rg}.kraken"
     kraken_translate = "${rg}.translate"
+    kraken_filter_out = "${rg}.filter_kraken"
+    kraken_translate_filter = "${rg}.filter_translate"
     """
     kraken --threads ${task.cpus} --db $params.db --output $kraken_out --fasta-input input.fa
     kraken-translate --db $params.db --mpa-format $kraken_out >$kraken_translate
