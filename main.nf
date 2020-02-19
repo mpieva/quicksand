@@ -209,8 +209,8 @@ process runKraken {
     """
     kraken --threads ${task.cpus} --db $params.db --output $kraken_out --fasta-input input.fa
     kraken-translate --db $params.db --mpa-format $kraken_out >$kraken_translate
-    kraken-filter -threshold 0.1' --db $params.db $kraken_out >$kraken_filter_out
-    kraken-translate --db $params.db --mpa-format $k$kraken_filter_out >$kraken_translate_filter
+    kraken-filter -threshold 0.1 --db $params.db $kraken_out >$kraken_filter_out
+    kraken-translate --db $params.db --mpa-format $kraken_filter_out >$kraken_translate_filter
     """
 }
 
