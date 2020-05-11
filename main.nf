@@ -58,7 +58,7 @@ params.krakenthreads  = 4      // number of threads per kraken process
 // The following parameters are not meant to be set by the end user:
 params.bwa            = '/home/public/usr/bin/bwa'
 params.bamrmdup       = '/home/bioinf/usr/bin/bam-rmdup'
-params.bedfiles       = '/mnt/sequencedb/RefSeq/refseq_mammalian_mt_rel97/masked/'
+params.bedfiles       = '/mnt/sequencedb/Refseq/refseq_mammalian_mt_rel97/masked'
 
 process splitBam {
     conda "$baseDir/envs/sediment.yaml"
@@ -339,7 +339,7 @@ process dedupBam {
 
     output:
     set family, rg, species, stdout into deduped_count
-    set species, family, rg, "output.bam" into to_bed
+    set species, family, rg, "output.bam" into to_bed_in
     file 'output.bam'
 
     script:
@@ -357,29 +357,31 @@ deduped_count
 
 
 //get the right bed_file
-Channel.fromPath("${params.bedfiles}/*.bed")            //all the bedfiles
-        .map{ [it.baseName, it] }                       //make a map, with species as key 
-        .cross(to_bed)                                  //throw it together
-        .map{x, y -> [x[0], y[1], y[2],y[3], x[1]]}     //get species, family, rg, bamfile and bedfile
-        .set(to_bed)
+ch = Channel.fromPath("${params.bedfiles}/*.bed", type:'file')          //all the bedfiles
+    .map{[it.baseName.replaceAll(/.masked/,""), it] }		        //make a map, with species as key 
+    .cross(to_bed_in)                                                   //throw it together
+    .map{x, y -> [x[0], y[1], y[2],y[3], x[1]]}                         //get species, family, rg, bamfile and bedfile
+    .set{to_bed_out}
+
 
 //and filter out reads that intersect with masked regions
 process runIntersectBed{
     tag "$rg:family:species"
-    publishDir 'out', mode: 'link', saveAs: { out_bed }
-    
+    publishDir 'out', mode: 'link', saveAs: { out_bam }    
+
     input:
-    set species, family, rg, "inbam.bam", "inbed.bed" from to_bed
-        
+    set species, family, rg, "inbam.bam", "inbed.bed" from to_bed_out
+
     output:
     file "outbam.bam"
     
     when:
-        family != "Hominidae"
+    family != "Hominidae"
         
     script:
-    out_bed = "${family}/bed/${rg}.${species}_rmintersect.bam"
+    out_bam = "${family}/bed/${rg}.${species}_bedfiltered.bam"
+    
     """
-    intersectBed [OPTIONS] -a inbam.bam -b inbed.bed -v > outbam.bam
+    bedtools intersect -a inbam.bam -b inbed.bed -v > outbam.bam
     """
     }
