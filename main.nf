@@ -46,6 +46,7 @@ params.rg             = ''
 params.db             = ''
 params.genome         = ''
 params.cutoff         = 35
+params.kraken_filter  = 0.1    // the threshold for the filter-script 
 params.quality        = 25
 params.bwacutoff      = 0
 params.filterpaired   = false  // filter out paired
@@ -57,7 +58,7 @@ params.krakenthreads  = 4      // number of threads per kraken process
 // The following parameters are not meant to be set by the end user:
 params.bwa            = '/home/public/usr/bin/bwa'
 params.bamrmdup       = '/home/bioinf/usr/bin/bam-rmdup'
-
+params.bedfiles       = '/mnt/sequencedb/RefSeq/refseq_mammalian_mt_rel97/masked/'
 
 process splitBam {
     conda "$baseDir/envs/sediment.yaml"
@@ -83,7 +84,7 @@ splitscriptstats
     .collectFile(storeDir: 'stats', name: "splitstats.tsv", newLine: true)
 
 splitfiles
-    .map { [it.baseName, it] }
+    .map { [it.baseName, it] }      //it.basename = rg, it=full bam file
     .into { splitfiles; splitstats }
 
 process splitStats {
@@ -102,6 +103,8 @@ process splitStats {
     """
 }
 
+// if filterpaired==True, use splitfiles as channel, else an empty one
+
 filter_paired_in = params.filterpaired ? splitfiles : Channel.empty()
 
 process filterPaired {
@@ -119,17 +122,17 @@ process filterPaired {
     samtools view -b -u -F 1 -o output.bam input.bam
     """
 }
-
+//here the paths come together again
 post_filter_paired = params.filterpaired ? filter_paired_out : splitfiles
-
-filter_unampped_in = params.filterunmapped ? post_filter_paired : Channel.empty()
+// and do the same with the filter-unmapped step
+filter_unmapped_in = params.filterunmapped ? post_filter_paired : Channel.empty()
 
 process filterUnmapped {
     conda "$baseDir/envs/sediment.yaml"
     tag "$rg"
 
     input:
-    set rg, 'input.bam' from filter_unampped_in
+    set rg, 'input.bam' from filter_unmapped_in
 
     output:
     set rg, 'output.bam' into filter_unmapped_out
@@ -199,7 +202,7 @@ process runKraken {
 
     output:
     set rg, "${kraken_translate_filter}" into kraken_assignments
-    set rg, "${kraken_out}" into kraken_raw
+    set rg, "${kraken_filter_out}" into kraken_raw
 
     script:
     kraken_out = "${rg}.kraken"
@@ -209,7 +212,7 @@ process runKraken {
     """
     kraken --threads ${task.cpus} --db $params.db --output $kraken_out --fasta-input input.fa
     kraken-translate --db $params.db --mpa-format $kraken_out >$kraken_translate
-    kraken-filter -threshold 0.1 --db $params.db $kraken_out >$kraken_filter_out
+    kraken-filter -threshold $params.kraken_filter --db $params.db $kraken_out >$kraken_filter_out
     kraken-translate --db $params.db --mpa-format $kraken_filter_out >$kraken_translate_filter
     """
 }
@@ -291,7 +294,7 @@ process extractBam {
 }
 
 Channel.fromPath("${params.genome}/*", type: 'dir')
-    .map { [it.baseName, file("${it}/*.fasta")] }
+    .map { [it.baseName, file("${it}/*.fasta")] }   //family is the key here
     .cross(extracted_reads)
     .map { x, y -> [x[0], y[1], y[2], x[1]] }   // family, rg, bamfile, fasta_list
     .transpose(by: 3)
@@ -336,6 +339,7 @@ process dedupBam {
 
     output:
     set family, rg, species, stdout into deduped_count
+    set species, family, rg, "output.bam" into to_bed
     file 'output.bam'
 
     script:
@@ -350,3 +354,32 @@ deduped_count
         .collectFile(storeDir: 'stats') { family, rg, species, count ->
             [ "${rg}_unique_mapped.tsv", "${family}\t${species}\t${count}"]
         }
+
+
+//get the right bed_file
+Channel.fromPath("${params.bedfiles}/*.bed")            //all the bedfiles
+        .map{ [it.baseName, it] }                       //make a map, with species as key 
+        .cross(to_bed)                                  //throw it together
+        .map{x, y -> [x[0], y[1], y[2],y[3], x[1]]}     //get species, family, rg, bamfile and bedfile
+        .set(to_bed)
+
+//and filter out reads that intersect with masked regions
+process runIntersectBed{
+    tag "$rg:family:species"
+    publishDir 'out', mode: 'link', saveAs: { out_bed }
+    
+    input:
+    set species, family, rg, "inbam.bam", "inbed.bed" from to_bed
+        
+    output:
+    file "outbam.bam"
+    
+    when:
+        family != "Hominidae"
+        
+    script:
+    out_bed = "${family}/bed/${rg}.${species}_rmintersect.bam"
+    """
+    intersectBed [OPTIONS] -a inbam.bam -b inbed.bed -v > outbam.bam
+    """
+    }
