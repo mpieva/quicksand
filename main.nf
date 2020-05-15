@@ -379,7 +379,7 @@ process runIntersectBed{
     family != "Hominidae"
         
     script:
-    out_bam = "${family}/bed/${rg}.${species}_bedfiltered.bam"
+    out_bam = "${family}/bed/${rg}.${species}_deduped_bedfiltered.bam"
     
     """
     bedtools intersect -a inbam.bam -b inbed.bed -v > outbam.bam
