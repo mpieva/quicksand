@@ -374,14 +374,17 @@ process runIntersectBed{
 
     output:
     file "outbam.bam"
-    
-    when:
-    family != "Hominidae"
+    set family, rg, species, stdout into bedfilter_count
         
     script:
     out_bam = "${family}/bed/${rg}.${species}_deduped_bedfiltered.bam"
-    
     """
     bedtools intersect -a inbam.bam -b inbed.bed -v > outbam.bam
+    samtools view -c outbam.bam
     """
     }
+    
+bedfilter_count
+        .collectFile(storeDir: 'stats') { family, rg, species, count ->
+            [ "${rg}_bedfiltered.tsv", "${family}\t${species}\t${count}"]
+        }
