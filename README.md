@@ -60,7 +60,7 @@ The pipeline requires a number of flags to be present. These are not yet fully d
 To run the pipeline:
 
 ```bash
-nextflow run visagie/sediment_nf --db </path/to/kraken.db> --bam <input bamfile> --rg <index file>
+nextflow run visagie/sediment_nf --db </path/to/kraken.db> --bam <input bamfile> --rg <index file> --genome <reference database>
 ```
 
 You can use the optional flag `--dedup` to enable deduplication of the input before Kraken is run.
@@ -68,5 +68,5 @@ You can use the optional flag `--dedup` to enable deduplication of the input bef
 If you wish to *resume* a pipeline run (e.g. if you stopped it fomr some reason, and you do not want it to redo the steps it had already completed), you need to add the flag `-resume` (note: just one `-`) after `run`:
 
 ```bash
-nextflow run -resume visagie/sediment_nf --db </path/to/kraken.db> --bam <input bamfile> --rg <index file>
+nextflow run -resume visagie/sediment_nf --db </path/to/kraken.db> --bam <input bamfile> --rg <index file> --genome <reference database>
 ```

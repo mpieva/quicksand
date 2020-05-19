@@ -369,7 +369,7 @@ process runIntersectBed{
     tag "$rg:family:species"
     publishDir 'out', mode: 'link', saveAs: { out_bam }    
 
-    input:
+    input:merlin_szymanski@bio69:/mnt/scratch/merlin/Dec19/Experiments/Dataset3_plusBed_p2
     set species, family, rg, "inbam.bam", "inbed.bed" from to_bed_out
 
     output:
