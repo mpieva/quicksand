@@ -58,7 +58,7 @@ params.krakenthreads  = 4      // number of threads per kraken process
 // The following parameters are not meant to be set by the end user:
 params.bwa            = '/home/public/usr/bin/bwa'
 params.bamrmdup       = '/home/bioinf/usr/bin/bam-rmdup'
-params.bedfiles       = '/mnt/sequencedb/Refseq/refseq_mammalian_mt_rel97/masked'
+params.bedfiles       = '/mnt/scratch/merlin/fred_refseq_masked'
 
 process splitBam {
     conda "$baseDir/envs/sediment.yaml"
@@ -369,7 +369,7 @@ process runIntersectBed{
     tag "$rg:family:species"
     publishDir 'out', mode: 'link', saveAs: { out_bam }    
 
-    input:merlin_szymanski@bio69:/mnt/scratch/merlin/Dec19/Experiments/Dataset3_plusBed_p2
+    input:
     set species, family, rg, "inbam.bam", "inbed.bed" from to_bed_out
 
     output:
