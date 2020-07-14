@@ -58,7 +58,7 @@ params.krakenthreads  = 4      // number of threads per kraken process
 // The following parameters are not meant to be set by the end user:
 params.bwa            = '/home/public/usr/bin/bwa'
 params.bamrmdup       = '/home/bioinf/usr/bin/bam-rmdup'
-params.bedfiles       = '/mnt/scratch/merlin/fred_refseq_masked'
+params.bedfiles       = '/mnt/sequencedb/Refseq/refseq_mammalian_mt_rel97/masked/'
 
 process splitBam {
     conda "$baseDir/envs/sediment.yaml"
