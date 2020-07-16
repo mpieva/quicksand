@@ -44,7 +44,7 @@ if (params.help) {
 params.bam            = ''
 params.rg             = ''
 params.db             = ''
-params.genome         = ''
+params.genome         = ''      // XXX either add default or check for empty
 params.cutoff         = 35
 params.kraken_filter  = 0.1    // the threshold for the filter-script 
 params.quality        = 25
@@ -294,10 +294,10 @@ process extractBam {
 }
 
 Channel.fromPath("${params.genome}/*", type: 'dir')
-    .map { [it.baseName, file("${it}/*.fasta")] }   //family is the key here
+    .map { [it.baseName, file("${it}/*.fasta")] }
     .cross(extracted_reads)
-    .map { x, y -> [x[0], y[1], y[2], x[1]] }   // family, rg, bamfile, fasta_list
-    .transpose(by: 3)
+    .map { x, y -> [x[0], y[1], y[2], x[1]] } // family, rg, bamfile, fasta_list
+    .transpose(by: 3)                         // family, rg, bamfile, fasta_file
     .set { for_mapping }
 
 process mapBwa {
@@ -332,7 +332,7 @@ mapped_count
 
 process dedupBam {
     publishDir 'out', mode: 'link', saveAs: { out_bam }
-    tag "$rg:family:$species"
+    tag "$rg:$family:$species"
 
     input:
     set family, rg, species, 'input.bam' from mapped_bam
