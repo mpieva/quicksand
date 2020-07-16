@@ -309,9 +309,8 @@ process mapBwa {
     set family, rg, 'input.bam', genome_fasta from for_mapping
 
     output:
-    file 'output.bam'
     set family, rg, species, 'output.bam' into mapped_bam
-    set family, rg, species, stdout into mapped_count
+    set family, rg, species, stdout into coverage_count
 
     script:
     species = genome_fasta.baseName
@@ -321,13 +320,13 @@ process mapBwa {
     | $params.bwa bam2bam -g $genome_fasta -n 0.01 -o 2 -l 16500 --only-aligned - \
     | samtools view -b -u -q $params.quality \
     | samtools sort -l $params.level -o output.bam
-    samtools view -c output.bam
+    samtools coverage -H output.bam | cut -f 5
     """
 }
 
-mapped_count
-        .collectFile(storeDir: 'stats') { family, rg, species, count ->
-            [ "${rg}_mapped.tsv", "${family}\t${species}\t${count}"]
+coverage_count
+        .collectFile(storeDir: 'stats') { family, rg, species, covbases ->
+            [ "${rg}_mapped_coverage.tsv", "${family}\t${species}\t${covbases}"]
         }
 
 process dedupBam {
