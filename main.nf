@@ -46,12 +46,12 @@ params.rg             = ''
 params.db             = ''
 params.genome         = ''
 params.cutoff         = 35
-params.kraken_filter  = 0.1    // the threshold for the filter-script 
 params.quality        = 25
 params.bwacutoff      = 0
 params.filterpaired   = false  // filter out paired
 params.filterunmapped = false  // filter out unmapped
 params.dedup          = false  // deduplicate after splitting
+params.kraken_filter  = false  // a kraken-filter step with the given weight
 params.level          = 0      // bgzf compression level for intermediate files, 0..9
 params.krakenthreads  = 4      // number of threads per kraken process
 
@@ -124,6 +124,7 @@ process filterPaired {
 }
 //here the paths come together again
 post_filter_paired = params.filterpaired ? filter_paired_out : splitfiles
+
 // and do the same with the filter-unmapped step
 filter_unmapped_in = params.filterunmapped ? post_filter_paired : Channel.empty()
 
@@ -190,48 +191,83 @@ process toFasta {
 
 process runKraken {
     conda "$baseDir/envs/sediment.yaml"
-    publishDir 'kraken', mode: 'link'
+    publishDir 'kraken', mode: 'link', saveAs: {"${rg}.kraken"}
     cpus "${params.krakenthreads}"
-    memory '16GB'   // XXX make dynamic based on size of params.db
+    memory '16GB'
     label 'bigmem'
-    label 'local'   // Currently having issues with bigmem jobs on SGE
+    label 'local'
     tag "$rg"
 
     input:
-    set rg, 'input.fa' from tofasta_out
+    set rg, input.fa from tofasta_out
 
     output:
-    set rg, "${kraken_translate_filter}" into kraken_assignments
-    set rg, "${kraken_filter_out}" into kraken_raw
+    set rg, "kraken_out" into kraken_out
+    
+    script:
+    """
+    kraken --threads ${task.cpus} --db $params.db --output $kraken_out --fasta-input $input.fa
+    """
+}
+
+kraken_filter_in = params.kraken_filter ? kraken_out : Channel.empty()
+
+process filterKraken{
+    conda "$baseDir/envs/sediment.yaml"
+    publishDir 'kraken', mode: 'link', saveAs: {"${rg}_filter_${params.kraken_filter}.kraken"}
+    label 'local'
+    tag "$rg"
+    
+    input:
+    set rg, kraken_out from kraken_filter_in 
+    
+    output:
+    set rg, "kraken_filter_out" into kraken_filter_out
+    
+    when:
+    params.kraken_filter
+    
+    script:
+    """
+    kraken-filter -threshold $params.kraken_filter --db $params.db $kraken_out >$kraken_filter_out
+    """
+}
+
+post_kraken_filter = params.kraken_filter ? kraken_filter_out : kraken_out
+
+process translateKraken{
+    conda "$baseDir/envs/sediment.yaml"
+    publishDir 'kraken', mode: 'link', saveAs: {"${rg}.translate"}
+    label 'local'
+    tag "$rg"
+    
+    input:
+    set rg, kraken_out from post_kraken_filter
+
+    output:
+    set rg, "kraken_translate" into kraken_assignments
 
     script:
-    kraken_out = "${rg}.kraken"
-    kraken_translate = "${rg}.translate"
-    kraken_filter_out = "${rg}.filter_kraken"
-    kraken_translate_filter = "${rg}.filter_translate"
     """
-    kraken --threads ${task.cpus} --db $params.db --output $kraken_out --fasta-input input.fa
-    kraken-translate --db $params.db --mpa-format $kraken_out >$kraken_translate
-    kraken-filter -threshold $params.kraken_filter --db $params.db $kraken_out >$kraken_filter_out
-    kraken-translate --db $params.db --mpa-format $kraken_filter_out >$kraken_translate_filter
+    kraken-translate --db $params.db --mpa-format $kraken_out > $kraken_translate
     """
 }
 
 process statsKraken {
     conda "$baseDir/envs/sediment.yaml"
-    publishDir 'kraken', mode: 'link', saveAs: { "${rg}.report" }
+    publishDir 'kraken', mode: 'link', saveAs: {"${rg}.report"}
     label 'local'
     tag "$rg"
 
     input:
-    set rg, 'input.kraken' from kraken_raw
+    set rg, kraken_out from post_kraken_filter
 
     output:
     file 'kraken.report'
 
     script:
     """
-    kraken-mpa-report --db $params.db input.kraken >kraken.report
+    kraken-mpa-report --db $params.db $kraken_out >kraken.report
     """
 }
 
