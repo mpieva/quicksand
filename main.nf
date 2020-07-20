@@ -199,14 +199,14 @@ process runKraken {
     tag "$rg"
 
     input:
-    set rg, input.fa from tofasta_out
+    set rg, "input.fa" from tofasta_out
 
     output:
-    set rg, "kraken_out" into kraken_out
+    set rg, "output.kraken" into kraken_out
     
     script:
     """
-    kraken --threads ${task.cpus} --db $params.db --output $kraken_out --fasta-input $input.fa
+    kraken --threads ${task.cpus} --db $params.db --output output.kraken --fasta-input input.fa
     """
 }
 
@@ -214,22 +214,22 @@ kraken_filter_in = params.kraken_filter ? kraken_out : Channel.empty()
 
 process filterKraken{
     conda "$baseDir/envs/sediment.yaml"
-    publishDir 'kraken', mode: 'link', saveAs: {"${rg}_filter_${params.kraken_filter}.kraken"}
+    publishDir 'kraken', mode: 'link', saveAs: {"${rg}.kraken_filter"}
     label 'local'
     tag "$rg"
     
     input:
-    set rg, kraken_out from kraken_filter_in 
+    set rg, "input.kraken" from kraken_filter_in 
     
     output:
-    set rg, "kraken_filter_out" into kraken_filter_out
+    set rg, "output_filtered.kraken" into kraken_filter_out
     
     when:
     params.kraken_filter
     
     script:
     """
-    kraken-filter -threshold $params.kraken_filter --db $params.db $kraken_out >$kraken_filter_out
+    kraken-filter -threshold $params.kraken_filter --db $params.db input.kraken > output_filtered.kraken
     """
 }
 
@@ -237,37 +237,22 @@ post_kraken_filter = params.kraken_filter ? kraken_filter_out : kraken_out
 
 process translateKraken{
     conda "$baseDir/envs/sediment.yaml"
-    publishDir 'kraken', mode: 'link', saveAs: {"${rg}.translate"}
+    publishDir 'kraken', mode: 'link', pattern:"*translate", saveAs: {"${rg}.translate"}
+    publishDir 'kraken', mode: 'link', pattern:"*report", saveAs: {"${rg}.report"}
     label 'local'
     tag "$rg"
     
     input:
-    set rg, kraken_out from post_kraken_filter
+    set rg, "input.kraken" from post_kraken_filter
 
     output:
-    set rg, "kraken_translate" into kraken_assignments
-
-    script:
-    """
-    kraken-translate --db $params.db --mpa-format $kraken_out > $kraken_translate
-    """
-}
-
-process statsKraken {
-    conda "$baseDir/envs/sediment.yaml"
-    publishDir 'kraken', mode: 'link', saveAs: {"${rg}.report"}
-    label 'local'
-    tag "$rg"
-
-    input:
-    set rg, kraken_out from post_kraken_filter
-
-    output:
+    set rg, "kraken.translate" into kraken_assignments
     file 'kraken.report'
 
     script:
     """
-    kraken-mpa-report --db $params.db $kraken_out >kraken.report
+    kraken-translate --db $params.db --mpa-format input.kraken > kraken.translate
+    kraken-mpa-report --db $params.db input.kraken > kraken.report
     """
 }
 
@@ -388,7 +373,6 @@ process dedupBam {
 
 deduped_count
         .collectFile(storeDir: 'stats') { family, rg, species, count ->
-            [ "${rg}_unique_mapped.tsv", "${family}\t${species}\t${count}"]
         }
 
 
