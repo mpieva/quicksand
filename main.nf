@@ -3,7 +3,7 @@
 def helpMessage() {
     log.info"""
     Usage: nextflow run sediment_nf --bam PATH --rg PATH --db PATH --genome PATH
-                                    [--cutoff N] [--level N] [--filter] [--dedup]
+                                    [--cutoff N] [--level N] [--filterpaired] [--filterunmapped] [--krakenfilter N]
            
     Run sediment analysis pipeline.
     
@@ -20,6 +20,7 @@ def helpMessage() {
       --bwacutoff N      cutoff for number of kraken matches (default: 0)
       --filterpaired     filter paired reads
       --filterunmapped   filter unmapped reads
+      --krakenfilter N   kraken-filter with threshold N [0,1] (default: 0)
       --level N          set BGZF compression level (default: 6)
       --krakenthreads N  numbrer of threads per Kraken process (default: 4)
       
@@ -50,8 +51,7 @@ params.quality        = 25
 params.bwacutoff      = 0
 params.filterpaired   = false  // filter out paired
 params.filterunmapped = false  // filter out unmapped
-params.dedup          = false  // deduplicate after splitting
-params.kraken_filter  = false  // a kraken-filter step with the given weight
+params.krakenfilter   = false  // a kraken-filter step with the given weight
 params.level          = 0      // bgzf compression level for intermediate files, 0..9
 params.krakenthreads  = 4      // number of threads per kraken process
 
@@ -80,19 +80,21 @@ process splitBam {
     """
 }
 
+
 splitscriptstats
     .collectFile(storeDir: 'stats', name: "splitstats.tsv", newLine: true)
 
 splitfiles
-    .map { [it.baseName, it] }      //it.basename = rg, it=full bam file
-    .into { splitfiles; splitstats }
+    .map{ [it.baseName, it] }      //it.basename = rg, it=full bam file
+    .into{ splitfiles; splitstats }
+    
 
 process splitStats {
     conda "$baseDir/envs/sediment.yaml"
     tag "$rg"
 
     input:
-    set rg, 'input.bam' from splitstats
+    set rg,'input.bam' from splitstats
 
     output:
     set rg, stdout into splitcounts
@@ -210,7 +212,7 @@ process runKraken {
     """
 }
 
-kraken_filter_in = params.kraken_filter ? kraken_out : Channel.empty()
+kraken_filter_in = params.krakenfilter ? kraken_out : Channel.empty()
 
 process filterKraken{
     conda "$baseDir/envs/sediment.yaml"
@@ -225,15 +227,15 @@ process filterKraken{
     set rg, "output_filtered.kraken" into kraken_filter_out
     
     when:
-    params.kraken_filter
+    params.krakenfilter
     
     script:
     """
-    kraken-filter -threshold $params.kraken_filter --db $params.db input.kraken > output_filtered.kraken
+    kraken-filter -threshold $params.krakenfilter --db $params.db input.kraken > output_filtered.kraken
     """
 }
 
-post_kraken_filter = params.kraken_filter ? kraken_filter_out : kraken_out
+post_kraken_filter = params.krakenfilter ? kraken_filter_out : kraken_out
 
 process translateKraken{
     conda "$baseDir/envs/sediment.yaml"
@@ -259,7 +261,7 @@ process translateKraken{
 // - Match split/deduped bam to kraken output based on readgroup
 // - Filter for families under Mammalia
 // - Emit unique (rg, bamfile, kraken_translate_file, family_name)
-//
+
 for_extraction
     .cross(kraken_assignments)
     .map { [it[0][0], it[0][1], it[1][1], it[1][1].readLines()] }
@@ -276,17 +278,13 @@ process gatherByFamily {
     set rg, 'input.bam', 'kraken.translate', family from for_extraction
 
     output:
-    set family, rg, 'input.bam', 'ids.txt', stdout into prepared_for_extraction
+    set family, rg, 'input.bam', 'ids.txt', stdout into (prepared_for_extraction, count_for_stats)
 
     script:
-    out_bam = "${family}/${rg}_extractedReads-${family}.bam"
     """
     grep "c__Mammalia.*f__$family" kraken.translate | cut -f1 | tee ids.txt | wc -l
     """
 }
-
-prepared_for_extraction
-    .into { count_for_stats; prepared_for_extraction }
 
 count_for_stats
         .collectFile(storeDir: 'stats') { family, rg, bamf, idf, count ->
@@ -295,7 +293,7 @@ count_for_stats
 
 process extractBam {
     conda "$baseDir/envs/sediment.yaml"
-    publishDir 'out', mode: 'link', saveAs: { out_bam }
+    publishDir 'out', mode: 'link', saveAs: {"${family}/${rg}_extractedReads-${family}.bam"}
     tag "$rg:$family"
 
     input:
@@ -308,7 +306,6 @@ process extractBam {
     idcount.toInteger() >= params.bwacutoff
 
     script:
-    out_bam = "${family}/${rg}_extractedReads-${family}.bam"
     """
     bamfilter -i ids.txt -l $params.level -o output.bam input.bam
     """
@@ -352,7 +349,7 @@ mapped_count
         }
 
 process dedupBam {
-    publishDir 'out', mode: 'link', saveAs: { out_bam }
+    publishDir 'out', mode: 'link', saveAs: {"${family}/aligned/${rg}.${species}_deduped.bam"}
     tag "$rg:family:$species"
 
     input:
@@ -364,9 +361,8 @@ process dedupBam {
     file 'output.bam'
 
     script:
-    out_bam = "${family}/aligned/${rg}.${species}_deduped.bam"
     """
-    $params.bamrmdup -r -o output.bam input.bam >rmdup.txt
+    $params.bamrmdup -r -o output.bam input.bam > rmdup.txt
     samtools view -c output.bam
     """
 }
@@ -378,7 +374,7 @@ deduped_count
 
 //get the right bed_file
 ch = Channel.fromPath("${params.bedfiles}/*.bed", type:'file')          //all the bedfiles
-    .map{[it.baseName.replaceAll(/.masked/,""), it] }		        //make a map, with species as key 
+    .map{[it.baseName.replaceAll(/.masked/,""), it] }		            //make a map, with species as key 
     .cross(to_bed_in)                                                   //throw it together
     .map{x, y -> [x[0], y[1], y[2],y[3], x[1]]}                         //get species, family, rg, bamfile and bedfile
     .set{to_bed_out}
@@ -387,7 +383,7 @@ ch = Channel.fromPath("${params.bedfiles}/*.bed", type:'file')          //all th
 //and filter out reads that intersect with masked regions
 process runIntersectBed{
     tag "$rg:family:species"
-    publishDir 'out', mode: 'link', saveAs: { out_bam }    
+    publishDir 'out', mode: 'link', saveAs: {"${family}/bed/${rg}.${species}_deduped_bedfiltered.bam"}    
 
     input:
     set species, family, rg, "inbam.bam", "inbed.bed" from to_bed_out
@@ -397,7 +393,6 @@ process runIntersectBed{
     set family, rg, species, stdout into bedfilter_count
         
     script:
-    out_bam = "${family}/bed/${rg}.${species}_deduped_bedfiltered.bam"
     """
     bedtools intersect -a inbam.bam -b inbed.bed -v > outbam.bam
     samtools view -c outbam.bam
