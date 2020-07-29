@@ -369,6 +369,7 @@ process dedupBam {
 
 deduped_count
         .collectFile(storeDir: 'stats') { family, rg, species, count ->
+        [ "${rg}_unique_mapped.tsv", "${family}\t${species}\t${count}"]
         }
 
 
