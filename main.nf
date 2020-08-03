@@ -357,7 +357,7 @@ process dedupBam {
 
     output:
     set family, rg, species, stdout into deduped_count
-    set species, family, rg, "output.bam" into to_bed_in
+    set species, family, rg, "output.bam", stdout into deduped_bam
     file 'output.bam'
 
     script:
@@ -366,19 +366,31 @@ process dedupBam {
     samtools view -c output.bam
     """
 }
+deduped_bam
+	/*sort by readgroup, family and if same (?:) by count. toList() --> wait for all dedup-processes to finish
+	flatMap --> Emit every record in the list separatly (for groupTuple) 
+	groupTuple by readgroup and family
+	Map only the best species per family*/
+	.toSortedList({
+		a,b -> a[2]+a[1] <=> b[2]+b[1] ?: a[-1] as int <=> b[-1] as int  
+		})
+	.flatMap{n -> n[0..-1]}
+	.groupTuple(by:[2,1])	//[[sp,sp,sp], family, rg, [bam,bam,bam],[count < count < count]]
+	.map{n -> [n[0][-1], n[1], n[2], n[3][-1]]} //[species, family, rg, bamfile]
+	.set{best_deduped}
+
 
 deduped_count
-        .collectFile(storeDir: 'stats') { family, rg, species, count ->
-        [ "${rg}_unique_mapped.tsv", "${family}\t${species}\t${count}"]
-        }
+    .collectFile(storeDir: 'stats') { family, rg, species, count ->
+    [ "${rg}_unique_mapped.tsv", "${family}\t${species}\t${count}"]
+    }
 
 
-//get the right bed_file
-ch = Channel.fromPath("${params.bedfiles}/*.bed", type:'file')          //all the bedfiles
-    .map{[it.baseName.replaceAll(/.masked/,""), it] }		            //make a map, with species as key 
-    .cross(to_bed_in)                                                   //throw it together
-    .map{x, y -> [x[0], y[1], y[2],y[3], x[1]]}                         //get species, family, rg, bamfile and bedfile
-    .set{to_bed_out}
+Channel.fromPath("${params.bedfiles}/*.bed", type:'file')	//all the bedfiles
+    .map{[it.baseName.replaceAll(/.masked/,""), it] }		//make a map, with species as key 
+    .cross(best_deduped)									//throw it together
+    .map{x, y -> [y[0],y[1],y[2],y[3],x[1]]}				//get species, family, rg, bamfile and bedfile
+    .set{to_bed}
 
 
 //and filter out reads that intersect with masked regions
@@ -387,7 +399,7 @@ process runIntersectBed{
     publishDir 'out', mode: 'link', saveAs: {"${family}/bed/${rg}.${species}_deduped_bedfiltered.bam"}    
 
     input:
-    set species, family, rg, "inbam.bam", "inbed.bed" from to_bed_out
+    set species, family, rg, "inbam.bam", "inbed.bed" from to_bed
 
     output:
     file "outbam.bam"
