@@ -45,7 +45,7 @@ if (params.help) {
 params.bam            = ''
 params.rg             = ''
 params.db             = ''
-params.genome         = ''
+params.genome         = ''      // XXX either add default or check for empty
 params.cutoff         = 35
 params.quality        = 25
 params.bwacutoff      = 0
@@ -87,7 +87,7 @@ splitscriptstats
 splitfiles
     .map{ [it.baseName, it] }      //it.basename = rg, it=full bam file
     .into{ splitfiles; splitstats }
-    
+
 
 process splitStats {
     conda "$baseDir/envs/sediment.yaml"
@@ -205,7 +205,7 @@ process runKraken {
 
     output:
     set rg, "output.kraken" into kraken_out
-    
+
     script:
     """
     kraken --threads ${task.cpus} --db $params.db --output output.kraken --fasta-input input.fa
@@ -219,16 +219,16 @@ process filterKraken{
     publishDir 'kraken', mode: 'link', saveAs: {"${rg}.kraken_filter"}
     label 'local'
     tag "$rg"
-    
+
     input:
-    set rg, "input.kraken" from kraken_filter_in 
-    
+    set rg, "input.kraken" from kraken_filter_in
+
     output:
     set rg, "output_filtered.kraken" into kraken_filter_out
-    
+
     when:
     params.krakenfilter
-    
+
     script:
     """
     kraken-filter -threshold $params.krakenfilter --db $params.db input.kraken > output_filtered.kraken
@@ -243,7 +243,7 @@ process translateKraken{
     publishDir 'kraken', mode: 'link', pattern:"*report", saveAs: {"${rg}.report"}
     label 'local'
     tag "$rg"
-    
+
     input:
     set rg, "input.kraken" from post_kraken_filter
 
@@ -312,10 +312,10 @@ process extractBam {
 }
 
 Channel.fromPath("${params.genome}/*", type: 'dir')
-    .map { [it.baseName, file("${it}/*.fasta")] }   //family is the key here
+    .map { [it.baseName, file("${it}/*.fasta")] }
     .cross(extracted_reads)
-    .map { x, y -> [x[0], y[1], y[2], x[1]] }   // family, rg, bamfile, fasta_list
-    .transpose(by: 3)
+    .map { x, y -> [x[0], y[1], y[2], x[1]] } // family, rg, bamfile, fasta_list
+    .transpose(by: 3)                         // family, rg, bamfile, fasta_file
     .set { for_mapping }
 
 process mapBwa {
@@ -327,9 +327,8 @@ process mapBwa {
     set family, rg, 'input.bam', genome_fasta from for_mapping
 
     output:
-    file 'output.bam'
     set family, rg, species, 'output.bam' into mapped_bam
-    set family, rg, species, stdout into mapped_count
+    set family, rg, species, stdout into coverage_count
 
     script:
     species = genome_fasta.baseName
@@ -339,18 +338,19 @@ process mapBwa {
     | $params.bwa bam2bam -g $genome_fasta -n 0.01 -o 2 -l 16500 --only-aligned - \
     | samtools view -b -u -q $params.quality \
     | samtools sort -l $params.level -o output.bam
-    samtools view -c output.bam
+    samtools coverage -H output.bam | cut -f 5
     """
 }
 
-mapped_count
-        .collectFile(storeDir: 'stats') { family, rg, species, count ->
-            [ "${rg}_mapped.tsv", "${family}\t${species}\t${count}"]
+coverage_count
+        .collectFile(storeDir: 'stats') { family, rg, species, covbases ->
+            [ "${rg}_mapped_coverage.tsv", "${family}\t${species}\t${covbases}"]
         }
 
 process dedupBam {
     publishDir 'out', mode: 'link', saveAs: {"${family}/aligned/${rg}.${species}_deduped.bam"}
-    tag "$rg:family:$species"
+    conda "$baseDir/envs/sediment.yaml"
+    tag "$rg:$family:$species"
 
     input:
     set family, rg, species, 'input.bam' from mapped_bam
@@ -368,11 +368,11 @@ process dedupBam {
 }
 deduped_bam
 	/*sort by readgroup, family and if same (?:) by count. toList() --> wait for all dedup-processes to finish
-	flatMap --> Emit every record in the list separatly (for groupTuple) 
+	flatMap --> Emit every record in the list separatly (for groupTuple)
 	groupTuple by readgroup and family
 	Map only the best species per family*/
 	.toSortedList({
-		a,b -> a[2]+a[1] <=> b[2]+b[1] ?: a[-1] as int <=> b[-1] as int  
+		a,b -> a[2]+a[1] <=> b[2]+b[1] ?: a[-1] as int <=> b[-1] as int
 		})
 	.flatMap{n -> n[0..-1]}
 	.groupTuple(by:[2,1])	//[[sp,sp,sp], family, rg, [bam,bam,bam],[count < count < count]]
@@ -387,7 +387,7 @@ deduped_count
 
 
 Channel.fromPath("${params.bedfiles}/*.bed", type:'file')	//all the bedfiles
-    .map{[it.baseName.replaceAll(/.masked/,""), it] }		//make a map, with species as key 
+    .map{[it.baseName.replaceAll(/.masked/,""), it] }		//make a map, with species as key
     .cross(best_deduped)									//throw it together
     .map{x, y -> [y[0],y[1],y[2],y[3],x[1]]}				//get species, family, rg, bamfile and bedfile
     .set{to_bed}
@@ -396,7 +396,8 @@ Channel.fromPath("${params.bedfiles}/*.bed", type:'file')	//all the bedfiles
 //and filter out reads that intersect with masked regions
 process runIntersectBed{
     tag "$rg:family:species"
-    publishDir 'out', mode: 'link', saveAs: {"${family}/bed/${rg}.${species}_deduped_bedfiltered.bam"}    
+    publishDir 'out', mode: 'link', saveAs: {"${family}/bed/${rg}.${species}_deduped_bedfiltered.bam"}
+    conda "$baseDir/envs/sediment.yaml"
 
     input:
     set species, family, rg, "inbam.bam", "inbed.bed" from to_bed

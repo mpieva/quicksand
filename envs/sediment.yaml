@@ -5,12 +5,13 @@ channels:
   - conda-forge
   - /home/public/conda
 dependencies:
-  - python=3.7
+  - python>=3.7
   - pip>=19
-  - pysam=0.15.2
-  - kraken=1.1.1
-  - samtools=1.9
-  - bamfilter=0.2.8
-  - bam-lengthfilter=0.1.1
+  - pysam=0.16
+  - kraken==1.1.1
+  - samtools=1.10
+  - bedtools=2.29
+  - bamfilter==0.2.8
+  - bam-lengthfilter==0.1.1
   - pip:
       - git+http://vcs.eva.mpg.de/visagie/pysplitbam@v0.1.6-alpha.2#egg=splitbam
