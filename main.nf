@@ -331,6 +331,7 @@ coverage_count
 
 process dedupBam {
     publishDir 'out', mode: 'link', saveAs: { out_bam }
+    conda "$baseDir/envs/sediment.yaml"
     tag "$rg:$family:$species"
 
     input:
@@ -366,7 +367,8 @@ ch = Channel.fromPath("${params.bedfiles}/*.bed", type:'file')          //all th
 //and filter out reads that intersect with masked regions
 process runIntersectBed{
     tag "$rg:family:species"
-    publishDir 'out', mode: 'link', saveAs: { out_bam }    
+    publishDir 'out', mode: 'link', saveAs: { out_bam }
+    conda "$baseDir/envs/sediment.yaml"
 
     input:
     set species, family, rg, "inbam.bam", "inbed.bed" from to_bed_out
