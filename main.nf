@@ -335,7 +335,7 @@ process mapBwa {
     out_bam = "${family}/aligned/${rg}.${species}.bam"
     """
     samtools sort -n -l0 input.bam \
-    | $params.bwa bam2bam -g $genome_fasta -n 0.01 -o 2 -l 16500 --only-aligned - \
+    | $params.bwa bam2bam -g \"${genome_fasta}\" -n 0.01 -o 2 -l 16500 --only-aligned - \
     | samtools view -b -u -q $params.quality \
     | samtools sort -l $params.level -o output.bam
     samtools coverage -H output.bam | cut -f 5
