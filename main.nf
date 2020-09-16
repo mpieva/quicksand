@@ -319,7 +319,7 @@ Channel.fromPath("${params.genome}/*", type: 'dir')
     .set { for_mapping }
 
 process mapBwa {
-    publishDir 'out', mode: 'link', saveAs: { out_bam }
+    publishDir 'out', mode: 'link', saveAs: { out_bam }, pattern: '*.bam'
     conda "$baseDir/envs/sediment.yaml"
     tag "$rg:$family:$species"
 
