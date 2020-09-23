@@ -49,7 +49,7 @@ params.genome         = ''      // XXX either add default or check for empty
 params.cutoff         = 35
 params.quality        = 25
 params.bwacutoff      = 0
-params.filterpaired   = false  // filter out paired
+params.keeppaired     = false  // keep paired reads
 params.filterunmapped = false  // filter out unmapped
 params.krakenfilter   = false  // a kraken-filter step with the given weight
 params.level          = 0      // bgzf compression level for intermediate files, 0..9
@@ -105,9 +105,9 @@ process splitStats {
     """
 }
 
-// if filterpaired==True, use splitfiles as channel, else an empty one
+// if keeppaired==True, use an empty channel, else use splitfiles
 
-filter_paired_in = params.filterpaired ? splitfiles : Channel.empty()
+filter_paired_in = params.keeppaired ? Channel.empty() : splitfiles
 
 process filterPaired {
     conda "$baseDir/envs/sediment.yaml"
@@ -125,7 +125,7 @@ process filterPaired {
     """
 }
 //here the paths come together again
-post_filter_paired = params.filterpaired ? filter_paired_out : splitfiles
+post_filter_paired = params.keeppaired ? splitfiles : filter_paired_out
 
 // and do the same with the filter-unmapped step
 filter_unmapped_in = params.filterunmapped ? post_filter_paired : Channel.empty()
