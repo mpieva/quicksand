@@ -2,8 +2,8 @@
 
 def helpMessage() {
     log.info"""
-    Usage: nextflow run sediment_nf --bam PATH --rg PATH --db PATH --genome PATH
-                                    [--cutoff N] [--level N] [--filterpaired] [--filterunmapped] [--krakenfilter N]
+    Usage: nextflow run sediment_nf --bam PATH --rg PATH --db PATH --genome PATH --bedfiles
+                                    [--cutoff N] [--level N] [--keeppaired] [--filterunmapped] [--krakenfilter N]
            
     Run sediment analysis pipeline.
     
@@ -11,14 +11,15 @@ def helpMessage() {
       --bam PATH         input BAM file
       --rg  PATH         tab-separated file containing index combinations
                          - format of file: 'LibID<tab>P7<tab>P5'
-      --db PATH          Kraken database
-      --genome PATH      genome for alignment
+      --db PATH          Kraken database (set a default in nextflow.config)
+      --genome PATH      genome for alignment (set a default in nextflow.config)
+      --bedfiles PATH    bed-files masking the genomes for alignment (set a default in nextflow.config)
       
     optional arguments:
       --cutoff N         length cutoff (default: 35)
       --quality N        quality filter (default: 25)
       --bwacutoff N      cutoff for number of kraken matches (default: 0)
-      --filterpaired     filter paired reads
+      --keeppaired       keep paired reads (default: filter paired)
       --filterunmapped   filter unmapped reads
       --krakenfilter N   kraken-filter with threshold N [0,1] (default: 0)
       --level N          set BGZF compression level (default: 6)
@@ -36,29 +37,12 @@ def helpMessage() {
     """.stripIndent()
 }
 
-params.help = false
 if (params.help) {
     helpMessage()
     exit 0
 }
 
-params.bam            = ''
-params.rg             = ''
-params.db             = ''
-params.genome         = ''      // XXX either add default or check for empty
-params.cutoff         = 35
-params.quality        = 25
-params.bwacutoff      = 0
-params.keeppaired     = false  // keep paired reads
-params.filterunmapped = false  // filter out unmapped
-params.krakenfilter   = false  // a kraken-filter step with the given weight
-params.level          = 0      // bgzf compression level for intermediate files, 0..9
-params.krakenthreads  = 4      // number of threads per kraken process
-
-// The following parameters are not meant to be set by the end user:
-params.bwa            = '/home/public/usr/bin/bwa'
-params.bamrmdup       = '/home/bioinf/usr/bin/bam-rmdup'
-params.bedfiles       = '/mnt/sequencedb/Refseq/refseq_mammalian_mt_rel97/masked/'
+//All params can be found in the config-file
 
 process splitBam {
     conda "$baseDir/envs/sediment.yaml"
