@@ -233,7 +233,7 @@ process translateKraken{
 
     output:
     set rg, "kraken.translate" into kraken_assignments
-    file 'kraken.report'
+    set rg, "kraken.report" into find_best
 
     script:
     """
@@ -241,16 +241,53 @@ process translateKraken{
     kraken-mpa-report --db $params.db input.kraken > kraken.report
     """
 }
+process findBestSpecies{
+    conda "$baseDir/envs/sediment.yaml"
+    tag "$rg"
 
-// - Match split/deduped bam to kraken output based on readgroup
-// - Filter for families under Mammalia
-// - Emit unique (rg, bamfile, kraken_translate_file, family_name)
+    input:
+    set rg, "kraken.report" from find_best
+
+    output:
+    set rg, "*.txt" into best_species mode flatten
+
+    script:
+    """
+    parse_report.py kraken.report
+    """
+}
+Channel.fromPath("${params.genome}/*/", type:"dir")
+    .map{['f_'+it.baseName, file("${it}/*.fasta")] }
+    .transpose()
+    .set{families}
+    //[f_Hominidae, path/to/genomes/Hominidae/all_species_in_Hominidae.fasta]
+
+Channel.fromPath("${params.genome}/*/*.fasta", type:"file")
+    .map{['g_'+it.baseName.split("_")[0], it]}
+    .set{genus}
+    //[g_Homo, path/to/genomes/Hominidae/All_Homo_species.fasta]
+
+Channel.fromPath("${params.genome}/*/*.fasta", type:"file")
+    .map{['s_'+[it.baseName.split("_")[0], it.baseName.split("_")[1][0..1]].join("_"), it]}
+    .set{species}
+    //[s_Homo_sa, path/to/genomes/Hominidae/Homo_sapiens.fasta]
+
+families.concat(genus, species).set{all_genomes}
+
+best_species
+    .map{[it[1].baseName.split("__")[0], it[0], it[1].baseName.split("__")[1]]}
+    //[flag_Taxon, Readgroup, Family]
+    .combine(all_genomes, by:0)  //Key = flag_taxon, ManytoMany relationshiip
+    //[flag_taxon, readgroup, family, genome]
+    .map{x -> [x[1]+x[2], x[3]]}
+    //[New_key, genome.fasta]
+    .set{best_species}
 
 for_extraction
     .cross(kraken_assignments)
     .map { [it[0][0], it[0][1], it[1][1], it[1][1].readLines()] }
     .transpose()
-    .filter { it[3] =~ /c__Mammalia.*f__/ }
+    .filter { it[3] =~ /c__Mammalia.*f__./ }
     .map { rg, bam, kraken, asn -> [rg, bam, kraken, (asn =~ /f__([^|]*)/)[0][1]] }
     .unique()
     .set { for_extraction }
@@ -284,7 +321,7 @@ process extractBam {
     set family, rg, 'input.bam', 'ids.txt', idcount from prepared_for_extraction
 
     output:
-    set family, rg, 'output.bam' into extracted_reads
+    set rg, family, 'output.bam' into extracted_reads
 
     when:
     idcount.toInteger() >= params.bwacutoff
@@ -295,12 +332,14 @@ process extractBam {
     """
 }
 
-Channel.fromPath("${params.genome}/*", type: 'dir')
-    .map { [it.baseName, file("${it}/*.fasta")] }
-    .cross(extracted_reads)
-    .map { x, y -> [x[0], y[1], y[2], x[1]] } // family, rg, bamfile, fasta_list
-    .transpose(by: 3)                         // family, rg, bamfile, fasta_file
-    .set { for_mapping }
+extracted_reads
+    .map{[it[0]+it[1], it[0], it[1], it[2]]}
+    //extracted reads --> [new_Key, Readgroup, Hominidae, ExtractedReads_Hominidae.bam]
+    //best_species --> [New_key, genome.fasta]
+    .cross(best_species)
+    .map{x,y -> [x[1], x[2], y[1], x[3], y[1].baseName] }
+    //[Readgroup, Hominidae, path/to/Homo_sapiens.fasta, ExtractedReads_Hominidae.bam, Homo_sapiens]
+    .set{extracted_reads}
 
 process mapBwa {
     publishDir 'out', mode: 'link', saveAs: { out_bam }, pattern: '*.bam'
@@ -308,7 +347,7 @@ process mapBwa {
     tag "$rg:$family:$species"
 
     input:
-    set family, rg, 'input.bam', genome_fasta from for_mapping
+    set rg, family, "species.fasta","input.bam", species from extracted_reads
 
     output:
     set family, rg, species, 'output.bam' into mapped_bam
@@ -316,11 +355,11 @@ process mapBwa {
     set family, rg, species, 'coverage.txt' into coverage_count
 
     script:
-    species = genome_fasta.baseName
     out_bam = "${family}/aligned/${rg}.${species}.bam"
     """
+    bwa index species.fasta
     samtools sort -n -l0 input.bam \
-    | $params.bwa bam2bam -g \"${genome_fasta}\" -n 0.01 -o 2 -l 16500 --only-aligned - \
+    | $params.bwa bam2bam -g species.fasta  -n 0.01 -o 2 -l 16500 --only-aligned - \
     | samtools view -b -u -q $params.quality \
     | samtools sort -l $params.level -o output.bam
     samtools coverage -H output.bam | cut -f 5 > coverage.txt
