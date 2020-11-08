@@ -238,7 +238,7 @@ process translateKraken{
     script:
     """
     kraken-translate --db $params.db --mpa-format input.kraken > kraken.translate
-    kraken-mpa-report --db $params.db input.kraken > kraken.report
+    kraken-report --db $params.db input.kraken > kraken.report
     """
 }
 process findBestSpecies{
@@ -249,38 +249,28 @@ process findBestSpecies{
     set rg, "kraken.report" from find_best
 
     output:
-    set rg, "*.txt" into best_species mode flatten
+    set rg, "parsed_record.tsv" into best_species
 
     script:
     """
     parse_report.py kraken.report
     """
 }
-Channel.fromPath("${params.genome}/*/", type:"dir")
-    .map{['f_'+it.baseName, file("${it}/*.fasta")] }
-    .transpose()
-    .set{families}
-    //[f_Hominidae, path/to/genomes/Hominidae/all_species_in_Hominidae.fasta]
 
-Channel.fromPath("${params.genome}/*/*.fasta", type:"file")
-    .map{['g_'+it.baseName.split("_")[0], it]}
-    .set{genus}
-    //[g_Homo, path/to/genomes/Hominidae/All_Homo_species.fasta]
-
-Channel.fromPath("${params.genome}/*/*.fasta", type:"file")
-    .map{['s_'+[it.baseName.split("_")[0], it.baseName.split("_")[1][0..1]].join("_"), it]}
-    .set{species}
-    //[s_Homo_sa, path/to/genomes/Hominidae/Homo_sapiens.fasta]
-
-families.concat(genus, species).set{all_genomes}
+Channel.fromPath("${params.genome}/taxid_map.tsv", type:'file')
+    .splitCsv()
+    .map{it[0].split('\t').flatten()}
+    .map{[it[0], it[2]]}
+    .groupTuple()
+    .set{taxid}
 
 best_species
-    .map{[it[1].baseName.split("__")[0], it[0], it[1].baseName.split("__")[1]]}
-    //[flag_Taxon, Readgroup, Family]
-    .combine(all_genomes, by:0)  //Key = flag_taxon, ManytoMany relationshiip
-    //[flag_taxon, readgroup, family, genome]
-    .map{x -> [x[1]+x[2], x[3]]}
-    //[New_key, genome.fasta]
+    .map{[it[0], it[1].readLines()]}
+    .transpose()
+    .map{[it[1].split('\t')[1], it[0], it[1].split('\t')[0]]}
+    .combine(taxid, by:0)  //[taxid, readgroup, family, [species, species]]
+    .transpose()
+    .map{[it[1]+it[2], it[3]]}
     .set{best_species}
 
 for_extraction
@@ -334,11 +324,11 @@ process extractBam {
 
 extracted_reads
     .map{[it[0]+it[1], it[0], it[1], it[2]]}
-    //extracted reads --> [new_Key, Readgroup, Hominidae, ExtractedReads_Hominidae.bam]
-    //best_species --> [New_key, genome.fasta]
+    //extracted reads --> [new_Key, rg, fam, ExtractedReads_Hominidae.bam]
+    //best_species --> [New_key, species]
     .cross(best_species)
-    .map{x,y -> [x[1], x[2], y[1], x[3], y[1].baseName] }
-    //[Readgroup, Hominidae, path/to/Homo_sapiens.fasta, ExtractedReads_Hominidae.bam, Homo_sapiens]
+    .map{x,y -> [x[1], x[2], y[1], x[3]] }
+    //[Readgroup, Hominidae, Homo_sapiens, ExtractedReads_Hominidae.bam]
     .set{extracted_reads}
 
 process mapBwa {
@@ -347,7 +337,7 @@ process mapBwa {
     tag "$rg:$family:$species"
 
     input:
-    set rg, family, "species.fasta","input.bam", species from extracted_reads
+    set rg, family, species, "input.bam" from extracted_reads
 
     output:
     set family, rg, species, 'output.bam' into mapped_bam
@@ -357,9 +347,8 @@ process mapBwa {
     script:
     out_bam = "${family}/aligned/${rg}.${species}.bam"
     """
-    bwa index species.fasta
     samtools sort -n -l0 input.bam \
-    | $params.bwa bam2bam -g species.fasta  -n 0.01 -o 2 -l 16500 --only-aligned - \
+    | $params.bwa bam2bam -g ${params.genome}/$family/\"${species}.fasta\"  -n 0.01 -o 2 -l 16500 --only-aligned - \
     | samtools view -b -u -q $params.quality \
     | samtools sort -l $params.level -o output.bam
     samtools coverage -H output.bam | cut -f 5 > coverage.txt
