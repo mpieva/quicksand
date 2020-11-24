@@ -47,7 +47,7 @@ if (params.help) {
 process splitBam {
     conda "$baseDir/envs/sediment.yaml"
     maxForks 1
-    publishDir 'split', mode: 'link'
+    publishDir 'split', mode: 'copy'
     label 'local'
 
     input:
@@ -177,7 +177,7 @@ process toFasta {
 
 process runKraken {
     conda "$baseDir/envs/sediment.yaml"
-    publishDir 'kraken', mode: 'link', saveAs: {"${rg}.kraken"}
+    publishDir 'kraken', mode: 'copy', saveAs: {"${rg}.kraken"}
     cpus "${params.krakenthreads}"
     memory '16GB'
     label 'bigmem'
@@ -200,7 +200,7 @@ kraken_filter_in = params.krakenfilter ? kraken_out : Channel.empty()
 
 process filterKraken{
     conda "$baseDir/envs/sediment.yaml"
-    publishDir 'kraken', mode: 'link', saveAs: {"${rg}.kraken_filter"}
+    publishDir 'kraken', mode: 'copy', saveAs: {"${rg}.kraken_filter"}
     label 'local'
     tag "$rg"
 
@@ -223,8 +223,8 @@ post_kraken_filter = params.krakenfilter ? kraken_filter_out : kraken_out
 
 process translateKraken{
     conda "$baseDir/envs/sediment.yaml"
-    publishDir 'kraken', mode: 'link', pattern:"*translate", saveAs: {"${rg}.translate"}
-    publishDir 'kraken', mode: 'link', pattern:"*report", saveAs: {"${rg}.report"}
+    publishDir 'kraken', mode: 'copy', pattern:"*translate", saveAs: {"${rg}.translate"}
+    publishDir 'kraken', mode: 'copy', pattern:"*report", saveAs: {"${rg}.report"}
     label 'local'
     tag "$rg"
 
@@ -304,7 +304,7 @@ count_for_stats
 
 process extractBam {
     conda "$baseDir/envs/sediment.yaml"
-    publishDir 'out', mode: 'link', saveAs: {"${family}/${rg}_extractedReads-${family}.bam"}
+    publishDir 'out', mode: 'copy', saveAs: {"${family}/${rg}_extractedReads-${family}.bam"}
     tag "$rg:$family"
 
     input:
@@ -332,7 +332,7 @@ extracted_reads
     .set{extracted_reads}
 
 process mapBwa {
-    publishDir 'out', mode: 'link', saveAs: { out_bam }, pattern: '*.bam'
+    publishDir 'out', mode: 'copy', saveAs: { out_bam }, pattern: '*.bam'
     conda "$baseDir/envs/sediment.yaml"
     tag "$rg:$family:$species"
 
@@ -367,7 +367,7 @@ coverage_count
         }
 
 process dedupBam {
-    publishDir 'out', mode: 'link', saveAs: {"${family}/aligned/${rg}.${species}_deduped.bam"}
+    publishDir 'out', mode: 'copy', saveAs: {"${family}/aligned/${rg}.${species}_deduped.bam"}
     conda "$baseDir/envs/sediment.yaml"
     tag "$rg:$family:$species"
 
@@ -415,7 +415,7 @@ Channel.fromPath("${params.bedfiles}/*.bed", type:'file')	//all the bedfiles
 //and filter out reads that intersect with masked regions
 process runIntersectBed{
     tag "$rg:family:species"
-    publishDir 'out', mode: 'link', saveAs: {"${family}/bed/${rg}.${species}_deduped_bedfiltered.bam"}
+    publishDir 'out', mode: 'copy', saveAs: {"${family}/bed/${rg}.${species}_deduped_bedfiltered.bam"}
     conda "$baseDir/envs/sediment.yaml"
 
     input:
