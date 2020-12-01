@@ -34,6 +34,8 @@ for row in open(sys.argv[1],'r'):
 real_results = {}
 
 for fam in results:
+    if(results[fam]["counts"]<3):
+        continue
     try:
         gen = find_best(results[fam]['tree'])
         try:
