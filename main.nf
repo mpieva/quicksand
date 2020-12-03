@@ -382,7 +382,7 @@ process dedupBam {
     script:
     """
     $params.bamrmdup -r -o output.bam input.bam > rmdup.txt
-    samtools view -c output.bam
+    samtools coverage -H output.bam | cut -f 5
     """
 }
 deduped_bam
