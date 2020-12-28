@@ -343,7 +343,6 @@ process mapBwa {
     output:
     set family, rg, species, 'output.bam' into mapped_bam
     set family, rg, species, stdout into mapped_count
-    set family, rg, species, 'coverage.txt' into coverage_count
 
     script:
     out_bam = "${family}/aligned/${rg}.${species}.bam"
@@ -352,7 +351,6 @@ process mapBwa {
     | $params.bwa bam2bam -g ${params.genome}/$family/\"${species}.fasta\"  -n 0.01 -o 2 -l 16500 --only-aligned - \
     | samtools view -b -u -q $params.quality \
     | samtools sort -l $params.level -o output.bam
-    samtools coverage -H output.bam | cut -f 5 > coverage.txt
     samtools view -c output.bam
     """
 }
@@ -362,10 +360,6 @@ mapped_count
             [ "${rg}_mapped.tsv", "${family}\t${species}\t${count}"]
         }
 
-coverage_count
-        .collectFile(storeDir: 'stats') { family, rg, species, cov_file ->
-            [ "${rg}_mapped_coverage.tsv", "${family}\t${species}\t" + cov_file.text]
-        }
 
 process dedupBam {
     publishDir 'out', mode: 'copy', saveAs: {"${family}/aligned/${rg}.${species}_deduped.bam"}
@@ -376,16 +370,28 @@ process dedupBam {
     set family, rg, species, 'input.bam' from mapped_bam
 
     output:
-    set family, rg, species, stdout into deduped_count
     set species, family, rg, "output.bam", stdout into deduped_bam
-    file 'output.bam'
+    set family, rg, species, stdout into coverage_count
+    set family, rg, species, "count.txt" into deduped_count
 
     script:
     """
     $params.bamrmdup -r -o output.bam input.bam > rmdup.txt
     samtools coverage -H output.bam | cut -f 5
+    samtools view -c output.bam > count.txt
     """
 }
+
+coverage_count
+    .collectFile(storeDir: 'stats') { family, rg, species, coverage ->
+        [ "${rg}_mapped_coverage.tsv", "${family}\t${species}\t${coverage}"]
+    }	
+
+deduped_count
+    .collectFile(storeDir: 'stats') { family, rg, species, count_file ->
+    	[ "${rg}_unique_mapped.tsv", "${family}\t${species}\t" + count_file.text]
+    }
+
 deduped_bam
 	/*sort by readgroup, family and if same (?:) by count. toList() --> wait for all dedup-processes to finish
 	flatMap --> Emit every record in the list separatly (for groupTuple)
@@ -400,18 +406,11 @@ deduped_bam
 	.set{best_deduped}
 
 
-deduped_count
-    .collectFile(storeDir: 'stats') { family, rg, species, count ->
-    [ "${rg}_unique_mapped.tsv", "${family}\t${species}\t${count}"]
-    }
-
-
 Channel.fromPath("${params.bedfiles}/*.bed", type:'file')	//all the bedfiles
     .map{[it.baseName.replaceAll(/.masked/,""), it] }		//make a map, with species as key
     .cross(best_deduped)									//throw it together
     .map{x, y -> [y[0],y[1],y[2],y[3],x[1]]}				//get species, family, rg, bamfile and bedfile
     .set{to_bed}
-
 
 //and filter out reads that intersect with masked regions
 process runIntersectBed{
