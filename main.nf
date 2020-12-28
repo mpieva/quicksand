@@ -261,6 +261,7 @@ Channel.fromPath("${params.genome}/taxid_map.tsv", type:'file')
     .splitCsv()
     .map{it[0].split('\t').flatten()}
     .map{[it[0], it[2]]}
+    .filter{!["Homo_sapiens_neanderthalensis","Homo_sapiens_subsp._'Denisova'"].contains(it[1])} //filter out neanderthal and denisova
     .groupTuple()
     .set{taxid}
 

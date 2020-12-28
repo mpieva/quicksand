@@ -36,6 +36,12 @@ real_results = {}
 for fam in results:
     if(results[fam]["counts"]<3):
         continue
+    #map Hominidae always against Homo Sapiens
+    #Rest of the magic is done in the fromPath(taxid)-channel in main.nf
+    if fam=="Hominidae":
+        real_results["Hominidae"]="9606"
+        continue
+
     try:
         gen = find_best(results[fam]['tree'])
         try:
