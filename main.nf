@@ -362,7 +362,7 @@ mapped_count
 
 
 process dedupBam {
-    publishDir 'out', mode: 'copy', saveAs: {"${family}/aligned/${rg}.${species}_deduped.bam"}
+    publishDir 'out', mode: 'copy', pattern: "*.bam", saveAs: {"${family}/aligned/${rg}.${species}_deduped.bam"}
     conda "$baseDir/envs/sediment.yaml"
     tag "$rg:$family:$species"
 
