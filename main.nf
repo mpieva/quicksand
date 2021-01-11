@@ -14,6 +14,9 @@ def helpMessage() {
       --db PATH          Kraken database (set a default in nextflow.config)
       --genome PATH      genome for alignment (set a default in nextflow.config)
       --bedfiles PATH    bed-files masking the genomes for alignment (set a default in nextflow.config)
+      --specmap          Always map reads assigned to a family to these species (default: genomes/specmap.tsv)
+                         - format of file: 'Family<tab>Species_name,Species_name'
+                         - Species_name must correspond to the filename in the genomes diretory
       
     optional arguments:
       --cutoff N         length cutoff (default: 35)
@@ -261,7 +264,6 @@ Channel.fromPath("${params.genome}/taxid_map.tsv", type:'file')
     .splitCsv()
     .map{it[0].split('\t').flatten()}
     .map{[it[0], it[2]]}
-    .filter{!["Homo_sapiens_neanderthalensis","Homo_sapiens_subsp._'Denisova'"].contains(it[1])} //filter out neanderthal and denisova
     .groupTuple()
     .set{taxid}
 
@@ -270,9 +272,43 @@ best_species
     .transpose()
     .map{[it[1].split('\t')[1], it[0], it[1].split('\t')[0]]}
     .combine(taxid, by:0)  //[taxid, readgroup, family, [species, species]]
-    .transpose()
-    .map{[it[1]+it[2], it[3]]}
     .set{best_species}
+
+// This block replaces the default mappings assigned by kraken by those
+// specified in the specmap file
+
+def famList = []
+if (new File("${params.specmap}").exists()){
+    new File("${params.specmap}").eachLine{famList << it.split("\t").flatten()[0]}
+
+    specs = Channel.fromPath("${params.specmap}", type: "file")
+        .splitCsv(sep:'\t')
+        .map{[it[1].split(","), it[0]]} //[[species,species], Family]
+   
+    best_species
+        .map{[it[1]+it[2], it[2], it[3]]} //[newKey, family, [species, species]]
+        .branch {
+            replace: it[1] in famList
+            keep: true
+        }
+        .set{best_species}
+
+    best_species.replace
+        .combine(specs, by:1) //[family, newKey, [original_species, ...],[new_species,...])]
+        .map{[it[1], it[0], it[3].flatten()]} //[newKey, family, [new_species,...]]
+        .set{replace}
+
+    best_species.keep.mix(replace)
+        .map{[it[0], it[2]]} // [newKey, [species, ...]]
+        .transpose() // [newKey, species]
+        .set{best_species_post}
+
+} else {
+    best_species
+        .transpose()
+        .map{[it[1]+it[2], it[3]]}
+        .set{best_species_post}
+}
 
 for_extraction
     .cross(kraken_assignments)
@@ -327,7 +363,7 @@ extracted_reads
     .map{[it[0]+it[1], it[0], it[1], it[2]]}
     //extracted reads --> [new_Key, rg, fam, ExtractedReads_Hominidae.bam]
     //best_species --> [New_key, species]
-    .cross(best_species)
+    .cross(best_species_post)
     .map{x,y -> [x[1], x[2], y[1], x[3]] }
     //[Readgroup, Hominidae, Homo_sapiens, ExtractedReads_Hominidae.bam]
     .set{extracted_reads}
@@ -385,36 +421,36 @@ process dedupBam {
 coverage_count
     .collectFile(storeDir: 'stats') { family, rg, species, coverage ->
         [ "${rg}_mapped_coverage.tsv", "${family}\t${species}\t${coverage}"]
-    }	
+    }   
 
 deduped_count
     .collectFile(storeDir: 'stats') { family, rg, species, count_file ->
-    	[ "${rg}_unique_mapped.tsv", "${family}\t${species}\t" + count_file.text]
+        [ "${rg}_unique_mapped.tsv", "${family}\t${species}\t" + count_file.text]
     }
 
 deduped_bam
-	/*sort by readgroup, family and if same (?:) by count. toList() --> wait for all dedup-processes to finish
-	flatMap --> Emit every record in the list separatly (for groupTuple)
-	groupTuple by readgroup and family
-	Map only the best species per family*/
-	.toSortedList({
-		a,b -> a[2]+a[1] <=> b[2]+b[1] ?: a[-1] as int <=> b[-1] as int
-		})
-	.flatMap{n -> n[0..-1]}
-	.groupTuple(by:[2,1])	//[[sp,sp,sp], family, rg, [bam,bam,bam],[count < count < count]]
-	.map{n -> [n[0][-1], n[1], n[2], n[3][-1]]} //[species, family, rg, bamfile]
-	.set{best_deduped}
+    /*sort by readgroup, family and if same (?:) by count. toList() --> wait for all dedup-processes to finish
+    flatMap --> Emit every record in the list separatly (for groupTuple)
+    groupTuple by readgroup and family
+    Map only the best species per family*/
+    .toSortedList({
+        a,b -> a[2]+a[1] <=> b[2]+b[1] ?: a[-1] as int <=> b[-1] as int
+        })
+    .flatMap{n -> n[0..-1]}
+    .groupTuple(by:[2,1])   //[[sp,sp,sp], family, rg, [bam,bam,bam],[count < count < count]]
+    .map{n -> [n[0][-1], n[1], n[2], n[3][-1]]} //[species, family, rg, bamfile]
+    .set{best_deduped}
 
 
-Channel.fromPath("${params.bedfiles}/*.bed", type:'file')	//all the bedfiles
-    .map{[it.baseName.replaceAll(/.masked/,""), it] }		//make a map, with species as key
-    .cross(best_deduped)									//throw it together
-    .map{x, y -> [y[0],y[1],y[2],y[3],x[1]]}				//get species, family, rg, bamfile and bedfile
+Channel.fromPath("${params.bedfiles}/*.bed", type:'file')   //all the bedfiles
+    .map{[it.baseName.replaceAll(/.masked/,""), it] }       //make a map, with species as key
+    .cross(best_deduped)                                    //throw it together
+    .map{x, y -> [y[0],y[1],y[2],y[3],x[1]]}                //get species, family, rg, bamfile and bedfile
     .set{to_bed}
 
 //and filter out reads that intersect with masked regions
 process runIntersectBed{
-    tag "$rg:family:species"
+    tag "$rg:$family:$species"
     publishDir 'out', mode: 'copy', saveAs: {"${family}/bed/${rg}.${species}_deduped_bedfiltered.bam"}
     conda "$baseDir/envs/sediment.yaml"
 
