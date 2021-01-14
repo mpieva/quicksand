@@ -2,8 +2,9 @@
 
 def helpMessage() {
     log.info"""
-    Usage: nextflow run sediment_nf --bam PATH --rg PATH --db PATH --genome PATH --bedfiles
+    Usage: nextflow run sediment_nf (--bam PATH --rg PATH | --split DIR) --db PATH --genome PATH --bedfiles
                                     [--cutoff N] [--level N] [--keeppaired] [--filterunmapped] [--krakenfilter N]
+                                    [--specmap PATH]
            
     Run sediment analysis pipeline.
     
@@ -11,10 +12,12 @@ def helpMessage() {
       --bam PATH         input BAM file
       --rg  PATH         tab-separated file containing index combinations
                          - format of file: 'LibID<tab>P7<tab>P5'
+      --split DIR        directory with already split bamfiles
+                         - format of files within: 'Readgroup.bam' 
       --db PATH          Kraken database (set a default in nextflow.config)
       --genome PATH      genome for alignment (set a default in nextflow.config)
       --bedfiles PATH    bed-files masking the genomes for alignment (set a default in nextflow.config)
-      --specmap          Always map reads assigned to a family to these species (default: genomes/specmap.tsv)
+      --specmap PATH     Always map reads assigned to a family to these species (default: genomes/specmap.tsv)
                          - format of file: 'Family<tab>Species_name,Species_name'
                          - Species_name must correspond to the filename in the genomes diretory
       
@@ -45,21 +48,33 @@ if (params.help) {
     exit 0
 }
 
-//All params can be found in the config-file
+//If both BAM+RG and SPLIT provided, stop the pipeline
+if(params.split && (params.bam || params.rg)){
+    Channel.from('error').view{"\n### Unallowed Action ###\nPlease define EITHER --rg,--bam OR --split\n"}
+    exit 0
+} 
+
+//If you provide BAM and RG, execute splitBam, else leave out
+inbam = params.bam? Channel.fromPath("${params.bam}") : Channel.empty()
+indexfile = params.rg? Channel.fromPath("${params.rg}") : Channel.empty()
 
 process splitBam {
+    errorStrategy "ignore"
     conda "$baseDir/envs/sediment.yaml"
     maxForks 1
     publishDir 'split', mode: 'copy'
     label 'local'
 
     input:
-    file 'input.bam' from file(params.bam)
-    file 'indices.tsv' from file(params.rg)
+    file 'input.bam' from inbam
+    file 'indices.tsv' from indexfile
 
     output:
     file '*.bam' into splitfiles mode flatten
     stdout into splitscriptstats
+
+    when:
+    params.bam && params.rg   
 
     script:
     """
@@ -67,14 +82,20 @@ process splitBam {
     """
 }
 
-
 splitscriptstats
     .collectFile(storeDir: 'stats', name: "splitstats.tsv", newLine: true)
 
-splitfiles
-    .map{ [it.baseName, it] }      //it.basename = rg, it=full bam file
-    .into{ splitfiles; splitstats }
+// If split is defined, start the pipeline here
+if(params.split){
+    Channel.fromPath("${params.split}/*.bam")
+        .map{ [it.baseName, it] }
+        .into{ splitfiles; splitstats}
 
+} else {
+    splitfiles
+        .map{ [it.baseName, it] }      
+        .into{ splitfiles; splitstats }
+}
 
 process splitStats {
     conda "$baseDir/envs/sediment.yaml"
