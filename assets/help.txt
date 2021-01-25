@@ -1,0 +1,39 @@
+Usage: nextflow run sediment_nf {--bam PATH --rg PATH | --split DIR} --db PATH --genome PATH --bedfiles PATH [options]
+           
+Run sediment analysis pipeline.
+    
+required arguments:
+  Either:
+  --bam PATH         input BAM file
+  --rg  PATH         tab-separated file containing index combinations
+                     - format of file: 'LibID<tab>P7<tab>P5'
+  Or:
+  --split DIR        directory with already split bamfiles
+                     - format of files within: 'Readgroup.bam' 
+  And:
+  --db PATH          Path to Kraken database
+  --genome PATH      genomes for alignment - see README for more details
+  --bedfiles PATH    bed-files masking the genomes for alignment
+      
+optional arguments:
+  --specmap PATH     Always map reads assigned to a family to these species
+                     - format of file: 'Family<tab>Species_name,Species_name'
+                     - Species_name must correspond to the filename in the genomes diretory
+  --cutoff N         length cutoff (default: 35)
+  --quality N        quality filter (default: 25)
+  --bwacutoff N      cutoff for number of kraken matches (default: 0)
+  --keeppaired       keep paired reads (default: filter paired)
+  --filterunmapped   filter unmapped reads
+  --krakenfilter N   kraken-filter with threshold N [0,1] (default: 0)
+  --level N          set BGZF compression level (default: 6)
+  --krakenthreads N  number of threads per Kraken process (default: 4)
+      
+A selection of built-in Nextflow flags that may be of use:
+  -resume            resume processing; do not re-run completed processes
+  -profile NAME      use named execution profile
+  -qs N              queue size; number of CPU cores to use (default: all)
+  -N EMAIL           send completion notifcation to email address
+    
+The following execution profiles are available (see '-profile' above):
+  * standard         execute all processes on local host
+  * cluster          execute certain CPU-intenisve processes on SGE cluster

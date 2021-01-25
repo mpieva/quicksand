@@ -1,65 +1,140 @@
 #!/usr/bin/env nextflow
 
-def helpMessage() {
-    log.info"""
-    Usage: nextflow run sediment_nf (--bam PATH --rg PATH | --split DIR) --db PATH --genome PATH --bedfiles
-                                    [--cutoff N] [--level N] [--keeppaired] [--filterunmapped] [--krakenfilter N]
-                                    [--specmap PATH]
-           
-    Run sediment analysis pipeline.
-    
-    required arguments:
-      --bam PATH         input BAM file
-      --rg  PATH         tab-separated file containing index combinations
-                         - format of file: 'LibID<tab>P7<tab>P5'
-      --split DIR        directory with already split bamfiles
-                         - format of files within: 'Readgroup.bam' 
-      --db PATH          Kraken database (set a default in nextflow.config)
-      --genome PATH      genome for alignment (set a default in nextflow.config)
-      --bedfiles PATH    bed-files masking the genomes for alignment (set a default in nextflow.config)
-      --specmap PATH     Always map reads assigned to a family to these species (default: genomes/specmap.tsv)
-                         - format of file: 'Family<tab>Species_name,Species_name'
-                         - Species_name must correspond to the filename in the genomes diretory
-      
-    optional arguments:
-      --cutoff N         length cutoff (default: 35)
-      --quality N        quality filter (default: 25)
-      --bwacutoff N      cutoff for number of kraken matches (default: 0)
-      --keeppaired       keep paired reads (default: filter paired)
-      --filterunmapped   filter unmapped reads
-      --krakenfilter N   kraken-filter with threshold N [0,1] (default: 0)
-      --level N          set BGZF compression level (default: 6)
-      --krakenthreads N  numbrer of threads per Kraken process (default: 4)
-      
-    A selection of built-in Nextflow flags that may be of use:
-      -resume            resume processing; do not re-run completed processes
-      -profile NAME      use named execution profile
-      -qs N              queue size; number of CPU cores to use (default: all)
-      -N EMAIL           send completion notifcation to email address
-    
-    The following execution profiles are available (see '-profile' above):
-      * standard         execute all processes on local host
-      * cluster          execute certain CPU-intenisve processes on SGE cluster
-    """.stripIndent()
-}
+red = "\033[0;31m"
+white = "\033[0m"
+cyan = "\033[0;36m"
+yellow = "\033[0;33m"
 
+log.info """
+[Sediment_nf]: Execution started: ${workflow.start.format('dd.MM.yyyy HH:mm')} ${cyan}
+
+  _____         _  _                   _      _____  _____ 
+ |   __| ___  _| ||_| _____  ___  ___ | |_   |   | ||   __|
+ |__   || -_|| . || ||     || -_||   ||  _|  | | | ||   __|
+ |_____||___||___||_||_|_|_||___||_|_||_|    |_|___||__|   
+ ${white}${workflow.manifest.description} ${cyan}~ Version ${workflow.manifest.version} ${white}
+
+==============================================================
+"""
+
+//
+//
+// Help
+//
+//
+
+params.help = false
 if (params.help) {
-    helpMessage()
+    print file("$baseDir/assets/help.txt").text
     exit 0
 }
 
-//If both BAM+RG and SPLIT provided, stop the pipeline
+//
+//
+// Variable definition and validation
+//
+//
+
+// Inhouse programs
+params.bwa            = '/home/public/usr/bin/bwa'
+params.bamrmdup       = '/home/bioinf/usr/bin/bam-rmdup'
+
+// User-independent params
+params.cutoff         = 35
+params.quality        = 25
+params.bwacutoff      = 0
+params.krakenthreads  = 4      // number of threads per kraken process
+params.level          = 0      // bgzf compression level for intermediate files, 0..9
+params.keeppaired     = false  // keep paired reads
+params.filterunmapped = false  // filter out unmapped
+params.krakenfilter   = false  // a kraken-filter step with the given weight
+
+
+def env = System.getenv()
+
+def validate_dir(path, flag){
+    File test = new File("$path")
+    if (!(test.exists() && test.isDirectory())){
+        log.info "[sediment_nf]: ${red}InputError: The $flag directory doesn't exist ${white}\nPath: $path"
+        exit 0;
+    }
+}
+
+// Validate: BAM, RG and SPLIT
+params.bam            = ''
+params.rg             = ''
+params.split          = ''
+
 if(params.split && (params.bam || params.rg)){
-    Channel.from('error').view{"\n### Unallowed Action ###\nPlease define EITHER --rg,--bam OR --split\n"}
+    log.info """
+    [sediment_nf]: ${red}ArgumentError: Too many arguments ${white}
+    Use: nextflow run sediment_nf {--rg FILE --bam FILE | --split DIR }
+    """.stripIndent()
     exit 0
 } 
+if(!params.split && !(params.bam && params.rg)){
+    log.info """
+    [sediment_nf]: ${red}ArgumentError: Too few arguments ${white}
+    See: nextflow run sediment_nf --help
+    """.stripIndent()
+    exit 0
+}
 
-//If you provide BAM and RG, execute splitBam, else leave out
 inbam = params.bam? Channel.fromPath("${params.bam}") : Channel.empty()
 indexfile = params.rg? Channel.fromPath("${params.rg}") : Channel.empty()
 
+
+// Validate: GENOME and TAXIDMAP
+params.genome = env["SED_GENOME"]
+if(!params.genome){
+    log.info """[sediment_nf]: ${red}ArgumentError: Missing --genome flag ${white}"""
+    exit 0;
+} else { 
+    validate_dir("${params.genome}","--genome") 
+}
+
+if(new File("${params.genome}/taxid_map.tsv").exists()){
+    taxid = Channel.fromPath("${params.genome}/taxid_map.tsv", type:'file')
+} else {
+    taxid = Channel.fromPath("${baseDir}/assets/taxid_map_example.tsv", type:'file')
+    log.info """
+        [sediment_nf]: ${yellow}CRITICAL WARNING: The file 'taxid_map.tsv' is missing in your genomes dir!
+        In this run you use the fallback ${baseDir}/assets/taxid_map_example.tsv 
+        based on the Refseq release 202. This might lead to WRONG OR MISSING assignments. 
+        Please check the Docs, how to set up an own taxid_map.tsv ${white}
+        """.stripIndent()
+}
+
+
+// Validate: KRAKEN DB
+params.db = env["SED_DB"]
+if(!params.db){
+    log.info """[sediment_nf]: ${red}ArgumentError: Missing --db flag ${white}"""
+    exit 0;
+} else {
+    validate_dir("${params.db}", "--db")
+}
+
+
+// Validate: BEDFILES
+params.bedfiles = env["SED_BEDFILES"]
+if(!params.bedfiles){
+    log.info """[sediment_nf]: ${red}ArgumentError: Missing --bedfiles flag ${white}"""
+    exit 0;
+} else {
+    validate_dir("${params.bedfiles}", "--bedfiles")
+}
+
+// Optional
+params.specmap = env["SED_SPECMAP"]
+
+//
+//
+// Finally: The Pipeline
+//
+//
+
 process splitBam {
-    errorStrategy "ignore"
     conda "$baseDir/envs/sediment.yaml"
     maxForks 1
     publishDir 'split', mode: 'copy'
@@ -87,10 +162,15 @@ splitscriptstats
 
 // If split is defined, start the pipeline here
 if(params.split){
+    File split_test = new File("${params.split}")
+    if (!(split_test.exists() && split_test.isDirectory())){
+        log.info "[sediment_nf]: ${red}InputError: The --split directory doesn't exist ${white}\nPath: ${params.split}"
+        exit 0;
+    }
     Channel.fromPath("${params.split}/*.bam")
+        .ifEmpty{error "[sediment_nf]: InputError: The Split-Directory is empty"}
         .map{ [it.baseName, it] }
         .into{ splitfiles; splitstats}
-
 } else {
     splitfiles
         .map{ [it.baseName, it] }      
@@ -281,13 +361,12 @@ process findBestSpecies{
     """
 }
 
-Channel.fromPath("${params.genome}/taxid_map.tsv", type:'file')
-    .splitCsv()
+taxid.splitCsv()
     .map{it[0].split('\t').flatten()}
     .map{[it[0], it[2]]}
     .groupTuple()
     .set{taxid}
-
+    
 best_species
     .map{[it[0], it[1].readLines()]}
     .transpose()
