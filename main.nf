@@ -167,15 +167,47 @@ if(params.split){
         log.info "[sediment_nf]: ${red}InputError: The --split directory doesn't exist ${white}\nPath: ${params.split}"
         exit 0;
     }
-    Channel.fromPath("${params.split}/*.bam")
+    Channel.fromPath("${params.split}/*")
         .ifEmpty{error "[sediment_nf]: InputError: The Split-Directory is empty"}
         .map{ [it.baseName, it] }
-        .into{ splitfiles; splitstats}
+        .set{ splitfiles}
 } else {
     splitfiles
         .map{ [it.baseName, it] }      
-        .into{ splitfiles; splitstats }
+        .set{ splitfiles}
 }
+
+//handle fastq-input
+splitfiles
+    .branch{
+        bam: it[1].getExtension() == "bam"
+        fastq: it[1].getExtension() == "fastq"
+        fail: true
+    }
+    .set {splitfiles}
+
+splitfiles.fail
+    .view{"[sediment_nf]: ${yellow}WARNING: ${it[1]} omitted. Neither bam nor fastq-file!${white}"}
+
+process fastq2Bam{
+    conda "$baseDir/envs/sediment.yaml"
+    tag "$rg"
+    
+    input:
+    set rg, "input.fastq" from splitfiles.fastq
+    
+    output:
+    set rg, "output.bam" into converted_bams
+    
+    script:
+    """
+    fastq2bam input.fastq output.bam
+    """
+    
+}
+
+splitfiles.bam.mix(converted_bams)
+    .into{splitfiles; splitstats}
 
 process splitStats {
     conda "$baseDir/envs/sediment.yaml"
@@ -194,7 +226,6 @@ process splitStats {
 }
 
 // if keeppaired==True, use an empty channel, else use splitfiles
-
 filter_paired_in = params.keeppaired ? Channel.empty() : splitfiles
 
 process filterPaired {
@@ -213,7 +244,7 @@ process filterPaired {
     """
 }
 //here the paths come together again
-post_filter_paired = params.keeppaired ? splitfiles : filter_paired_out
+post_filter_paired = params.keeppaired ? splitfiles.bam : filter_paired_out
 
 // and do the same with the filter-unmapped step
 filter_unmapped_in = params.filterunmapped ? post_filter_paired : Channel.empty()
