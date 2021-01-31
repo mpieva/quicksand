@@ -60,8 +60,10 @@ def validate_dir(path, flag){
     }
 }
 
-def has_ending(it, extension){
-    it.toString().toLowerCase().endsWith(extension)
+def has_ending(file, extension){
+    extension.any{
+        file.toString().toLowerCase().endsWith(it)
+    }
 }
 
 
@@ -186,7 +188,7 @@ if(params.split){
 splitfiles
     .branch{
         bam: it[1].getExtension() == "bam"
-        fastq: (has_ending(it[1], "fastq") || has_ending(it[1], "fastq.gz") || has_ending(it[1],"fq") || has_ending(it[1], "fq.gz"))
+        fastq: has_ending(it[1], ["fastq","fastq.gz","fq","fq.gz"])
         fail: true
     }
     .set {splitfiles}
@@ -212,6 +214,7 @@ process fastq2Bam{
 }
 
 splitfiles.bam.mix(converted_bams)
+    .ifEmpty{error "----\n${white}[sediment_nf]:${red}WorkflowError: No input-files. Scheck SPLIT-dir or RG-BAM combination. Exit pipeline${white}"}
     .into{splitfiles; splitstats}
 
 process splitStats {
@@ -453,6 +456,7 @@ for_extraction
     .filter { it[3] =~ /c__Mammalia.*f__./ }
     .map { rg, bam, kraken, asn -> [rg, bam, kraken, (asn =~ /f__([^|]*)/)[0][1]] }
     .unique()
+    .ifEmpty{error "----\n${white}[sediment_nf]:${red} WorkflowError: No taxa assigned by Kraken. Check Input and Database! Exit pipeline${white}"}
     .set { for_extraction }
 
 process gatherByFamily {
