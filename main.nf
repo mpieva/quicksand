@@ -60,6 +60,11 @@ def validate_dir(path, flag){
     }
 }
 
+def has_ending(it, extension){
+    it.toString().toLowerCase().endsWith(extension)
+}
+
+
 // Validate: BAM, RG and SPLIT
 params.bam            = ''
 params.rg             = ''
@@ -181,7 +186,7 @@ if(params.split){
 splitfiles
     .branch{
         bam: it[1].getExtension() == "bam"
-        fastq: it[1].getExtension() == "fastq"
+        fastq: (has_ending(it[1], "fastq") || has_ending(it[1], "fastq.gz") || has_ending(it[1],"fq") || has_ending(it[1], "fq.gz"))
         fail: true
     }
     .set {splitfiles}
@@ -194,16 +199,16 @@ process fastq2Bam{
     tag "$rg"
     
     input:
-    set rg, "input.fastq" from splitfiles.fastq
+    set rg, file(fastqfile) from splitfiles.fastq
     
     output:
     set rg, "output.bam" into converted_bams
     
     script:
     """
-    fastq2bam input.fastq output.bam
+    picard FastqToSam -F1 $fastqfile -O out.sam --SAMPLE_NAME $rg
+    samtools view -Sb out.sam > output.bam
     """
-    
 }
 
 splitfiles.bam.mix(converted_bams)
