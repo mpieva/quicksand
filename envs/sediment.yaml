@@ -10,7 +10,6 @@ dependencies:
   - pysam=0.16
   - kraken==1.1.1
   - samtools=1.10
-  - picard>=2.24
   - bedtools=2.29
   - bamfilter==0.2.8
   - bam-lengthfilter==0.1.1

@@ -112,7 +112,6 @@ if(new File("${params.genome}/taxid_map.tsv").exists()){
         """.stripIndent()
 }
 
-
 // Validate: KRAKEN DB
 params.db = env["SED_DB"]
 if(!params.db){
@@ -142,7 +141,6 @@ params.specmap = env["SED_SPECMAP"]
 //
 
 process splitBam {
-    conda "$baseDir/envs/sediment.yaml"
     maxForks 1
     publishDir 'split', mode: 'copy'
     label 'local'
@@ -188,16 +186,15 @@ if(params.split){
 splitfiles
     .branch{
         bam: it[1].getExtension() == "bam"
-        fastq: has_ending(it[1], ["fastq","fastq.gz","fq","fq.gz"])
+        fastq: has_ending(it[1], ["fastq"])
         fail: true
     }
     .set {splitfiles}
 
 splitfiles.fail
-    .view{"[sediment_nf]: ${yellow}WARNING: ${it[1]} omitted. Neither bam nor fastq-file!${white}"}
+    .view{"[sediment_nf]: ${yellow}WARNING: ${it[1]} omitted. File has neither bam nor fastq-ending!${white}"}
 
 process fastq2Bam{
-    conda "$baseDir/envs/sediment.yaml"
     tag "$rg"
     
     input:
@@ -208,8 +205,7 @@ process fastq2Bam{
     
     script:
     """
-    picard FastqToSam -F1 $fastqfile -O out.sam --SAMPLE_NAME $rg
-    samtools view -Sb out.sam > output.bam
+    fastq2bam -1 $fastqfile -o output.bam
     """
 }
 
@@ -218,7 +214,6 @@ splitfiles.bam.mix(converted_bams)
     .into{splitfiles; splitstats}
 
 process splitStats {
-    conda "$baseDir/envs/sediment.yaml"
     tag "$rg"
 
     input:
@@ -237,7 +232,6 @@ process splitStats {
 filter_paired_in = params.keeppaired ? Channel.empty() : splitfiles
 
 process filterPaired {
-    conda "$baseDir/envs/sediment.yaml"
     tag "$rg"
 
     input:
@@ -258,7 +252,6 @@ post_filter_paired = params.keeppaired ? splitfiles.bam : filter_paired_out
 filter_unmapped_in = params.filterunmapped ? post_filter_paired : Channel.empty()
 
 process filterUnmapped {
-    conda "$baseDir/envs/sediment.yaml"
     tag "$rg"
 
     input:
@@ -276,7 +269,6 @@ process filterUnmapped {
 post_filter_unmapped = params.filterunmapped ? filter_unmapped_out : post_filter_paired
 
 process filterLength {
-    conda "$baseDir/envs/sediment.yaml"
     tag "$rg"
 
     input:
@@ -300,7 +292,6 @@ filtercounts.join(splitcounts)
                  seed: "readgroup\tsplit count\tfiltered count")
 
 process toFasta {
-    conda "$baseDir/envs/sediment.yaml"
     tag "$rg"
 
     input:
@@ -319,8 +310,6 @@ process toFasta {
 }
 
 process runKraken {
-    conda "$baseDir/envs/sediment.yaml"
-    publishDir 'kraken', mode: 'copy', saveAs: {"${rg}.kraken"}
     cpus "${params.krakenthreads}"
     memory '16GB'
     label 'bigmem'
@@ -342,7 +331,6 @@ process runKraken {
 kraken_filter_in = params.krakenfilter ? kraken_out : Channel.empty()
 
 process filterKraken{
-    conda "$baseDir/envs/sediment.yaml"
     publishDir 'kraken', mode: 'copy', saveAs: {"${rg}.kraken_filter"}
     label 'local'
     tag "$rg"
@@ -365,7 +353,6 @@ process filterKraken{
 post_kraken_filter = params.krakenfilter ? kraken_filter_out : kraken_out
 
 process translateKraken{
-    conda "$baseDir/envs/sediment.yaml"
     publishDir 'kraken', mode: 'copy', pattern:"*translate", saveAs: {"${rg}.translate"}
     publishDir 'kraken', mode: 'copy', pattern:"*report", saveAs: {"${rg}.report"}
     label 'local'
@@ -385,7 +372,6 @@ process translateKraken{
     """
 }
 process findBestSpecies{
-    conda "$baseDir/envs/sediment.yaml"
     tag "$rg"
 
     input:
@@ -480,7 +466,6 @@ count_for_stats
         }
 
 process extractBam {
-    conda "$baseDir/envs/sediment.yaml"
     publishDir 'out', mode: 'copy', saveAs: {"${family}/${rg}_extractedReads-${family}.bam"}
     tag "$rg:$family"
 
@@ -510,7 +495,6 @@ extracted_reads
 
 process mapBwa {
     publishDir 'out', mode: 'copy', saveAs: { out_bam }, pattern: '*.bam'
-    conda "$baseDir/envs/sediment.yaml"
     tag "$rg:$family:$species"
 
     input:
@@ -539,7 +523,6 @@ mapped_count
 
 process dedupBam {
     publishDir 'out', mode: 'copy', pattern: "*.bam", saveAs: {"${family}/aligned/${rg}.${species}_deduped.bam"}
-    conda "$baseDir/envs/sediment.yaml"
     tag "$rg:$family:$species"
 
     input:
@@ -592,7 +575,6 @@ Channel.fromPath("${params.bedfiles}/*.bed", type:'file')   //all the bedfiles
 process runIntersectBed{
     tag "$rg:$family:$species"
     publishDir 'out', mode: 'copy', saveAs: {"${family}/bed/${rg}.${species}_deduped_bedfiltered.bam"}
-    conda "$baseDir/envs/sediment.yaml"
 
     input:
     set species, family, rg, "inbam.bam", "inbed.bed" from to_bed
