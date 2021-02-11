@@ -309,6 +309,9 @@ process toFasta {
     """
 }
 
+kraken_db = Channel.fromPath("${params.db}", type:"dir")
+tofasta_out.combine(kraken_db).set{pre_kraken}
+
 process runKraken {
     cpus "${params.krakenthreads}"
     memory '16GB'
@@ -317,14 +320,14 @@ process runKraken {
     tag "$rg"
 
     input:
-    set rg, "input.fa" from tofasta_out
+    set rg, "input.fa", db from pre_kraken
 
     output:
-    set rg, "output.kraken" into kraken_out
+    set rg, "output.kraken", db into kraken_out
 
     script:
     """
-    kraken --threads ${task.cpus} --db $params.db --output output.kraken --fasta-input input.fa
+    kraken --threads ${task.cpus} --db ${db} --output output.kraken --fasta-input input.fa
     """
 }
 
@@ -336,17 +339,17 @@ process filterKraken{
     tag "$rg"
 
     input:
-    set rg, "input.kraken" from kraken_filter_in
+    set rg, "input.kraken", db from kraken_filter_in
 
     output:
-    set rg, "output_filtered.kraken" into kraken_filter_out
+    set rg, "output_filtered.kraken", db into kraken_filter_out
 
     when:
     params.krakenfilter
 
     script:
     """
-    kraken-filter -threshold $params.krakenfilter --db $params.db input.kraken > output_filtered.kraken
+    kraken-filter -threshold $params.krakenfilter --db ${db} input.kraken > output_filtered.kraken
     """
 }
 
@@ -359,7 +362,7 @@ process translateKraken{
     tag "$rg"
 
     input:
-    set rg, "input.kraken" from post_kraken_filter
+    set rg, "input.kraken", db from post_kraken_filter
 
     output:
     set rg, "kraken.translate" into kraken_assignments
@@ -367,8 +370,8 @@ process translateKraken{
 
     script:
     """
-    kraken-translate --db $params.db --mpa-format input.kraken > kraken.translate
-    kraken-report --db $params.db input.kraken > kraken.report
+    kraken-translate --db ${db} --mpa-format input.kraken > kraken.translate
+    kraken-report --db ${db} input.kraken > kraken.report
     """
 }
 process findBestSpecies{
@@ -493,12 +496,15 @@ extracted_reads
     //[Readgroup, Hominidae, Homo_sapiens, ExtractedReads_Hominidae.bam]
     .set{extracted_reads}
 
+reference = Channel.fromPath("${params.genome}", type:"dir")
+extracted_reads.combine(reference).set{pre_bwa}
+
 process mapBwa {
     publishDir 'out', mode: 'copy', saveAs: { out_bam }, pattern: '*.bam'
     tag "$rg:$family:$species"
 
     input:
-    set rg, family, species, "input.bam" from extracted_reads
+    set rg, family, species, "input.bam", genomes from pre_bwa
 
     output:
     set family, rg, species, 'output.bam' into mapped_bam
@@ -508,7 +514,7 @@ process mapBwa {
     out_bam = "${family}/aligned/${rg}.${species}.bam"
     """
     samtools sort -n -l0 input.bam \
-    | $params.bwa bam2bam -g ${params.genome}/$family/\"${species}.fasta\"  -n 0.01 -o 2 -l 16500 --only-aligned - \
+    | $params.bwa bam2bam -g ${genomes}/$family/\"${species}.fasta\"  -n 0.01 -o 2 -l 16500 --only-aligned - \
     | samtools view -b -u -q $params.quality \
     | samtools sort -l $params.level -o output.bam
     samtools view -c output.bam
