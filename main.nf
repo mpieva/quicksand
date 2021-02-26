@@ -441,11 +441,22 @@ if (new File("${params.specmap}").exists()){
 for_extraction
     .cross(kraken_assignments)
     .map { [it[0][0], it[0][1], it[1][1], it[1][1].readLines()] }
+    .branch {
+        empty: it[3].isEmpty()
+        assigned_taxa: true
+    }
+    .set{for_extraction}
+
+for_extraction.empty
+    .view{"[sediment_nf]: ${yellow}Info: No Kraken-assignments for Readgroup ${it[0]}${white}"}
+    .collectFile(storeDir: 'stats') { it -> [ "${it[0]}_extracted.tsv", "\t"] }
+
+for_extraction.assigned_taxa
     .transpose()
     .filter { it[3] =~ /c__Mammalia.*f__./ }
     .map { rg, bam, kraken, asn -> [rg, bam, kraken, (asn =~ /f__([^|]*)/)[0][1]] }
     .unique()
-    .ifEmpty{error "----\n${white}[sediment_nf]:${red} WorkflowError: No taxa assigned by Kraken. Check Input and Database! Exit pipeline${white}"}
+    .ifEmpty{error "----\n${white}[sediment_nf]:${red} WorkflowError: No families assigned by Kraken at all. Check Input and Database! Exit pipeline${white}"}
     .set { for_extraction }
 
 process gatherByFamily {
