@@ -442,8 +442,8 @@ for_extraction
     .cross(kraken_assignments)
     .map { [it[0][0], it[0][1], it[1][1], it[1][1].readLines()] }
     .branch {
-        empty: it[3].isEmpty()
-        assigned_taxa: true
+        assigned_taxa: it[3].any{ it =~ /c__Mammalia.*f__./  }
+        empty: true
     }
     .set{for_extraction}
 
