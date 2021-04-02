@@ -9,7 +9,7 @@ This pipeline is a reimplmentation of the MPI Sediment processing pipeline descr
 and to implement some other requested changes. The pipeline is based on Nextflow to provide a reproducible and distributable pipeline.
 
 This README is split into two sections. The first one covers the use of the pipeline **inside** the Max-Planck-Institute with
-access to the inhouse scripts and packages. The second part covers the more complex setup outside the institute including Docker
+access to the inhouse scripts and packages. The second part covers the more complex setup outside the institute including Docker or Singularity
 
 # Section 1 - MPI users
 ## Prerequisites
@@ -94,11 +94,11 @@ https://hub.docker.com/r/merszym/sediment_nf
 ## Prerequisites
 
 1. Nextflow
-2. Docker
+2. Docker / Singularity
 
 ## Quickstart/Test
 
-If you have `nextflow` and `docker` installed, you can **test** the pipeline
+If you have `nextflow` and `docker or singularity` installed, you can **test** the pipeline
 clone this repository:
 ```bash
 git clone https://vcs.eva.mpg.de/visagie/sediment_nf
@@ -113,9 +113,14 @@ Unpack the Kraken-Test-Database (too large for github) and run the test-set in a
 mkdir test_run && cd test_run
 tar -xvzf../sediment_nf/assets/test/kraken/database.tar.gz
 nextflow run ../sediment_nf/main.nf --split ../sediment_nf/assets/test/split/ --genome ../sediment_nf/assets/test/genomes/ --bedfiles ../sediment_nf/assets/test/masked/ --db TestDB/ --specmap ../sediment_nf/assets/test/genomes/specmap.tsv -profile docker
+
+or
+
+nextflow run ../sediment_nf/main.nf --split ../sediment_nf/assets/test/split/ --genome ../sediment_nf/assets/test/genomes/ --bedfiles ../sediment_nf/assets/test/masked/ --db TestDB/ --specmap ../sediment_nf/assets/test/genomes/specmap.tsv -profile singularity
+
 ```
 
-Be careful, the `-profile docker` has only one dash!
+Be careful, the `-profile` flag has only one dash!
 
 ## Set up the pipeline
  
@@ -125,7 +130,6 @@ That process is described here:
 https://github.com/MerlinSzymanski/datastructure_nf/
 
 ## Running the pipeline
-(TODO: where is the pipeline hosted?)
 
 The pipeline requires a number of flags to be present. See the **Flags** -section for further documentation
 
@@ -189,6 +193,7 @@ Flag | Description
 standard | execute all processes on local host with conda (default)
 cluster | execute certain CPU-intensive processes on SGE cluster
 docker | Run the processes inside a Docker container
+singularity | Run the pipeline inside a Singularity container
 
 # Feedback
 If you have questions, feel free to write me!
