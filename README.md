@@ -3,13 +3,13 @@
 A pipeline to preprocess sequencing data and output classified reads mapped against the best fitting reference genome
 
 **input:** The Pipeline includes an optional MPI-specific demultiplexer. The accepted input is thus either a bam/indexfile pair or already demultiplexed files (both bam, fastq files allowed).
-**output:** The pipeline ends with classified reads mapped against the corresponding reference genome
+**output:** The pipeline ends with classified reads mapped against the corresponding reference genome and a (optional) analysis of C to T deamination-damage
 
-This pipeline is a reimplmentation of the MPI Sediment processing pipeline described in Slon et al., 2017 using Kraken for classification, 
-and to implement some other requested changes. The pipeline is based on Nextflow to provide a reproducible and distributable pipeline.
+This pipeline is a reimplmentation of the MPI Sediment processing pipeline described in Slon et al., 2017 using Kraken for classification. 
+The pipeline is written in Nextflow and runs with Docker and Singularity.
 
-This README is split into two sections. The first one covers the use of the pipeline **inside** the Max-Planck-Institute with
-access to the inhouse scripts and packages. The second part covers the more complex setup outside the institute including Docker or Singularity
+This README is split into **two sections**. The first one covers the use of the pipeline **inside** the Max-Planck-Institute with
+access to the inhouse scripts and packages and uses conda. The second part covers the more complex setup outside the institute with Docker or Singularity
 
 # Section 1 - MPI users
 ## Prerequisites
@@ -134,30 +134,33 @@ https://github.com/MerlinSzymanski/datastructure_nf/
 The pipeline requires a number of flags to be present. See the **Flags** -section for further documentation
 
 ```bash
-nextflow run sediment_nf/main.nf --db </path/to/kraken.db> { --bam <input bamfile> --rg <index file> | --split <path/to/split-dir> } --genome <path/to/reference/database> --bedfiles <path/to/bedfiles> [--dedup, --keeppaired, --filterunmapped, --specmap <specmap-file>, ]
+nextflow run sediment_nf/main.nf --db </path/to/kraken.db> { --bam <input bamfile> --rg <index file> | --split <path/to/split-dir> } --genome <path/to/reference/database> --bedfiles <path/to/bedfiles> [--analyze, --keeppaired, --filterunmapped, --specmap <specmap-file>, ]
 ```
 
 If you wish to *resume* a pipeline run (e.g. if you stopped it for some reason, and you do not want it to redo the steps it had already completed), you need to add the flag `-resume` (note: just one `-`) after `run`:
 
 ```bash
-nextflow run -resume sediment_nf/main.nf --db </path/to/kraken.db> { --bam <input bamfile> --rg <index file> | --split <path/to/split-dir> } --genome <path/to/reference/database> --bedfiles <path/to/bedfiles> [--dedup, --keeppaired, --filterunmapped, --specmap <specmap-file>, ]
+nextflow run -resume sediment_nf/main.nf --db </path/to/kraken.db> { --bam <input bamfile> --rg <index file> | --split <path/to/split-dir> } --genome <path/to/reference/database> --bedfiles <path/to/bedfiles> [--analyze, --keeppaired, --filterunmapped, --specmap <specmap-file>, ]
 ```
 
 # Flags
 
 ### required arguments:
 **Either**
+
 Flag | Input Type | Description
 --- | --- | ---
 --bam | FILE | Still multiplexed BAM file
 --rg | FILE | Tab-separated file containing index combinations. Format: 'LibID<tab>P7<tab>P5'
   
 **Or**
+
 Flag | Input Type | Description
 --- | --- | ---
 --split | DIR | Directory with already split bamfiles or demultiplexed, merged fastq-files. files should be named: 'Readgroup.(bam,fastq)' 
 
 **And**
+
 Flag | Input Type | Description
 --- | --- | ---
 --db | DIR | Path to the Kraken database to use
@@ -165,6 +168,7 @@ Flag | Input Type | Description
 --bedfiles | DIR | Path to bedfiles masking the genomes for
       
 ### optional arguments:
+
 Flag | Input Type | Description
 --- | --- | ---
 --specmap | FILE | Config-file. Force BWA-mappings of a family to assigned species, overwrite Krakens species-level assignment. Format: 'Family<tab>Species_name,Species_name'. Species_name must correspond to the filename in the genomes diretory
@@ -176,9 +180,11 @@ Flag | Input Type | Description
 --krakenfilter | N | Kraken-filter with threshold N [0,1] (default: 0)
 --level | N | Set BGZF compression level (default: 6)
 --krakenthreads | N | Number of threads per Kraken process (default: 4)
+--analyze | - | Add an analysis step to the end of the pipeline. Creates overview over deamination-damage
       
 ### Nextflow flags
 A selection of built-in Nextflow flags that may be of use (Be aware: only one `-` with these flags):
+
 Flag | Input Type | Description
 --- | --- | ---
 -resume | - | Resume processing; do not re-run completed processes
@@ -188,12 +194,24 @@ Flag | Input Type | Description
  
 ### Profiles   
 The following execution profiles are available (use '-profile <profile>'):
+
 Flag | Description
 --- | ---
 standard | execute all processes on local host with conda (default)
 cluster | execute certain CPU-intensive processes on SGE cluster
 docker | Run the processes inside a Docker container
 singularity | Run the pipeline inside a Singularity container
+
+### Environmental variables
+Some parameters can be replaced by environmental variables
+
+Env Variable | Parameter
+--- | ---
+SED_DB | --db
+SED_GENOME | --genome
+SED_BEDFILES | --bedfiles
+SED_SPECMAP | --specmap
+ 
 
 # Feedback
 If you have questions, feel free to write me!

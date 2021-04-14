@@ -48,7 +48,7 @@ params.level          = 0      // bgzf compression level for intermediate files,
 params.keeppaired     = false  // keep paired reads
 params.filterunmapped = false  // filter out unmapped
 params.krakenfilter   = false  // a kraken-filter step with the given weight
-
+params.analyze        = ""
 
 def env = System.getenv()
 
@@ -599,7 +599,8 @@ process runIntersectBed{
     output:
     file "outbam.bam"
     set family, rg, species, stdout into bedfilter_count
-        
+    set family, rg, species, "outbam.bam" into deam_stats
+    
     script:
     """
     bedtools intersect -a inbam.bam -b inbed.bed -v > outbam.bam
@@ -608,6 +609,30 @@ process runIntersectBed{
     }
     
 bedfilter_count
-        .collectFile(storeDir: 'stats') { family, rg, species, count ->
-            [ "${rg}_bedfiltered.tsv", "${family}\t${species}\t${count}"]
-        }
+    .collectFile(storeDir: 'stats') { family, rg, species, count ->
+        [ "${rg}_bedfiltered.tsv", "${family}\t${species}\t${count}"]
+    }
+
+process writeDeaminationStats{
+    tag "$rg:$family:$species"
+    
+    input:
+    set family, rg, species, "input.bam" from deam_stats
+    
+    output:
+    set rg, stdout into deam_stats_file
+    
+    when:
+    params.analyze
+    
+    script:
+    """
+    bam_deam_stats.py input.bam ${rg} ${family} ${species} 
+    """
+}
+
+deam_stats_file
+    .collectFile(storeDir: 'stats', keepHeader: true, newLine: true){ rg, content -> [
+        "${rg}.deamination_stats.tsv", content ]
+    }
+
