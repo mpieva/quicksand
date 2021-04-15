@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#! /usr/bin/env python3
 
 import pysam
 import pandas as pd
@@ -57,6 +57,9 @@ family = sys.argv[3]
 species = sys.argv[4]
 
 df = import_data(bamfile)
+if(len(df)==0):
+    print("\t".join([f"{rg}",f"{family}",f"{species}","EMPTY_BAM"]), file=sys.stdout)
+    exit()
 df = convert_reverse(df)
 
 #
@@ -135,10 +138,13 @@ nRef33cond = len(cond_subset33)
 nRef32cond = len(cond_subset32)
 nRef31cond = len(cond_subset31)
 
-if(deam51_95ci[0] > 9.5 and deam31_95ci[0] > 9.5):
-    ancient_string = "++"
-elif(deam51_95ci[0] > 9.5 or deam31_95ci[0] > 9.5):
-    ancient_string = "+"
+if (type(deam51_95ci[0]) != str and type(deam31_95ci[0]) != str):
+    if (deam51_95ci[0] > 9.5 and deam31_95ci[0] > 9.5):
+        ancient_string = "++"
+    elif(deam51_95ci[0] > 9.5 or deam31_95ci[0] > 9.5):
+        ancient_string = "+"
+    else:
+        ancient_string = "-"
 else:
     ancient_string = "-"
 

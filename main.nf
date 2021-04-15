@@ -613,7 +613,7 @@ bedfilter_count
         [ "${rg}_bedfiltered.tsv", "${family}\t${species}\t${count}"]
     }
 
-process writeDeaminationStats{
+process reportDamage{
     tag "$rg:$family:$species"
     
     input:
@@ -632,7 +632,7 @@ process writeDeaminationStats{
 }
 
 deam_stats_file
-    .collectFile(storeDir: 'stats', keepHeader: true, newLine: true){ rg, content -> [
-        "${rg}.deamination_stats.tsv", content ]
+    .collectFile(storeDir: 'stats', keepHeader: true){ rg, content -> [
+        "${rg}_deamination_stats.tsv", content ]
     }
 
