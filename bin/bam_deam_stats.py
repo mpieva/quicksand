@@ -45,6 +45,38 @@ def import_data(bamfile):
         df = df.append(get_data(read), ignore_index=True)
     return df
 
+def print_header():
+    print("\t".join([
+        "RG",
+        "Ancient",
+        "Family",
+        "Species",
+        "Freq51(95CI)",
+        "Freq52(95CI)",
+        "Freq53(95CI)",
+        "Freq33(95CI)",
+        "Freq32(95CI)",
+        "Freq31(95CI)",
+        "nRef51",
+        "nRef52",
+        "nRef53",
+        "nRef33",
+        "nRef32",
+        "nRef31",
+        "Freq51cond(95CI)",
+        "Freq52cond(95CI)",
+        "Freq53cond(95CI)",
+        "Freq33cond(95CI)",
+        "Freq32cond(95CI)",
+        "Freq31cond(95CI)",
+        "nRef51cond",
+        "nRef52cond",
+        "nRef53cond",
+        "nRef33cond",
+        "nRef32cond",
+        "nRef31cond",
+    ]), file=sys.stdout)
+
 #
 #
 # MAIN
@@ -58,7 +90,7 @@ species = sys.argv[4]
 
 df = import_data(bamfile)
 if(len(df)==0):
-    print("\t".join([f"{rg}",f"{family}",f"{species}","EMPTY_BAM"]), file=sys.stdout)
+    print_header()
     exit()
 df = convert_reverse(df)
 
@@ -149,37 +181,7 @@ else:
     ancient_string = "-"
 
 #header
-print("\t".join([
-    "RG",
-    "Ancient",
-    "Family",
-    "Species",
-    "Freq51(95CI)",
-    "Freq52(95CI)",
-    "Freq53(95CI)",
-    "Freq33(95CI)",
-    "Freq32(95CI)",
-    "Freq31(95CI)",
-    "nRef51",
-    "nRef52",
-    "nRef53",
-    "nRef33",
-    "nRef32",
-    "nRef31",
-    "Freq51cond(95CI)",
-    "Freq52cond(95CI)",
-    "Freq53cond(95CI)",
-    "Freq33cond(95CI)",
-    "Freq32cond(95CI)",
-    "Freq31cond(95CI)",
-    "nRef51cond",
-    "nRef52cond",
-    "nRef53cond",
-    "nRef33cond",
-    "nRef32cond",
-    "nRef31cond",
-]
-),file=sys.stdout)
+print_header()
 
 #and row
 print("\t".join([
