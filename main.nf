@@ -49,6 +49,7 @@ params.keeppaired     = false  // keep paired reads
 params.filterunmapped = false  // filter out unmapped
 params.krakenfilter   = false  // a kraken-filter step with the given weight
 params.analyze        = ""
+params.splitfile      = "stats/splitcounts.tsv"
 
 def env = System.getenv()
 
@@ -286,7 +287,19 @@ process filterLength {
     """
 }
 
+// In case one needs to run several splitted bam-files in batches, dont overwrite
+// the old splitcounts file, but gather everything there
+if(new File("$params.splitfile").exists()){
+    old_splitcount = Channel.fromPath("${params.splitfile}", type: "file")
+        .splitCsv(sep:'\t')
+        .filter{it[0] != "readgroup"}
+} else {
+    old_splitcount = Channel.empty()
+}
+
 filtercounts.join(splitcounts)
+    .concat(old_splitcount)
+    .unique{it[0]}
     .map { rg, fc, sc -> "${rg}\t${sc.trim()}\t${fc.trim()}"}
     .collectFile(storeDir: 'stats', name: "splitcounts.tsv", newLine: true,
                  seed: "readgroup\tsplit count\tfiltered count")
