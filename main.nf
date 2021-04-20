@@ -327,7 +327,7 @@ tofasta_out.combine(kraken_db).set{pre_kraken}
 
 process runKraken {
     cpus "${params.krakenthreads}"
-    memory '16GB'
+    memory '12GB'
     label 'bigmem'
     label 'local'
     tag "$rg"
@@ -591,14 +591,14 @@ deduped_bam
         })
     .flatMap{n -> n[0..-1]}
     .groupTuple(by:[2,1])   //[[sp,sp,sp], family, rg, [bam,bam,bam],[count < count < count]]
-    .map{n -> [n[0][-1], n[1], n[2], n[3][-1]]} //[species, family, rg, bamfile]
+    .map{n -> [n[0][-1], n[1], n[2], n[3][-1],n[4][-1]]} //[species, family, rg, bamfile, count, covered_bp]
     .set{best_deduped}
 
 
 Channel.fromPath("${params.bedfiles}/*.bed", type:'file')   //all the bedfiles
     .map{[it.baseName.replaceAll(/.masked/,""), it] }       //make a map, with species as key
     .cross(best_deduped)                                    //throw it together
-    .map{x, y -> [y[0],y[1],y[2],y[3],x[1]]}                //get species, family, rg, bamfile and bedfile
+    .map{x, y -> [y[0],y[1],y[2],y[3],x[1],y[4]]}           //get species, family, rg, bamfile and bedfile, covered_bp
     .set{to_bed}
 
 //and filter out reads that intersect with masked regions
@@ -607,12 +607,12 @@ process runIntersectBed{
     publishDir 'out', mode: 'copy', saveAs: {"${family}/bed/${rg}.${species}_deduped_bedfiltered.bam"}
 
     input:
-    set species, family, rg, "inbam.bam", "inbed.bed" from to_bed
+    set species, family, rg, "inbam.bam", "inbed.bed", coverage from to_bed
 
     output:
     file "outbam.bam"
     set family, rg, species, stdout into bedfilter_count
-    set family, rg, species, "outbam.bam" into deam_stats
+    set family, rg, species, "outbam.bam", stdout, coverage into deam_stats
     
     script:
     """
@@ -626,11 +626,26 @@ bedfilter_count
         [ "${rg}_bedfiltered.tsv", "${family}\t${species}\t${count}"]
     }
 
+deam_stats.map{[it[1], it[0], it[2], it[3], it[4].trim().toInteger(), it[5].trim()]}
+    .into{ deam_stats;total_rg }
+
+//Sum the counts over the reagroups
+total_rg.map{[it[0],it[4]]}
+    .groupTuple()     //[RG, [count, count, count, ...]]
+    .map{[it[0], it[1].sum()]}
+    .set{total_rg}
+
+//throw it together again
+deam_stats.combine(total_rg, by:0)
+    .map{x -> [x[0],x[1],x[2],x[3],x[4],x[5],x[6]]}
+    .set{deam_stats}
+
+
 process reportDamage{
     tag "$rg:$family:$species"
     
     input:
-    set family, rg, species, "input.bam" from deam_stats
+    set rg, family, species, "input.bam", count, coverage, total_rg from deam_stats
     
     output:
     set rg, stdout into deam_stats_file
@@ -640,7 +655,7 @@ process reportDamage{
     
     script:
     """
-    bam_deam_stats.py input.bam ${rg} ${family} ${species} 
+    bam_deam_stats.py input.bam ${rg} ${family} ${species} ${count} ${coverage} ${total_rg}
     """
 }
 
