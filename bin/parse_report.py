@@ -3,38 +3,48 @@ import sys
 from collections import defaultdict
 
 def find_best(tree):
-    return max(tree.keys(), key=lambda x: tree[x]['counts'])
+    return max(tree.keys(), key=lambda x: tree[x]['kmers'])
 
 results = {}
 sp = 'placeholder'
 
+
+min_kmers = int(sys.argv[2])
+min_reads = int(sys.argv[3])
+
+#parse the report
 for row in open(sys.argv[1],'r'):
-    _, reads, _, level, taxid, name = row.split('\t', 5)
-    if level == 'F':
+    try:
+        _, reads, _, kmers, dup, cov, taxid, level, name = row.split('\t', 8)
+    except ValueError: #headerline in krakenUniq
+        continue
+    if level == 'family':
         fam = name.strip()
-        results[fam] = {'id':taxid, 'counts':int(reads), 'tree':{}}
-    elif level == 'G':
+        results[fam] = {
+            'id':taxid, 'counts':int(reads), 'kmers':float(kmers), 'tree':{}
+        }
+    elif level == 'genus':
         gen = name.strip()
         results[fam]['tree'][gen] = {
-            'id':taxid, 'counts':int(reads), 'tree':{}
+            'id':taxid, 'counts':int(reads), 'kmers':float(kmers), 'tree':{}
         }
-    elif level == 'S':
+    elif level == 'species':
         sp = name.strip()
         results[fam]['tree'][gen]['tree'][sp] = {
-            'id':taxid, 'counts':int(reads), 'tree':{}
-            }
-    elif level == '-' and name.strip().startswith(sp):
+            'id':taxid, 'counts':int(reads), 'kmers':float(kmers), 'tree':{}
+        }
+    elif level == 'subspecies':
         ssp = name.strip()
         results[fam]['tree'][gen]['tree'][sp]['tree'][ssp] = {
-            'id':taxid, 'counts':int(reads)
-            }
+            'id':taxid, 'counts':int(reads), 'kmers':float(kmers)
+        }
     else:
         continue
 
 real_results = {}
 
 for fam in results:
-    if(results[fam]["counts"]<3):
+    if(results[fam]["counts"]<min_reads or results[fam]["kmers"]<min_kmers):
         continue
     try:
         gen = find_best(results[fam]['tree'])

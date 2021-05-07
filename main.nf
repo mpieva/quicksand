@@ -38,16 +38,18 @@ if (params.help) {
 // Inhouse programs
 params.bwa            = '/home/public/usr/bin/bwa'
 params.bamrmdup       = '/home/bioinf/usr/bin/bam-rmdup'
+params.kraken_uniq    = '/home/merlin_szymanski/bin/Krakenuniq/'
 
 // User-independent params
 params.cutoff         = 35
 params.quality        = 25
+params.min_kmers      = 129    // min 150bp covered (krakenuniq)
+params.min_reads      = 3      // min 3 reads assigned (krakenuniq)
 params.bwacutoff      = 0
 params.krakenthreads  = 4      // number of threads per kraken process
 params.level          = 0      // bgzf compression level for intermediate files, 0..9
 params.keeppaired     = false  // keep paired reads
-params.filterunmapped = false  // filter out unmapped
-params.krakenfilter   = false  // a kraken-filter step with the given weight
+params.filterunmapped = false  // filter out unmapped (in case of pre-mapping)
 params.analyze        = ""
 params.splitfile      = "stats/splitcounts.tsv"
 
@@ -325,9 +327,11 @@ process toFasta {
 kraken_db = Channel.fromPath("${params.db}", type:"dir")
 tofasta_out.combine(kraken_db).set{pre_kraken}
 
-process runKraken {
+process runKrakenUniq {
+	publishDir 'kraken', mode: 'copy', pattern:"*translate", saveAs: {"${rg}.translate"}
+    publishDir 'kraken', mode: 'copy', pattern:"*report", saveAs: {"${rg}.report"}
     cpus "${params.krakenthreads}"
-    memory '12GB'
+    memory '16GB'
     label 'bigmem'
     label 'local'
     tag "$rg"
@@ -336,69 +340,28 @@ process runKraken {
     set rg, "input.fa", db from pre_kraken
 
     output:
-    set rg, "output.kraken", db into kraken_out
+    set rg, "krakenUniq.translate" into kraken_assignments
+    set rg, "krakenUniq.report" into find_best
 
     script:
     """
-    kraken --threads ${task.cpus} --db ${db} --output output.kraken --fasta-input input.fa
+    ${params.kraken_uniq}/krakenuniq --threads ${task.cpus} --db ${db} --fasta-input input.fa --report-file krakenUniq.report > output.krakenUniq
+    ${params.kraken_uniq}/krakenuniq-translate --db ${db} --mpa-format output.krakenUniq > krakenUniq.translate
     """
 }
 
-kraken_filter_in = params.krakenfilter ? kraken_out : Channel.empty()
-
-process filterKraken{
-    publishDir 'kraken', mode: 'copy', saveAs: {"${rg}.kraken_filter"}
-    label 'local'
-    tag "$rg"
-
-    input:
-    set rg, "input.kraken", db from kraken_filter_in
-
-    output:
-    set rg, "output_filtered.kraken", db into kraken_filter_out
-
-    when:
-    params.krakenfilter
-
-    script:
-    """
-    kraken-filter -threshold $params.krakenfilter --db ${db} input.kraken > output_filtered.kraken
-    """
-}
-
-post_kraken_filter = params.krakenfilter ? kraken_filter_out : kraken_out
-
-process translateKraken{
-    publishDir 'kraken', mode: 'copy', pattern:"*translate", saveAs: {"${rg}.translate"}
-    publishDir 'kraken', mode: 'copy', pattern:"*report", saveAs: {"${rg}.report"}
-    label 'local'
-    tag "$rg"
-
-    input:
-    set rg, "input.kraken", db from post_kraken_filter
-
-    output:
-    set rg, "kraken.translate" into kraken_assignments
-    set rg, "kraken.report" into find_best
-
-    script:
-    """
-    kraken-translate --db ${db} --mpa-format input.kraken > kraken.translate
-    kraken-report --db ${db} input.kraken > kraken.report
-    """
-}
 process findBestSpecies{
     tag "$rg"
 
     input:
-    set rg, "kraken.report" from find_best
+    set rg, "krakenUniq.report" from find_best
 
     output:
     set rg, "parsed_record.tsv" into best_species
 
     script:
     """
-    parse_report.py kraken.report
+    parse_report.py krakenUniq.report ${params.min_kmers} ${params.min_reads}
     """
 }
 

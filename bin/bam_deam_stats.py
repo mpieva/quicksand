@@ -58,12 +58,8 @@ def print_header():
         "CoveredBP",
         "Deam5(95CI)",
         "Deam3(95CI)",
-        "nCRef5",
-        "nCRef3",
         "Deam5cond(95CI)",
         "Deam3cond(95CI)",
-        "nCRef5cond",
-        "nCRef3cond",
     ]), file=sys.stdout)
 
 #
@@ -106,28 +102,21 @@ cond_subset31 = df[(df["RefBP_corr"].str.contains("C$"))&(df["5deam1"]==1)]
 
 #Now calculate the percentages and other stats
 #percentage of deaminated C
-deam51 = round(sum(deam_subset51["5deam1"])/len(deam_subset51)*100,2) if len(deam_subset51)>0 else 0
-deam31 = round(sum(deam_subset31["3deam1"])/len(deam_subset31)*100,2) if len(deam_subset31)>0 else 0
+deam51 = round(sum(deam_subset51["5deam1"])/len(deam_subset51)*100,2) if len(deam_subset51)>0 else 'NA'
+deam31 = round(sum(deam_subset31["3deam1"])/len(deam_subset31)*100,2) if len(deam_subset31)>0 else 'NA'
 
 #and the confidence interval for that
 deam51_95ci = binomial_ci(sum(deam_subset51["5deam1"]),len(deam_subset51))
 deam31_95ci = binomial_ci(sum(deam_subset31["3deam1"]),len(deam_subset31))
 
-# the number of Cs that could have been deaminated
-nRef51 = len(deam_subset51)
-nRef31 = len(deam_subset31)
-
 # percentage of deaminated conditional reads
-deam51cond = round(sum(cond_subset51["cond1"])/len(cond_subset51)*100,2) if len(cond_subset51)>0 else 0
-deam31cond = round(sum(cond_subset31["cond1"])/len(cond_subset31)*100,2) if len(cond_subset31)>0 else 0
+deam51cond = round(sum(cond_subset51["cond1"])/len(cond_subset51)*100,2) if len(cond_subset51)>0 else 'NA'
+deam31cond = round(sum(cond_subset31["cond1"])/len(cond_subset31)*100,2) if len(cond_subset31)>0 else 'NA'
 
 # the 95% confidence interval
 deam51cond_95ci = binomial_ci(sum(cond_subset51["cond1"]),len(cond_subset51))
 deam31cond_95ci = binomial_ci(sum(cond_subset31["cond1"]),len(cond_subset31))
 
-# the number of conditional Cs that could have been deaminated
-nRef51cond = len(cond_subset51)
-nRef31cond = len(cond_subset31)
 
 if (type(deam51_95ci[0]) != str and type(deam31_95ci[0]) != str):
     if (deam51_95ci[0] > 9.5 and deam31_95ci[0] > 9.5):
@@ -153,11 +142,7 @@ print("\t".join([
     f"{covered_bp}",
     f"{deam51} {deam51_95ci}",
     f"{deam31} {deam31_95ci}",
-    f"{nRef51}",
-    f"{nRef31}",
     f"{deam51cond} {deam51cond_95ci}",
     f"{deam31cond} {deam31cond_95ci}",
-    f"{nRef51cond}",
-    f"{nRef31cond}",
     ]
 ), file=sys.stdout)
