@@ -136,6 +136,12 @@ if(!params.bedfiles){
 
 // Optional
 params.specmap = env["SED_SPECMAP"]
+params.capture = false
+
+capture_families = []
+if(params.capture){
+    capture_families = params.capture.split(',')
+}
 
 //
 //
@@ -442,7 +448,7 @@ process gatherByFamily {
     set rg, 'input.bam', 'kraken.translate', family from for_extraction
 
     output:
-    set family, rg, 'input.bam', 'ids.txt', stdout into (prepared_for_extraction, count_for_stats)
+    set family, rg, 'input.bam', 'ids.txt', stdout into (prepared_for_extraction, count_for_stats, extraction_data)
 
     script:
     """
@@ -495,7 +501,7 @@ process mapBwa {
 
     output:
     set family, rg, species, 'output.bam' into mapped_bam
-    set family, rg, species, stdout into mapped_count
+    set family, rg, species, stdout into (mapped_count, mapping_data)
 
     script:
     out_bam = "${family}/aligned/${rg}.${species}.bam"
@@ -522,9 +528,9 @@ process dedupBam {
     set family, rg, species, 'input.bam' from mapped_bam
 
     output:
-    set species, family, rg, "output.bam", stdout into deduped_bam
-    set family, rg, species, stdout into coverage_count
-    set family, rg, species, "count.txt" into deduped_count
+    set species, family, rg, "output.bam", stdout, "count.txt" into deduped_bam
+    set family, rg, species, stdout into (coverage_count, coverage_data)
+    set family, rg, species, "count.txt" into (deduped_count, deduped_data)
 
     script:
     """
@@ -537,7 +543,7 @@ process dedupBam {
 coverage_count
     .collectFile(storeDir: 'stats') { family, rg, species, coverage ->
         [ "${rg}_mapped_coverage.tsv", "${family}\t${species}\t${coverage}"]
-    }   
+    }
 
 deduped_count
     .collectFile(storeDir: 'stats') { family, rg, species, count_file ->
@@ -549,19 +555,24 @@ deduped_bam
     flatMap --> Emit every record in the list separatly (for groupTuple)
     groupTuple by readgroup and family
     Map only the best species per family*/
+    .map{[it[0],it[1],it[2],it[3],it[4],it[5].text]} //get count-value from text
     .toSortedList({
-        a,b -> a[2]+a[1] <=> b[2]+b[1] ?: a[-1] as int <=> b[-1] as int
+        a,b -> a[2]+a[1] <=> b[2]+b[1] ?: a[-2] as int <=> b[-2] as int
         })
     .flatMap{n -> n[0..-1]}
-    .groupTuple(by:[2,1])   //[[sp,sp,sp], family, rg, [bam,bam,bam],[count < count < count]]
-    .map{n -> [n[0][-1], n[1], n[2], n[3][-1],n[4][-1]]} //[species, family, rg, bamfile, count, covered_bp]
+    .groupTuple(by:[2,1])   //[[sp,sp,sp], family, rg, [bam,bam,bam],[covered_bp < covered_bp < covered_bp],[count, count, count]]
+    .map{n -> [n[0][-1], n[1], n[2], n[3][-1],n[4][-1], n[5][-1]]} //[species, family, rg, bamfile, covered_bp, count]
+    .branch{
+        no_bed: it[1] in capture_families
+        bed: true
+    }
     .set{best_deduped}
 
 
-Channel.fromPath("${params.bedfiles}/*.bed", type:'file')   //all the bedfiles
-    .map{[it.baseName.replaceAll(/.masked/,""), it] }       //make a map, with species as key
-    .cross(best_deduped)                                    //throw it together
-    .map{x, y -> [y[0],y[1],y[2],y[3],x[1],y[4]]}           //get species, family, rg, bamfile and bedfile, covered_bp
+Channel.fromPath("${params.bedfiles}/*.bed", type:'file')       //all the bedfiles
+    .map{[it.baseName.replaceAll(/.masked/,""), it] }           //make a map, with species as key
+    .cross(best_deduped.bed)                                    //throw it together
+    .map{x, y -> [y[0],y[1],y[2],y[3],x[1],y[4]]}               //get species, family, rg, bamfile and bedfile, covered_bp, (count is ignored here)
     .set{to_bed}
 
 //and filter out reads that intersect with masked regions
@@ -574,7 +585,7 @@ process runIntersectBed{
 
     output:
     file "outbam.bam"
-    set family, rg, species, stdout into bedfilter_count
+    set family, rg, species, stdout into (bedfilter_count, bedfilter_data)
     set family, rg, species, "outbam.bam", stdout, coverage into deam_stats
     
     script:
@@ -589,7 +600,14 @@ bedfilter_count
         [ "${rg}_bedfiltered.tsv", "${family}\t${species}\t${count}"]
     }
 
-deam_stats.map{[it[1], it[0], it[2], it[3], it[4].trim().toInteger(), it[5].trim()]}
+//get the captured_families again
+best_deduped.no_bed
+    .map{[it[1], it[2], it[0], it[3], it[5].trim(), it[4].trim()]}
+    .into{captured_no_bed;bedfilter_data_placeholder}
+
+deam_stats
+    .concat(captured_no_bed)
+    .map{[it[1], it[0], it[2], it[3], it[4].trim().toInteger(), it[5].trim()]}
     .into{ deam_stats;total_rg }
 
 //Sum the counts over the reagroups
@@ -600,8 +618,7 @@ total_rg.map{[it[0],it[4]]}
 
 //throw it together again
 deam_stats.combine(total_rg, by:0)
-    .map{x -> [x[0],x[1],x[2],x[3],x[4],x[5],x[6]]}
-    .set{deam_stats}
+    .into{deam_stats;deam_report}
 
 
 process reportDamage{
@@ -611,7 +628,7 @@ process reportDamage{
     set rg, family, species, "input.bam", count, coverage, total_rg from deam_stats
     
     output:
-    set rg, stdout into deam_stats_file
+    set rg, family, species, stdout into (deam_stats_file, deam_stats_data)
     
     when:
     params.analyze
@@ -623,7 +640,64 @@ process reportDamage{
 }
 
 deam_stats_file
-    .collectFile(storeDir: 'stats', keepHeader: true){ rg, content -> [
+    .collectFile(storeDir: 'stats', keepHeader: true){ rg, family, species, content -> [
         "${rg}_deamination_stats.tsv", content ]
     }
+
+
+//
+//
+// Final report
+//
+//
+
+if(params.report){
+
+//In case the bedfiltering is scipped: replace the value with 'NA'
+bedfilter_data_placeholder //[species, family, rg, bamfile, covered_bp, count]
+    .map{family, rg, species, bamfile, covered_bp, count -> [family, rg, species, 'NA']}
+    .set{bedfilter_data_placeholder}
+
+bedfilter_data
+    .concat(bedfilter_data_placeholder)
+    .set{bedfilter_data}
+
+//In case --analyze is not set, use a different channel from before 
+deam_report.map{[it[0],it[1],it[2],it[4] as String]}.set{deam_report}
+post_deam = params.analyze ? deam_stats_data : deam_report
+
+//split and fill with 'NA' if the format doesnt fit to the reportDamage output
+post_deam
+    .branch {
+        empty: it[3].split('\n').size() == 1
+        correct: true
+    }
+    .set{post_deam}
+
+post_deam.empty
+    .map{[it[1], it[0], it[2], 'NA','NA','NA','NA','NA','NA']}
+    .set{post_deam_empty}
+
+post_deam.correct
+    .map{it[3].split('\n')[1].split('\t').flatten()}
+    .map{rg, ancient, fam, sp, perc, count, cov, deam5, deam3, cond5, cond3 -> [fam,rg, sp, perc, ancient, deam5, deam3, cond5, cond3]}
+    .concat(post_deam_empty)
+    .set{post_deam}
+
+//Finally, conbine everything!
+mapping_data.combine(deduped_data,by:[1,0,2])
+    .combine(coverage_data, by:[1,0,2])
+    .combine(bedfilter_data, by:[1,0,2])
+    .combine(extraction_data, by:[1,0])
+    .combine(post_deam, by:[1,0,2])
+    .unique()
+    .collectFile(seed:'RG\tFamily\tSpecies\tReadsExtracted\tReadsMapped\tReadsDeduped\tCoveredBP\tReadsBedfiltered\tFamPercentage\tAncientness\tDeam5\tDeam3\tCondDeam5\tCondDeam3', 
+        storeDir:'.', newLine:true, sort:true){
+        fa,rg,sp,map,dd,cov,bed,bam,ids,ex,p,a,d5,d3,cd5,cd3 -> [
+                'final_report.tsv', 
+                "${rg}\t${fa}\t${sp}\t${ex.trim()}\t${map.trim()}\t${dd.text.trim()}\t${cov.trim()}\t${bed.trim()}\t${p}\t${a}\t${d5}\t${d3}\t${cd5}\t${cd3}"
+        ]
+    }
+}
+
 
