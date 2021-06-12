@@ -51,6 +51,7 @@ params.level          = 0      // bgzf compression level for intermediate files,
 params.keeppaired     = false  // keep paired reads
 params.filterunmapped = false  // filter out unmapped (in case of pre-mapping)
 params.analyze        = ""
+params.report         = ""
 params.splitfile      = "stats/splitcounts.tsv"
 
 def env = System.getenv()

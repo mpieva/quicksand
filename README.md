@@ -1,220 +1,225 @@
-# Sediment pipeline (Nextflow edition)
+# Sediment_nf
+**Table of contents**
+1. [Description](#description)
+2. [Installation](#installation)
+3. [Usage](#usage)\
+3.1 [Prerequisites](#prerequisites)\
+3.2 [Test](#test-the-pipeline)\
+3.3 [Set up Databases](#setup-databases)\
+3.4 [Running the pipeline](#run-the-pipeline)\
+4.[Customization](#customization)\
+4.1 [Flags](#flags)\
+4.2 [Profiles](#profiles)\
+4.3 [Environmental variable](#environmental-variables)\
+5. [Pitfalls](#pitfalls)
+6. [License](#license)
 
-A pipeline to preprocess sequencing data and output classified reads mapped against the best fitting reference genome
+## Description
+This repository contains an mammlian mitochondrial ancientDNA analysis pipeline.
+With the overall workflow of the pipeline described in _Slon et al._, 2017, this implementation of the pipeline uses KrakenUniq for classification and modifies several steps. The pipeline is written in Nextflow and makes use of Singularity for reproducibility.
 
-**input:** The Pipeline includes an optional MPI-specific demultiplexer. The accepted input is thus either a bam/indexfile pair or already demultiplexed files (both bam, fastq files allowed).
-**output:** The pipeline ends with classified reads mapped against the corresponding reference genome and a (optional) analysis of C to T deamination-damage
+<p align=center>
+    <img src="assets/pipeline_overview.png" alt="Graphical overview over the pipeline workflow" width=500 height=500>
+</p>
+    
+The **Input** of the pipeline consists of demultiplexed, trimmed and overlap-merged reads in either .bam or .fastq format. For each readgroup, the pipeline **outputs** the raw reads in .bam-format at each stage of the pipeline. Additionally the number of reads extracted, mapped, deduplicated, and bedfiltered as well as the estimated DNA-damage is reported for a quick overview in one big summary-file. See the [Test](#test-the-pipeline) section for an overview over the output-files. Taxonomic assignments are evaluated on a family level 
 
-This pipeline is a reimplmentation of the MPI Sediment processing pipeline described in Slon et al., 2017 using Kraken for classification. 
-The pipeline is written in Nextflow and runs with Docker and Singularity.
+## Installation
 
-This README is split into **two sections**. The first one covers the use of the pipeline **inside** the Max-Planck-Institute with
-access to the inhouse scripts and packages and uses conda. The second part covers the more complex setup outside the institute with Docker or Singularity
+To download the pipeline, please open your Terminal and type:
+```git clone github.com/MerlinSzymanski/sediment_nf```
 
-# Section 1 - MPI users
-## Prerequisites
+## Usage
+### Prerequisites
 
-You need to have nextflow and conda installed together. If `nextflow` is not available by default, create (if not done before) and activate an environment that contains both Nextflow and the `conda` tool itself:
+To run the pipeline you need the two following programms installed
+1. Nextflow (tested on v20.04.10): [Installation](https://www.nextflow.io/docs/latest/getstarted.html)
+2. Singularity (tested on v3.7.1): [Installation](https://sylabs.io/guides/3.0/user-guide/installation.html)\
+or Docker: [Installation](https://docs.docker.com/get-docker/)
 
-```bash
-conda create -n nextflow -c bioconda nextflow conda
-conda activate nextflow
-```
+Singularity/Docker use containers to run software in, which ensures an consistent environment. The image that gets pulled and used by the pipeline is hosted on Dockerhub and can be inspected [here](https://hub.docker.com/r/merszym/sediment_nf)
 
-You'll see that `(nextflow)` appears in front of your shell prompt when the environment is active. The environment will stay active until you close the shell session or use `conda deactivate`. The next time you log in, you will have to activate the environment again using `conda activate nextflow`.
-
-
-## Quickstart
-
-Given the input files BAM,RG or the SPLIT-DIR, the easiest way to run the pipeline is to use a wrapper-script.
-Download the script:
-```bash
-git clone https://vcs.eva.mpg.de/merlin_szymanski/nf_wrap
-```
-Execute the wrapper-script with: 
-```bash
-bash nf_wrap/run.sh --bam BAM --rg RG
-``` 
-or
-```bash
-bash nf_wrap/run.sh --split DIR
-``` 
-
-## Manual Setup (Working around two bugs in Nexflow 😔)
-
-
-If you have **not used the wrapper before** (described above), you'll have to create a small configuration file in your home directory before you're able to run a Nextflow pipeline straight from this repository.
-
-### Preparing to run the pipeline
-Activate the environment (see the prerequisites)
-
-```bash
-conda activate nextflow
-```
-
-Next, you'll need to create a configuration file `~/.nextflow/scm` that configures `vcs.eva` as a source for Nextflow pipelines. You can do so by cutting and pasting the following line into your shell. _You only have to do this once._
- 
-```bash
-mkdir -p "${HOME}/.nextflow" && curl -s https://vcs.eva.mpg.de/visagie/sediment_nf/snippets/8/raw >"${HOME}/.nextflow/scm"
-```
-
-You can now use `nextflow pull` to pull this workflow from `vcs.eva` into your account. It is written into a special cache directory inside your home directory, so you do not have to be in any special location in the filesystem when you do this:
-   
-```bash
-nextflow pull visagie/sediment_nf -hub eva
-```
-
-When the pipeline is updated in future, Nextflow will notify you that a newer version is available. At that point, you can update to the most recent version with the following command:
-   
-```bash
-nextflow pull visagie/sediment_nf
-```
-
-### Running the pipeline
-
-The pipeline requires a number of flags to be present. See the **Flags** -section for further documentation
-
-```bash
-nextflow run visagie/sediment_nf --db </path/to/kraken.db> { --bam <input bamfile> --rg <index file> | --split <path/to/split-dir> } --genome <path/to/reference/database> --bedfiles <path/to/bedfiles> [--dedup, --keeppaired, --filterunmapped, --specmap <specmap-file>, ]
-```
-
-If you wish to *resume* a pipeline run (e.g. if you stopped it for some reason, and you do not want it to redo the steps it had already completed), you need to add the flag `-resume` (note: just one `-`) after `run`:
-
-```bash
-nextflow run -resume visagie/sediment_nf --db </path/to/kraken.db> { --bam <input bamfile> --rg <index file> | --split <path/to/split-dir> } --genome <path/to/reference/database> --bedfiles <path/to/bedfiles> [--dedup, --keeppaired, --filterunmapped, --specmap <specmap-file>, ]
-```
-
-# Section 2 - Outside the Institute
-
-To run the pipeline outside the institute docker is required to set up an appropriate environment
-you can inspect the image at:
-
-https://hub.docker.com/r/merszym/sediment_nf
-
-## Prerequisites
-
-1. Nextflow
-2. Docker / Singularity
-
-## Quickstart/Test
-
-If you have `nextflow` and `docker or singularity` installed, you can **test** the pipeline
-clone this repository:
-```bash
-git clone https://vcs.eva.mpg.de/visagie/sediment_nf
-```
-activate (or create) an environment that contains nextflow:
-```bash
-conda create -n nextflow -c bioconda nextflow
-conda activate nextflow
-```
-Unpack the Kraken-Test-Database (too large for github) and run the test-set in a separate folder
+### Test the pipeline
+If  `nextflow` and `docker or singularity` are installed, on can **test** the pipeline. To do that, unpack the test database provided in the repository
 ```bash
 mkdir test_run && cd test_run
-tar -xvzf../sediment_nf/assets/test/kraken/database.tar.gz
-nextflow run ../sediment_nf/main.nf --split ../sediment_nf/assets/test/split/ --genome ../sediment_nf/assets/test/genomes/ --bedfiles ../sediment_nf/assets/test/masked/ --db TestDB/ --specmap ../sediment_nf/assets/test/genomes/specmap.tsv -profile docker
+tar -xvzf ../sediment_nf/assets/test/kraken/database.tar.gz
+```
+and run the test set
+```
+nextflow run ../sediment_nf/main.nf \
+    --split ../sediment_nf/assets/test/split/ \
+    --genome ../sediment_nf/assets/test/genomes/ \
+    --bedfiles ../sediment_nf/assets/test/masked/ \
+    --db TestDB/ \
+    --specmap ../sediment_nf/assets/test/genomes/specmap.tsv \
+    --analyze \
+    --report \
+    -profile singularity
+```
+exchange `-profile singularity` with `-profile docker` if the choice fell on docker over singularity. Also be aware that the `-profile` flag has only one dash!
+To have an overview over the flags, see [Flags](#flags)
 
-or
+Several directories and files should have appeared upon finishing:
+```
+out/
+    {family}/
+        {readgroup}_extractedReads-{Family}.bam - All reads assigned by KrakenUniq to that family
+        aligned/
+            {readgroup}.{species}.bam - All extractedReads from that family mapped against the genome of that species
+            {readgroup}.{species}_deduped.bam - the {readgroup}.{species}.bam file, but depleted of PCR duplicates
+        bed/
+            {readgroup}.{species}_deduped_bedfiltered.bam - the {readgroup}.{species}_deduped.bam file but additionally depleted of reads overlapping low-complexity regions
+kraken/
+    {readgroup}.report - the raw krakenUniq report
+    {readgroup}.translate - the translated krakenUniq report (MPA-Format)
+stats/
+    splitcounts.tsv - contains the number of reads per readgroup
+    {readgroup}_extracted.tsv - contains the number of reads per extracted family
+    {readgroup}_mapped.tsv - contains the number of reads mapped against the reference genome
+    {readgroup}_mapped_coverage.tsv - contains the number of covered basepairs of each mapping
+    {readgroup}_unique_mapped.tsv - contains the number of deduplicated reads mapped against the reference genome
+    {readgroup}_bedfiltered.tsv - contains the number of reads that remain in the bam-file after bedfiltering of low-complexity regions
+    {readgroup}_deamination_stats - contain an estimation of the 'ancientness' of families based on deamination frequencies of recovered reads
+reports/ - contains stats about the nextflow run
+    report.html
+    timeline.html
+    trace.tsv
+work/ - contains intermediate files required by nextflow. Can be deleted after the run has finished
+final_report.tsv - a summary of all the stats in stats/ for families that made it past the mapping as an easy to parse tsv-file
+```
+With the pipeline-testrun being successful, the next step is the **setup of the databases**
 
-nextflow run ../sediment_nf/main.nf --split ../sediment_nf/assets/test/split/ --genome ../sediment_nf/assets/test/genomes/ --bedfiles ../sediment_nf/assets/test/masked/ --db TestDB/ --specmap ../sediment_nf/assets/test/genomes/specmap.tsv -profile singularity
+### Setup databases
+
+To run the pipeline some databases and a certain datastructure is required.
 
 ```
-
-Be careful, the `-profile` flag has only one dash!
-
-## Set up the pipeline
- 
-With the test-run being successful the next step is to set up the required Databases.
-That process is described here:
-
-https://github.com/MerlinSzymanski/datastructure_nf/
-
-## Running the pipeline
-
-The pipeline requires a number of flags to be present. See the **Flags** -section for further documentation
-
-```bash
-nextflow run sediment_nf/main.nf --db </path/to/kraken.db> { --bam <input bamfile> --rg <index file> | --split <path/to/split-dir> } --genome <path/to/reference/database> --bedfiles <path/to/bedfiles> [--analyze, --keeppaired, --filterunmapped, --specmap <specmap-file>, ]
+- A preindexed Kraken1-database
+- mammalian mitochondrial reference genomes in the format:
+    genomes/
+        {family}/
+            {species}.fasta(.amb/.ann ...) - fasta files preindexed with bwa
+        taxid_map.tsv - A table with all nodes in the database, mapping taxid to all species within that taxon (format: '<taxid>\t<Family>\t<Species>') 
+    masked:
+        {species}.masked.bed - Bed files for all species in the database showing low-complexity regions
+```
+To create the structure, please run the datastructure-pipeline provided [here](https://github.com/MerlinSzymanski/datastructure_nf/)
+```
+cd ..
+git clone https://github.com/MerlinSzymanski/datastructure_nf/
+nextflow run datastructure_nf/main.nf -profile singularity --outdir sediment_db 
+```
+This should create one folder within your current directory that contains all the required files
+```
+sediment_db/
+    kraken/
+        Mito_db_kmer22/
+    genomes/
+        {family}/{species}.fasta
+        taxid_map.tsv
+    masked/
+        {species}.masked.bed
 ```
 
-If you wish to *resume* a pipeline run (e.g. if you stopped it for some reason, and you do not want it to redo the steps it had already completed), you need to add the flag `-resume` (note: just one `-`) after `run`:
+### Run the pipeline
 
-```bash
-nextflow run -resume sediment_nf/main.nf --db </path/to/kraken.db> { --bam <input bamfile> --rg <index file> | --split <path/to/split-dir> } --genome <path/to/reference/database> --bedfiles <path/to/bedfiles> [--analyze, --keeppaired, --filterunmapped, --specmap <specmap-file>, ]
+With everything set up, the pipeline can be executed (here: directly from github):
+```
+nextflow run https://github.com/MerlinSzymanski/sediment_nf
+     --split     <path/to/demultiplexed_reads/>
+     --db        <path/to/kraken_db/>
+     --genome    <path/to/reference/genomes/>
+     --bedfiles  <path/to/masked_genomes/>
+     --analyze
+     --report
+     -profile singularity
+```
+make sure that you are in a separate folder, as the output is created within the current working directory.
+see the [flags](#flags) section for a detailed overview of the required and optional flags!
+
+## Customization
+
+### Flags:
+The pipeline has several required and several optional flags
+**Required flags**
+```
+     --db        <path/to/kraken_db/>
+     --genome    <path/to/reference/genomes/>
+     --bedfiles  <path/to/masked_genomes/>
+     
+     EITHER
+     --split     <path/to/demultiplexed_reads/> 
+                 Directory with already demultiplexed, overlap-merged and trimmend bam- or fastqfiles. 
+                 Format 'split/{readgroup}.fastq'
+     OR
+     --bam       <path/to/still/multiplexed/bamfile.bam>
+     --rg        <path/to/list/of/used/indices.tsv>
+                 Format 'Readgroup\tP7\tP5'
+```
+**Optional flags**
+```
+--analyze             include deamination stats and reports
+--report              create the final_report.tsv
+--specmap        <path/to/specmap.tsv>
+                      Ignore the "best species" assigned by the pipeline. Always map extractedReads to the species specified here
+                      Format: Family\tSpecies_one,Species_two
+                      Species_name must correspond to the filename in the genomes diretory
+--capture        <Family,Family>
+                      Apply reduced filters to the families (skip Bedfiltering)
+--cutoff         <N>  Length cutoff after BWA-mapping (default: 35)
+--quality        <N>  Mapping quality filter after BWA-mapping (default:25)
+--min_kmers      <N>  Minimum required unique kmers assigned by KrakenUniq to a family to keep it (default: 129)
+--min_reads      <N>  Minimum required assigned reads by krakenUniq to a family to keep it (default: 3)
+--keeppaired          Dont filter out unmerged reads (default: filterpaired)
+--filterunmapped      Filter out unmapped reads (during demultiplexing premapped --bam input file)
+--level          <N>  Set BGZF compression level (default: 6)
+--krakenthreads  <N>  Number of threads per Kraken process (default: 4)
+```
+**Nextflow flags**
+A selection of built-in Nextflow flags that may be of use (Be aware: only one dash `-` with these flags):
+```
+-profile  <profile>  pick a profile for executing the pipeline (see below)
+-resume              Resume processing; do not re-run completed processes
+-N        <email>    send notification to email upon fiishing
+-c        <file>     path to additional nextflow.config file for local parameters
+-w        <path>     specify the "work" directory for the nextflow intermediate files
 ```
 
-# Flags
-
-### required arguments:
-**Either**
-
-Flag | Input Type | Description
---- | --- | ---
---bam | FILE | Still multiplexed BAM file
---rg | FILE | Tab-separated file containing index combinations. Format: 'LibID<tab>P7<tab>P5'
-  
-**Or**
-
-Flag | Input Type | Description
---- | --- | ---
---split | DIR | Directory with already split bamfiles or demultiplexed, merged fastq-files. files should be named: 'Readgroup.(bam,fastq)' 
-
-**And**
-
-Flag | Input Type | Description
---- | --- | ---
---db | DIR | Path to the Kraken database to use
---genome | DIR | Path to reference genomes for BWA-Mappings
---bedfiles | DIR | Path to bedfiles masking the genomes for
-      
-### optional arguments:
-
-Flag | Input Type | Description
---- | --- | ---
---specmap | FILE | Config-file. Force BWA-mappings of a family to assigned species, overwrite Krakens species-level assignment. Format: 'Family<tab>Species_name,Species_name'. Species_name must correspond to the filename in the genomes diretory
---cutoff | N | Length cutoff after BWA-Mapping (default: 35)
---quality | N | Mapping Quality filter after BWA Mapping (default: 25)
---bwacutoff | N | Cutoff for number of kraken matches (default: 0)
---keeppaired | - | Keep paired reads (default: filter paired reads in first step)
---filterunmapped | - | Filter unmapped reads in demultiplexing step of input bam file
---krakenfilter | N | Kraken-filter with threshold N [0,1] (default: 0)
---level | N | Set BGZF compression level (default: 6)
---krakenthreads | N | Number of threads per Kraken process (default: 4)
---analyze | - | Add an analysis step to the end of the pipeline. Creates overview over deamination-damage
-      
-### Nextflow flags
-A selection of built-in Nextflow flags that may be of use (Be aware: only one `-` with these flags):
-
-Flag | Input Type | Description
---- | --- | ---
--resume | - | Resume processing; do not re-run completed processes
--profile | NAME | Use named execution profile (see below)
--qs | N | Queue size; number of CPU cores to use (default: all)
--N | EMAIL | Send completion notification to email address
- 
-### Profiles   
-The following execution profiles are available (use '-profile <profile>'):
-
-Flag | Description
---- | ---
-standard | execute all processes on local host with conda (default)
-cluster | execute certain CPU-intensive processes on SGE cluster
-docker | Run the processes inside a Docker container
-singularity | Run the pipeline inside a Singularity container
+### Profiles
+The following profiles are available 
+```
+To use with -profile <profile>
+standard      execute all processes with locally installed programms and conda (default, MPI-internal use only!)
+singularity   Run the pipeline in Singluarity container 
+docker        Run the pipeline in a Docker container
+cluster       execute certain CPU-intensive processes on SGE cluster
+```
 
 ### Environmental variables
-Some parameters can be replaced by environmental variables
+Environmental variables can be set to reduce the number of arguments handed over to the pipeline
 
-Env Variable | Parameter
---- | ---
-SED_DB | --db
-SED_GENOME | --genome
-SED_BEDFILES | --bedfiles
-SED_SPECMAP | --specmap
- 
+```
+Pipeline-variables
+SED_DB        <path>     Corresponds to the --db flag
+SED_GENOME    <path>     Corresponds to the --genome flag
+SED_BEDFILES  <path>     Corresponds to the --bedfiles flag
+SED_SPECMAP   <path>     Corresponds to the --bedfiles flag
 
-# Feedback
-If you have questions, feel free to write me!
+useful nextflow-variables
+NXF_SINGULARITY_CACHEDIR <path> Where to save the pulled Singularity-images
+NXF_WORK                 <path> Corresponds to the -w flag
+```
+## Pitfalls
+**Path does not exist in Singularity**: Using a shared file-system, discs might need to get bound into the container before accessing files stored on that disc. One can do that by adding a singularity-command to a custom config-file:
+```
+singularity {
+  runOptions = "--bind /mnt"
+}
+``` 
+and including that file in your run
+```
+nextflow run ... -c custom_config_file
+```
 
-
-
+## License
