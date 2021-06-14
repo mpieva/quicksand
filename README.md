@@ -6,11 +6,11 @@
 3.1 [Prerequisites](#prerequisites)\
 3.2 [Test](#test-the-pipeline)\
 3.3 [Set up Databases](#setup-databases)\
-3.4 [Running the pipeline](#run-the-pipeline)\
-4.[Customization](#customization)\
+3.4 [Running the pipeline](#run-the-pipeline)
+4. [Customization](#customization)\
 4.1 [Flags](#flags)\
 4.2 [Profiles](#profiles)\
-4.3 [Environmental variable](#environmental-variables)\
+4.3 [Environmental variable](#environmental-variables)
 5. [Pitfalls](#pitfalls)
 6. [License](#license)
 
