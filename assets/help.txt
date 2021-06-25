@@ -1,6 +1,4 @@
-Usage: nextflow run sediment_nf {--bam PATH --rg PATH | --split DIR} --db PATH --genome PATH --bedfiles PATH [options]
-           
-Run sediment analysis pipeline.
+Usage: nextflow run mpieva/quicksand {--bam PATH --rg PATH | --split DIR} --db PATH --genome PATH --bedfiles PATH [options]
     
 required arguments:
   Either:
@@ -19,6 +17,10 @@ optional arguments:
   --specmap PATH     Always map reads assigned to a family to these species
                      - format of file: 'Family<tab>Species_name,Species_name'
                      - Species_name must correspond to the filename in the genomes diretory
+  --capture STRING   comma-separated list of families that are ommited from bedfiltering
+  --analyze          Include a DNA-deamination-analysis at the end of the run
+  --report           write a comprehensive summary file "final_report.tsv" with all stats and all readgroups
+  --byrg             Structure the content of the "out" directory by readgroup instead of taxonomy 
   --cutoff N         length cutoff (default: 35)
   --quality N        quality filter (default: 25)
   --bwacutoff N      cutoff for number of kraken matches (default: 0)
@@ -33,7 +35,10 @@ A selection of built-in Nextflow flags that may be of use:
   -profile NAME      use named execution profile
   -qs N              queue size; number of CPU cores to use (default: all)
   -N EMAIL           send completion notifcation to email address
+  -c PATH            path to addtional nextflow.config file
     
 The following execution profiles are available (see '-profile' above):
   * standard         execute all processes on local host
   * cluster          execute certain CPU-intenisve processes on SGE cluster
+  * singularity      run all processes in a singularity container
+  * docker           run all processes in a docker container

@@ -88,16 +88,20 @@
             
             
               <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart</a></li>
 <li class="toctree-l1"><a class="reference internal" href="description.html">Description</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Installation</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#install-requirements">01. Install Requirements</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#download-repository">02. Download Repository</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#test-runabilty">03. Test Runabilty</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#setup-datastructure">04. Setup Datastructure</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#run-real-data">05. Run real Data</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="usage.html">Usage</a></li>
-<li class="toctree-l1"><a class="reference internal" href="customization.html">Customization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="configuration.html">Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contribute.html">Contribute</a></li>
+<li class="toctree-l1"><a class="reference internal" href="license.html">License</a></li>
 </ul>
 
             
@@ -166,11 +170,11 @@
            <div itemprop="articleBody">
             
   <div class="section" id="installation">
-<h1>Installation<a class="headerlink" href="#installation" title="Permalink to this headline">¶</a></h1>
+<span id="install-page"></span><h1>Installation<a class="headerlink" href="#installation" title="Permalink to this headline">¶</a></h1>
 <p>This section walks you through the stages of downloading, installing and
 testing the pipeline. Please follow the instructions step by step.</p>
 <div class="section" id="install-requirements">
-<h2>01. Install Requirements<a class="headerlink" href="#install-requirements" title="Permalink to this headline">¶</a></h2>
+<span id="requirements"></span><h2>01. Install Requirements<a class="headerlink" href="#install-requirements" title="Permalink to this headline">¶</a></h2>
 <p>Before coming to that, make sure you have the two following programs installed.</p>
 <dl class="field-list">
 <dt class="field-odd">Nextflow</dt>
@@ -178,7 +182,7 @@ testing the pipeline. Please follow the instructions step by step.</p>
 </dd>
 <dt class="field-even">Singularity</dt>
 <dd class="field-even"><p>See more details here: <a class="reference external" href="https://sylabs.io/guides/3.0/user-guide/installation.html">Singularity</a></p>
-<p>or Docker: See <a class="reference external" href="https://docs.docker.com/get-docker/">here</a></p>
+<p>or Docker: See <a class="reference external" href="https://docs.docker.com/get-docker/">get Docker</a></p>
 </dd>
 </dl>
 <p>Nextflow is the language the pipeline is written in, while Singularity/Docker are software tools for
@@ -196,12 +200,12 @@ containerization of code - used to run software in a consistent environment.</p>
 </div>
 <div class="section" id="download-repository">
 <h2>02. Download Repository<a class="headerlink" href="#download-repository" title="Permalink to this headline">¶</a></h2>
-<p>The code for the sediment_nf pipeline is hosted on github. The repository can be downloaded
-directly from there. The code can be found <a class="reference external" href="https://github.com/MerlinSzymanski/sediment_nf/">here</a>.</p>
+<p>The code for the quicksand pipeline is hosted on github. The repository can be downloaded
+directly from there. The code can be found <a class="reference external" href="https://github.com/mpieva/quicksand">here</a>.</p>
 <p>Please open your terminal and type:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">cd</span>
 <span class="n">mkdir</span> <span class="n">pipeline</span> <span class="o">&amp;&amp;</span> <span class="n">cd</span> <span class="n">pipeline</span>
-<span class="n">git</span> <span class="n">clone</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">www</span><span class="o">.</span><span class="n">github</span><span class="o">.</span><span class="n">com</span><span class="o">/</span><span class="n">MerlinSzymanski</span><span class="o">/</span><span class="n">sediment_nf</span>
+<span class="n">git</span> <span class="n">clone</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">www</span><span class="o">.</span><span class="n">github</span><span class="o">.</span><span class="n">com</span><span class="o">/</span><span class="n">mpieva</span><span class="o">/</span><span class="n">quicksand</span>
 </pre></div>
 </div>
 <p>This code creates a new directory <code class="file docutils literal notranslate"><span class="pre">pipeline</span></code> that will contain
@@ -213,13 +217,13 @@ Here - the cloned github repository.</p>
 <p>With the requirements met, the pipeline can be tested.
 To do that, unpack the test database provided in the repository:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">mkdir</span> <span class="n">testrun</span> <span class="o">&amp;&amp;</span> <span class="n">cd</span> <span class="n">testrun</span>
-<span class="n">tar</span> <span class="o">-</span><span class="n">xvzf</span> <span class="o">../</span><span class="n">sediment_nf</span><span class="o">/</span><span class="n">assets</span><span class="o">/</span><span class="n">test</span><span class="o">/</span><span class="n">kraken</span><span class="o">/</span><span class="n">database</span><span class="o">.</span><span class="n">tar</span><span class="o">.</span><span class="n">gz</span>
+<span class="n">tar</span> <span class="o">-</span><span class="n">xvzf</span> <span class="o">../</span><span class="n">quicksand</span><span class="o">/</span><span class="n">assets</span><span class="o">/</span><span class="n">test</span><span class="o">/</span><span class="n">kraken</span><span class="o">/</span><span class="n">database</span><span class="o">.</span><span class="n">tar</span><span class="o">.</span><span class="n">gz</span>
 </pre></div>
 </div>
 <p>This will create a directory <code class="file docutils literal notranslate"><span class="pre">TestDB</span></code> in the current folder.</p>
 <p>To ensure a stable environment, the pipeline runs within a container that gets
 downloaded from the internet, from <a class="reference external" href="https://hub.docker.com/r/merszym/sediment_nf">Dockerhub</a>.
-The Dockerfile used to build that image can be found within the <code class="file docutils literal notranslate"><span class="pre">sediment_nf/docker</span></code> directory of the repository.
+The Dockerfile used to build that image can be found within the <code class="file docutils literal notranslate"><span class="pre">quicksand/docker</span></code> directory of the repository.
 To save the downloaded image at an accessible place, type:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span>cd ..
 mkdir singularity
@@ -250,16 +254,16 @@ config-file and bind the paths into the container:</p>
 </div>
 <p>Now the pipeline can be tested by running:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">cd</span> <span class="n">testrun</span>
-<span class="n">nextflow</span> <span class="n">run</span> <span class="o">../</span><span class="n">sediment_nf</span><span class="o">/</span><span class="n">main</span><span class="o">.</span><span class="n">nf</span> \
-    <span class="o">--</span><span class="n">split</span> <span class="o">../</span><span class="n">sediment_nf</span><span class="o">/</span><span class="n">assets</span><span class="o">/</span><span class="n">test</span><span class="o">/</span><span class="n">split</span><span class="o">/</span> \
-    <span class="o">--</span><span class="n">genome</span> <span class="o">../</span><span class="n">sediment_nf</span><span class="o">/</span><span class="n">assets</span><span class="o">/</span><span class="n">test</span><span class="o">/</span><span class="n">genomes</span><span class="o">/</span> \
-    <span class="o">--</span><span class="n">bedfiles</span> <span class="o">../</span><span class="n">sediment_nf</span><span class="o">/</span><span class="n">assets</span><span class="o">/</span><span class="n">test</span><span class="o">/</span><span class="n">masked</span><span class="o">/</span> \
-    <span class="o">--</span><span class="n">db</span> <span class="n">TestDB</span><span class="o">/</span> \
-    <span class="o">--</span><span class="n">specmap</span> <span class="o">../</span><span class="n">sediment_nf</span><span class="o">/</span><span class="n">assets</span><span class="o">/</span><span class="n">test</span><span class="o">/</span><span class="n">genomes</span><span class="o">/</span><span class="n">specmap</span><span class="o">.</span><span class="n">tsv</span> \
-    <span class="o">--</span><span class="n">analyze</span> \
-    <span class="o">--</span><span class="n">report</span> \
-    <span class="o">-</span><span class="n">profile</span> <span class="n">singularity</span> \
-    <span class="o">-</span><span class="n">c</span> <span class="o">../</span><span class="n">singularity</span><span class="o">/</span><span class="n">nextflow</span><span class="o">.</span><span class="n">config</span>
+<span class="n">nextflow</span> <span class="n">run</span>    <span class="o">../</span><span class="n">quicksand</span><span class="o">/</span><span class="n">main</span><span class="o">.</span><span class="n">nf</span> \
+    <span class="o">--</span><span class="n">split</span>     <span class="o">../</span><span class="n">quicksand</span><span class="o">/</span><span class="n">assets</span><span class="o">/</span><span class="n">test</span><span class="o">/</span><span class="n">split</span><span class="o">/</span> \
+    <span class="o">--</span><span class="n">genome</span>    <span class="o">../</span><span class="n">quicksand</span><span class="o">/</span><span class="n">assets</span><span class="o">/</span><span class="n">test</span><span class="o">/</span><span class="n">genomes</span><span class="o">/</span> \
+    <span class="o">--</span><span class="n">bedfiles</span>  <span class="o">../</span><span class="n">quicksand</span><span class="o">/</span><span class="n">assets</span><span class="o">/</span><span class="n">test</span><span class="o">/</span><span class="n">masked</span><span class="o">/</span> \
+    <span class="o">--</span><span class="n">db</span>        <span class="n">TestDB</span><span class="o">/</span> \
+    <span class="o">--</span><span class="n">specmap</span>   <span class="o">../</span><span class="n">quicksand</span><span class="o">/</span><span class="n">assets</span><span class="o">/</span><span class="n">test</span><span class="o">/</span><span class="n">genomes</span><span class="o">/</span><span class="n">specmap</span><span class="o">.</span><span class="n">tsv</span> \
+    <span class="o">--</span><span class="n">analyze</span>   \
+    <span class="o">--</span><span class="n">report</span>    \
+    <span class="o">-</span><span class="n">profile</span>    <span class="n">singularity</span> \
+    <span class="o">-</span><span class="n">c</span>          <span class="o">../</span><span class="n">singularity</span><span class="o">/</span><span class="n">nextflow</span><span class="o">.</span><span class="n">config</span>
 </pre></div>
 </div>
 <p>The meaning of the flags and the different ways of customizing the pipeline is described in the customization section.
@@ -272,7 +276,7 @@ In case of choosing Docker over Singularity, exchange <code class="code docutils
 see an explanation of the files, see the output section.</p>
 </div>
 <div class="section" id="setup-datastructure">
-<h2>04. Setup Datastructure<a class="headerlink" href="#setup-datastructure" title="Permalink to this headline">¶</a></h2>
+<span id="setup"></span><h2>04. Setup Datastructure<a class="headerlink" href="#setup-datastructure" title="Permalink to this headline">¶</a></h2>
 <p>To run the pipeline with a real databases a certain datastructure is required.</p>
 <ul class="simple">
 <li><p>A preindexed Kraken-database</p></li>
@@ -284,38 +288,64 @@ see an explanation of the files, see the output section.</p>
 for that</p>
 <div class="admonition seealso">
 <p class="admonition-title">See also</p>
-<p>Refer to the README of <a class="reference external" href="https://github.com/MerlinSzymanski/datastructure_nf/">that pipeline</a> for custom
+<p>Refer to the README of <a class="reference external" href="https://github.com/mpieva/quicksand-build">that pipeline</a> for custom
 stettings of the data structure (e.g. kmer-sizes) and a more detailed explanation of the output.</p>
 </div>
-<p>Type into the terminal:</p>
+<p>The datastructure-pipeline can be started directly from the repository by tying:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">cd</span> <span class="o">..</span>
-<span class="n">git</span> <span class="n">clone</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">github</span><span class="o">.</span><span class="n">com</span><span class="o">/</span><span class="n">MerlinSzymanski</span><span class="o">/</span><span class="n">datastructure_nf</span><span class="o">/</span>
-<span class="n">nextflow</span> <span class="n">run</span> <span class="n">datastructure_nf</span><span class="o">/</span><span class="n">main</span><span class="o">.</span><span class="n">nf</span> <span class="o">-</span><span class="n">profile</span> <span class="n">singularity</span> <span class="o">--</span><span class="n">outdir</span> <span class="n">data</span>
+<span class="n">nextflow</span> <span class="n">run</span> <span class="n">mpieva</span><span class="o">/</span><span class="n">quicksand</span><span class="o">-</span><span class="n">build</span> <span class="o">-</span><span class="n">profile</span> <span class="n">singularity</span> <span class="o">--</span><span class="n">outdir</span> <span class="n">data</span>
 </pre></div>
 </div>
 <div class="admonition attention">
 <p class="admonition-title">Attention</p>
-<p>The creation of the kraken-datasets requires a lot of RAM.
+<p>The creation of the preindexed kraken-databases requires a lot of RAM.
 If the pipeline fails, make sure the computer fits the requirements!</p>
 </div>
-<p>Upon finishing creates a folder “data” that contains all the files required to run the pipeline against:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">data</span><span class="o">/</span>
-    <span class="n">kraken</span><span class="o">/</span>
-        <span class="n">Mito_db_kmer22</span><span class="o">/</span>
-    <span class="n">genomes</span><span class="o">/</span>
-        <span class="p">{</span><span class="n">family</span><span class="p">}</span><span class="o">/</span><span class="p">{</span><span class="n">species</span><span class="p">}</span><span class="o">.</span><span class="n">fasta</span>
-        <span class="n">taxid_map</span><span class="o">.</span><span class="n">tsv</span>
-    <span class="n">masked</span><span class="o">/</span>
-        <span class="p">{</span><span class="n">species</span><span class="p">}</span><span class="o">.</span><span class="n">masked</span><span class="o">.</span><span class="n">bed</span>
+<p>This creates a folder “data” that contains all the database files required to run quicksand:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>data
+├── kraken
+│    └── Mito_db_kmer22
+├── genomes
+│    ├── {family}
+│    │    └── {species}.fasta
+│    └── taxid_map.tsv
+└── masked
+     └── {species}.masked.bed
 </pre></div>
 </div>
-<p>This datastructure can be handed over to the pipeline with the following flags:</p>
+<p>This datastructure can be used by quicksand with the following flags:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">--</span><span class="n">db</span>         <span class="o">/</span><span class="n">path</span><span class="o">/</span><span class="n">to</span><span class="o">/</span><span class="n">data</span><span class="o">/</span><span class="n">kraken</span><span class="o">/</span><span class="n">Mito_db_kmer22</span><span class="o">/</span>
 <span class="o">--</span><span class="n">genome</span>     <span class="o">/</span><span class="n">path</span><span class="o">/</span><span class="n">to</span><span class="o">/</span><span class="n">data</span><span class="o">/</span><span class="n">genomes</span><span class="o">/</span>
 <span class="o">--</span><span class="n">bedfiles</span>   <span class="o">/</span><span class="n">path</span><span class="o">/</span><span class="n">to</span><span class="o">/</span><span class="n">data</span><span class="o">/</span><span class="n">masked</span><span class="o">/</span>
 </pre></div>
 </div>
-<p>With that being done, please see the “Usage” section</p>
+</div>
+<div class="section" id="run-real-data">
+<h2>05. Run real Data<a class="headerlink" href="#run-real-data" title="Permalink to this headline">¶</a></h2>
+<p>Before running the test, make sure you create a new directory:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">mkdir</span> <span class="n">runDir</span> <span class="o">&amp;&amp;</span> <span class="n">cd</span> <span class="n">runDir</span>
+</pre></div>
+</div>
+<p>For this testrun with real data, download the Hohlenstein-Stadel mtDNA (please see the <a class="reference internal" href="quickstart.html#readme" id="id1"><span>[README]</span></a>)</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">wget</span> <span class="o">-</span><span class="n">P</span> <span class="n">split</span> <span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">ftp</span><span class="o">.</span><span class="n">eva</span><span class="o">.</span><span class="n">mpg</span><span class="o">.</span><span class="n">de</span><span class="o">/</span><span class="n">neandertal</span><span class="o">/</span><span class="n">Hohlenstein</span><span class="o">-</span><span class="n">Stadel</span><span class="o">/</span><span class="n">BAM</span><span class="o">/</span><span class="n">mtDNA</span><span class="o">/</span><span class="n">HST</span><span class="o">.</span><span class="n">raw_data</span><span class="o">.</span><span class="n">ALL</span><span class="o">.</span><span class="n">bam</span>
+</pre></div>
+</div>
+<p>And run the quicksand pipeline:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">nextflow</span> <span class="n">run</span> <span class="o">~/</span><span class="n">pipeline</span><span class="o">/</span><span class="n">quicksand</span><span class="o">/</span><span class="n">main</span><span class="o">.</span><span class="n">nf</span> \
+    <span class="o">--</span><span class="n">db</span>        <span class="o">~/</span><span class="n">pipeline</span><span class="o">/</span><span class="n">data</span><span class="o">/</span><span class="n">kraken</span><span class="o">/</span><span class="n">Mito_db_kmer22</span> \
+    <span class="o">--</span><span class="n">genome</span>    <span class="o">~/</span><span class="n">pipeline</span><span class="o">/</span><span class="n">data</span><span class="o">/</span><span class="n">genomes</span> \
+    <span class="o">--</span><span class="n">bedfiles</span>  <span class="o">~/</span><span class="n">pipeline</span><span class="o">/</span><span class="n">data</span><span class="o">/</span><span class="n">masked</span> \
+    <span class="o">--</span><span class="n">split</span>     <span class="n">split</span> \
+    <span class="o">--</span><span class="n">report</span>    \
+    <span class="o">--</span><span class="n">analyze</span>   \
+    <span class="o">-</span><span class="n">profile</span>    <span class="n">singularity</span>
+    <span class="o">-</span><span class="n">c</span>          <span class="o">~/</span><span class="n">pipeline</span><span class="o">/</span><span class="n">nextflow</span><span class="o">.</span><span class="n">config</span>
+</pre></div>
+</div>
+<div class="line-block">
+<div class="line">Please see the <a class="reference internal" href="usage.html#usage-page"><span class="std std-ref">Usage</span></a> section for an explaination of the flags and the input!</div>
+<div class="line">Please see the <a class="reference internal" href="usage.html#output"><span class="std std-ref">Output</span></a> section for an explaination of the output files!</div>
+</div>
 </div>
 </div>
 

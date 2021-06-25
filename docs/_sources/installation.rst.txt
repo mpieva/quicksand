@@ -1,8 +1,12 @@
+.. _install-page:
+
 Installation
 ============
 
 This section walks you through the stages of downloading, installing and
 testing the pipeline. Please follow the instructions step by step.
+
+.. _requirements:
 
 01. Install Requirements
 ------------------------
@@ -12,7 +16,7 @@ Before coming to that, make sure you have the two following programs installed.
 :Nextflow: See more details here: `Nextflow <https://www.nextflow.io/docs/latest/getstarted.html>`_
 :Singularity: See more details here: `Singularity <https://sylabs.io/guides/3.0/user-guide/installation.html>`_
 
-    or Docker: See `here <https://docs.docker.com/get-docker/>`_
+    or Docker: See `get Docker <https://docs.docker.com/get-docker/>`_
 
 Nextflow is the language the pipeline is written in, while Singularity/Docker are software tools for
 containerization of code - used to run software in a consistent environment. 
@@ -30,14 +34,14 @@ containerization of code - used to run software in a consistent environment.
 02. Download Repository
 -----------------------
 
-The code for the sediment_nf pipeline is hosted on github. The repository can be downloaded
-directly from there. The code can be found `here <https://github.com/MerlinSzymanski/sediment_nf/>`_.
+The code for the quicksand pipeline is hosted on github. The repository can be downloaded
+directly from there. The code can be found `here <https://github.com/mpieva/quicksand>`_.
 
 Please open your terminal and type::
     
     cd
     mkdir pipeline && cd pipeline
-    git clone https://www.github.com/MerlinSzymanski/sediment_nf
+    git clone https://www.github.com/mpieva/quicksand
     
 This code creates a new directory :file:`pipeline` that will contain
 all the data produced over the course of this setup process. 
@@ -51,13 +55,13 @@ With the requirements met, the pipeline can be tested.
 To do that, unpack the test database provided in the repository::
 
     mkdir testrun && cd testrun
-    tar -xvzf ../sediment_nf/assets/test/kraken/database.tar.gz
+    tar -xvzf ../quicksand/assets/test/kraken/database.tar.gz
 
 This will create a directory :file:`TestDB` in the current folder. 
 
 To ensure a stable environment, the pipeline runs within a container that gets
 downloaded from the internet, from `Dockerhub <https://hub.docker.com/r/merszym/sediment_nf>`_. 
-The Dockerfile used to build that image can be found within the :file:`sediment_nf/docker` directory of the repository.
+The Dockerfile used to build that image can be found within the :file:`quicksand/docker` directory of the repository.
 To save the downloaded image at an accessible place, type::
 
     cd ..
@@ -89,16 +93,16 @@ To save the downloaded image at an accessible place, type::
 Now the pipeline can be tested by running::
 
     cd testrun
-    nextflow run ../sediment_nf/main.nf \
-        --split ../sediment_nf/assets/test/split/ \
-        --genome ../sediment_nf/assets/test/genomes/ \
-        --bedfiles ../sediment_nf/assets/test/masked/ \
-        --db TestDB/ \
-        --specmap ../sediment_nf/assets/test/genomes/specmap.tsv \
-        --analyze \
-        --report \
-        -profile singularity \
-        -c ../singularity/nextflow.config
+    nextflow run    ../quicksand/main.nf \
+        --split     ../quicksand/assets/test/split/ \
+        --genome    ../quicksand/assets/test/genomes/ \
+        --bedfiles  ../quicksand/assets/test/masked/ \
+        --db        TestDB/ \
+        --specmap   ../quicksand/assets/test/genomes/specmap.tsv \
+        --analyze   \
+        --report    \
+        -profile    singularity \
+        -c          ../singularity/nextflow.config
 
 The meaning of the flags and the different ways of customizing the pipeline is described in the customization section. 
 In case of choosing Docker over Singularity, exchange :code:`-profile singularity` with :code:`-profile docker`.  
@@ -109,6 +113,7 @@ In case of choosing Docker over Singularity, exchange :code:`-profile singularit
 If the run was successful, several new files and directories will appear in your current working directory. To
 see an explanation of the files, see the output section.
 
+.. _setup:
 
 04. Setup Datastructure
 -----------------------
@@ -124,40 +129,62 @@ Instead of creating this structure manually, a different pipeline is used
 for that
 
 .. seealso::
-    Refer to the README of `that pipeline <https://github.com/MerlinSzymanski/datastructure_nf/>`_ for custom
+    Refer to the README of `that pipeline <https://github.com/mpieva/quicksand-build>`_ for custom
     stettings of the data structure (e.g. kmer-sizes) and a more detailed explanation of the output.
 
-Type into the terminal::
+The datastructure-pipeline can be started directly from the repository by tying::
 
     cd ..
-    git clone https://github.com/MerlinSzymanski/datastructure_nf/
-    nextflow run datastructure_nf/main.nf -profile singularity --outdir data 
+    nextflow run mpieva/quicksand-build -profile singularity --outdir data 
 
 .. attention::
 
-    The creation of the kraken-datasets requires a lot of RAM. 
+    The creation of the preindexed kraken-databases requires a lot of RAM. 
     If the pipeline fails, make sure the computer fits the requirements!
 
-Upon finishing creates a folder "data" that contains all the files required to run the pipeline against::
+This creates a folder "data" that contains all the database files required to run quicksand::
 
-    data/
-        kraken/
-            Mito_db_kmer22/
-        genomes/
-            {family}/{species}.fasta
-            taxid_map.tsv
-        masked/
-            {species}.masked.bed
+    data
+    ├── kraken
+    │    └── Mito_db_kmer22
+    ├── genomes
+    │    ├── {family}
+    │    │    └── {species}.fasta
+    │    └── taxid_map.tsv
+    └── masked
+         └── {species}.masked.bed
 
-This datastructure can be handed over to the pipeline with the following flags::
+This datastructure can be used by quicksand with the following flags::
 
     --db         /path/to/data/kraken/Mito_db_kmer22/
     --genome     /path/to/data/genomes/
     --bedfiles   /path/to/data/masked/    
 
-With that being done, please see the "Usage" section
 
+05. Run real Data
+-----------------
 
+Before running the test, make sure you create a new directory::
 
+    mkdir runDir && cd runDir
 
+For this testrun with real data, download the Hohlenstein-Stadel mtDNA (please see the [README]_) ::
+    
+
+    wget -P split http://ftp.eva.mpg.de/neandertal/Hohlenstein-Stadel/BAM/mtDNA/HST.raw_data.ALL.bam
+
+And run the quicksand pipeline::
+
+    nextflow run ~/pipeline/quicksand/main.nf \
+        --db        ~/pipeline/data/kraken/Mito_db_kmer22 \
+        --genome    ~/pipeline/data/genomes \
+        --bedfiles  ~/pipeline/data/masked \
+        --split     split \
+        --report    \
+        --analyze   \
+        -profile    singularity
+        -c          ~/pipeline/nextflow.config
+
+| Please see the :ref:`usage-page` section for an explaination of the flags and the input!
+| Please see the :ref:`output` section for an explaination of the output files!
 
