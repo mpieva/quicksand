@@ -1,0 +1,305 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>Usage &mdash; quicksand 2021 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Customization" href="customization.html" />
+    <link rel="prev" title="Installation" href="installation.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home"> quicksand
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="description.html">Description</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Usage</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#input">Input</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#output">Output</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#setup-databases">Setup databases</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#run-the-pipeline">Run the pipeline</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="customization.html">Customization</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">quicksand</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>Usage</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+          
+            <a href="_sources/usage.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="usage">
+<h1>Usage<a class="headerlink" href="#usage" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="input">
+<h2>Input<a class="headerlink" href="#input" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="output">
+<h2>Output<a class="headerlink" href="#output" title="Permalink to this headline">¶</a></h2>
+<p>Several directories and files should have appeared upon finishing:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">out</span><span class="o">/</span>
+    <span class="p">{</span><span class="n">family</span><span class="p">}</span><span class="o">/</span>
+        <span class="p">{</span><span class="n">readgroup</span><span class="p">}</span><span class="n">_extractedReads</span><span class="o">-</span><span class="p">{</span><span class="n">Family</span><span class="p">}</span><span class="o">.</span><span class="n">bam</span> <span class="o">-</span> <span class="n">All</span> <span class="n">reads</span> <span class="n">assigned</span> <span class="n">by</span> <span class="n">KrakenUniq</span> <span class="n">to</span> <span class="n">that</span> <span class="n">family</span>
+        <span class="n">aligned</span><span class="o">/</span>
+            <span class="p">{</span><span class="n">readgroup</span><span class="p">}</span><span class="o">.</span><span class="p">{</span><span class="n">species</span><span class="p">}</span><span class="o">.</span><span class="n">bam</span> <span class="o">-</span> <span class="n">All</span> <span class="n">extractedReads</span> <span class="kn">from</span> <span class="nn">that</span> <span class="n">family</span> <span class="n">mapped</span> <span class="n">against</span> <span class="n">the</span> <span class="n">genome</span> <span class="n">of</span> <span class="n">that</span> <span class="n">species</span>
+            <span class="p">{</span><span class="n">readgroup</span><span class="p">}</span><span class="o">.</span><span class="p">{</span><span class="n">species</span><span class="p">}</span><span class="n">_deduped</span><span class="o">.</span><span class="n">bam</span> <span class="o">-</span> <span class="n">the</span> <span class="p">{</span><span class="n">readgroup</span><span class="p">}</span><span class="o">.</span><span class="p">{</span><span class="n">species</span><span class="p">}</span><span class="o">.</span><span class="n">bam</span> <span class="n">file</span><span class="p">,</span> <span class="n">but</span> <span class="n">depleted</span> <span class="n">of</span> <span class="n">PCR</span> <span class="n">duplicates</span>
+        <span class="n">bed</span><span class="o">/</span>
+            <span class="p">{</span><span class="n">readgroup</span><span class="p">}</span><span class="o">.</span><span class="p">{</span><span class="n">species</span><span class="p">}</span><span class="n">_deduped_bedfiltered</span><span class="o">.</span><span class="n">bam</span> <span class="o">-</span> <span class="n">the</span> <span class="p">{</span><span class="n">readgroup</span><span class="p">}</span><span class="o">.</span><span class="p">{</span><span class="n">species</span><span class="p">}</span><span class="n">_deduped</span><span class="o">.</span><span class="n">bam</span> <span class="n">file</span> <span class="n">but</span> <span class="n">additionally</span> <span class="n">depleted</span> <span class="n">of</span> <span class="n">reads</span> <span class="n">overlapping</span> <span class="n">low</span><span class="o">-</span><span class="n">complexity</span> <span class="n">regions</span>
+<span class="n">kraken</span><span class="o">/</span>
+    <span class="p">{</span><span class="n">readgroup</span><span class="p">}</span><span class="o">.</span><span class="n">report</span> <span class="o">-</span> <span class="n">the</span> <span class="n">raw</span> <span class="n">krakenUniq</span> <span class="n">report</span>
+    <span class="p">{</span><span class="n">readgroup</span><span class="p">}</span><span class="o">.</span><span class="n">translate</span> <span class="o">-</span> <span class="n">the</span> <span class="n">translated</span> <span class="n">krakenUniq</span> <span class="n">report</span> <span class="p">(</span><span class="n">MPA</span><span class="o">-</span><span class="n">Format</span><span class="p">)</span>
+<span class="n">stats</span><span class="o">/</span>
+    <span class="n">splitcounts</span><span class="o">.</span><span class="n">tsv</span> <span class="o">-</span> <span class="n">contains</span> <span class="n">the</span> <span class="n">number</span> <span class="n">of</span> <span class="n">reads</span> <span class="n">per</span> <span class="n">readgroup</span>
+    <span class="p">{</span><span class="n">readgroup</span><span class="p">}</span><span class="n">_extracted</span><span class="o">.</span><span class="n">tsv</span> <span class="o">-</span> <span class="n">contains</span> <span class="n">the</span> <span class="n">number</span> <span class="n">of</span> <span class="n">reads</span> <span class="n">per</span> <span class="n">extracted</span> <span class="n">family</span>
+    <span class="p">{</span><span class="n">readgroup</span><span class="p">}</span><span class="n">_mapped</span><span class="o">.</span><span class="n">tsv</span> <span class="o">-</span> <span class="n">contains</span> <span class="n">the</span> <span class="n">number</span> <span class="n">of</span> <span class="n">reads</span> <span class="n">mapped</span> <span class="n">against</span> <span class="n">the</span> <span class="n">reference</span> <span class="n">genome</span>
+    <span class="p">{</span><span class="n">readgroup</span><span class="p">}</span><span class="n">_mapped_coverage</span><span class="o">.</span><span class="n">tsv</span> <span class="o">-</span> <span class="n">contains</span> <span class="n">the</span> <span class="n">number</span> <span class="n">of</span> <span class="n">covered</span> <span class="n">basepairs</span> <span class="n">of</span> <span class="n">each</span> <span class="n">mapping</span>
+    <span class="p">{</span><span class="n">readgroup</span><span class="p">}</span><span class="n">_unique_mapped</span><span class="o">.</span><span class="n">tsv</span> <span class="o">-</span> <span class="n">contains</span> <span class="n">the</span> <span class="n">number</span> <span class="n">of</span> <span class="n">deduplicated</span> <span class="n">reads</span> <span class="n">mapped</span> <span class="n">against</span> <span class="n">the</span> <span class="n">reference</span> <span class="n">genome</span>
+    <span class="p">{</span><span class="n">readgroup</span><span class="p">}</span><span class="n">_bedfiltered</span><span class="o">.</span><span class="n">tsv</span> <span class="o">-</span> <span class="n">contains</span> <span class="n">the</span> <span class="n">number</span> <span class="n">of</span> <span class="n">reads</span> <span class="n">that</span> <span class="n">remain</span> <span class="ow">in</span> <span class="n">the</span> <span class="n">bam</span><span class="o">-</span><span class="n">file</span> <span class="n">after</span> <span class="n">bedfiltering</span> <span class="n">of</span> <span class="n">low</span><span class="o">-</span><span class="n">complexity</span> <span class="n">regions</span>
+    <span class="p">{</span><span class="n">readgroup</span><span class="p">}</span><span class="n">_deamination_stats</span> <span class="o">-</span> <span class="n">contain</span> <span class="n">an</span> <span class="n">estimation</span> <span class="n">of</span> <span class="n">the</span> <span class="s1">&#39;ancientness&#39;</span> <span class="n">of</span> <span class="n">families</span> <span class="n">based</span> <span class="n">on</span> <span class="n">deamination</span> <span class="n">frequencies</span> <span class="n">of</span> <span class="n">recovered</span> <span class="n">reads</span>
+<span class="n">reports</span><span class="o">/</span> <span class="o">-</span> <span class="n">contains</span> <span class="n">stats</span> <span class="n">about</span> <span class="n">the</span> <span class="n">nextflow</span> <span class="n">run</span>
+    <span class="n">report</span><span class="o">.</span><span class="n">html</span>
+    <span class="n">timeline</span><span class="o">.</span><span class="n">html</span>
+    <span class="n">trace</span><span class="o">.</span><span class="n">tsv</span>
+<span class="n">work</span><span class="o">/</span> <span class="o">-</span> <span class="n">contains</span> <span class="n">intermediate</span> <span class="n">files</span> <span class="n">required</span> <span class="n">by</span> <span class="n">nextflow</span><span class="o">.</span> <span class="n">Can</span> <span class="n">be</span> <span class="n">deleted</span> <span class="n">after</span> <span class="n">the</span> <span class="n">run</span> <span class="n">has</span> <span class="n">finished</span>
+<span class="n">final_report</span><span class="o">.</span><span class="n">tsv</span> <span class="o">-</span> <span class="n">a</span> <span class="n">summary</span> <span class="n">of</span> <span class="nb">all</span> <span class="n">the</span> <span class="n">stats</span> <span class="ow">in</span> <span class="n">stats</span><span class="o">/</span> <span class="k">for</span> <span class="n">families</span> <span class="n">that</span> <span class="n">made</span> <span class="n">it</span> <span class="n">past</span> <span class="n">the</span> <span class="n">mapping</span> <span class="k">as</span> <span class="n">an</span> <span class="n">easy</span> <span class="n">to</span> <span class="n">parse</span> <span class="n">tsv</span><span class="o">-</span><span class="n">file</span>
+</pre></div>
+</div>
+<p>With the pipeline-testrun being successful, the next step is the setup of the databases</p>
+</div>
+<div class="section" id="setup-databases">
+<h2>Setup databases<a class="headerlink" href="#setup-databases" title="Permalink to this headline">¶</a></h2>
+<p>To run the pipeline some databases and a certain datastructure is required.</p>
+<ul>
+<li><p>A preindexed Kraken1-database</p></li>
+<li><p>mammalian mitochondrial reference genomes in the format:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">genomes</span><span class="o">/</span>
+    <span class="p">{</span><span class="n">family</span><span class="p">}</span><span class="o">/</span>
+        <span class="p">{</span><span class="n">species</span><span class="p">}</span><span class="o">.</span><span class="n">fasta</span><span class="p">(</span><span class="o">.</span><span class="n">amb</span><span class="o">/.</span><span class="n">ann</span> <span class="o">...</span><span class="p">)</span> <span class="o">-</span> <span class="n">fasta</span> <span class="n">files</span> <span class="n">preindexed</span> <span class="k">with</span> <span class="n">bwa</span>
+    <span class="n">taxid_map</span><span class="o">.</span><span class="n">tsv</span> <span class="o">-</span> <span class="n">A</span> <span class="n">table</span> <span class="k">with</span> <span class="nb">all</span> <span class="n">nodes</span> <span class="ow">in</span> <span class="n">the</span> <span class="n">database</span><span class="p">,</span> <span class="n">mapping</span> <span class="n">taxid</span> <span class="n">to</span> <span class="nb">all</span> <span class="n">species</span> <span class="n">within</span> <span class="n">that</span> <span class="n">taxon</span> <span class="p">(</span><span class="nb">format</span><span class="p">:</span> <span class="s1">&#39;&lt;taxid&gt;</span><span class="se">\t</span><span class="s1">&lt;Family&gt;</span><span class="se">\t</span><span class="s1">&lt;Species&gt;&#39;</span><span class="p">)</span>
+<span class="n">masked</span><span class="p">:</span>
+    <span class="p">{</span><span class="n">species</span><span class="p">}</span><span class="o">.</span><span class="n">masked</span><span class="o">.</span><span class="n">bed</span> <span class="o">-</span> <span class="n">Bed</span> <span class="n">files</span> <span class="k">for</span> <span class="nb">all</span> <span class="n">species</span> <span class="ow">in</span> <span class="n">the</span> <span class="n">database</span> <span class="n">showing</span> <span class="n">low</span><span class="o">-</span><span class="n">complexity</span> <span class="n">regions</span>
+</pre></div>
+</div>
+</li>
+</ul>
+<p>To create the structure, please run the datastructure-pipeline provided here:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">cd</span> <span class="o">..</span>
+<span class="n">git</span> <span class="n">clone</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">github</span><span class="o">.</span><span class="n">com</span><span class="o">/</span><span class="n">MerlinSzymanski</span><span class="o">/</span><span class="n">datastructure_nf</span><span class="o">/</span>
+<span class="n">nextflow</span> <span class="n">run</span> <span class="n">datastructure_nf</span><span class="o">/</span><span class="n">main</span><span class="o">.</span><span class="n">nf</span> <span class="o">-</span><span class="n">profile</span> <span class="n">singularity</span> <span class="o">--</span><span class="n">outdir</span> <span class="n">sediment_db</span>
+</pre></div>
+</div>
+<p>This should create one folder within your current directory that contains all the required files</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">sediment_db</span><span class="o">/</span>
+    <span class="n">kraken</span><span class="o">/</span>
+        <span class="n">Mito_db_kmer22</span><span class="o">/</span>
+    <span class="n">genomes</span><span class="o">/</span>
+        <span class="p">{</span><span class="n">family</span><span class="p">}</span><span class="o">/</span><span class="p">{</span><span class="n">species</span><span class="p">}</span><span class="o">.</span><span class="n">fasta</span>
+        <span class="n">taxid_map</span><span class="o">.</span><span class="n">tsv</span>
+    <span class="n">masked</span><span class="o">/</span>
+        <span class="p">{</span><span class="n">species</span><span class="p">}</span><span class="o">.</span><span class="n">masked</span><span class="o">.</span><span class="n">bed</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="run-the-pipeline">
+<h2>Run the pipeline<a class="headerlink" href="#run-the-pipeline" title="Permalink to this headline">¶</a></h2>
+<p>With everything set up, the pipeline can be executed (here: directly from github):</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">nextflow</span> <span class="n">run</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">github</span><span class="o">.</span><span class="n">com</span><span class="o">/</span><span class="n">MerlinSzymanski</span><span class="o">/</span><span class="n">sediment_nf</span>
+     <span class="o">--</span><span class="n">split</span>     <span class="o">&lt;</span><span class="n">path</span><span class="o">/</span><span class="n">to</span><span class="o">/</span><span class="n">demultiplexed_reads</span><span class="o">/&gt;</span>
+     <span class="o">--</span><span class="n">db</span>        <span class="o">&lt;</span><span class="n">path</span><span class="o">/</span><span class="n">to</span><span class="o">/</span><span class="n">kraken_db</span><span class="o">/&gt;</span>
+     <span class="o">--</span><span class="n">genome</span>    <span class="o">&lt;</span><span class="n">path</span><span class="o">/</span><span class="n">to</span><span class="o">/</span><span class="n">reference</span><span class="o">/</span><span class="n">genomes</span><span class="o">/&gt;</span>
+     <span class="o">--</span><span class="n">bedfiles</span>  <span class="o">&lt;</span><span class="n">path</span><span class="o">/</span><span class="n">to</span><span class="o">/</span><span class="n">masked_genomes</span><span class="o">/&gt;</span>
+     <span class="o">--</span><span class="n">analyze</span>
+     <span class="o">--</span><span class="n">report</span>
+     <span class="o">-</span><span class="n">profile</span> <span class="n">singularity</span>
+</pre></div>
+</div>
+<p>make sure that you are in a separate folder, as the output is created within the current working directory.
+see the flags section for a detailed overview of the required and optional flags!</p>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+        <a href="customization.html" class="btn btn-neutral float-right" title="Customization" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="installation.html" class="btn btn-neutral float-left" title="Installation" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2021, MPI EVA.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>
