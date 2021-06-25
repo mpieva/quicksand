@@ -138,6 +138,7 @@ if(!params.bedfiles){
 // Optional
 params.specmap = env["SED_SPECMAP"]
 params.capture = false
+params.byrg    = ''
 
 capture_families = []
 if(params.capture){
@@ -463,7 +464,7 @@ count_for_stats
         }
 
 process extractBam {
-    publishDir 'out', mode: 'copy', saveAs: {"${family}/${rg}_extractedReads-${family}.bam"}
+    publishDir 'out', mode: 'copy', saveAs: {out_bam}
     tag "$rg:$family"
 
     input:
@@ -476,6 +477,11 @@ process extractBam {
     idcount.toInteger() >= params.bwacutoff
 
     script:
+    if(params.byrg){
+        out_bam = "${rg}/${rg}_extractedReads-${family}.bam"
+    } else {
+        out_bam = "${family}/${rg}_extractedReads-${family}.bam"
+    }
     """
     bamfilter -i ids.txt -l $params.level -o output.bam input.bam
     """
@@ -505,7 +511,11 @@ process mapBwa {
     set family, rg, species, stdout into (mapped_count, mapping_data)
 
     script:
-    out_bam = "${family}/aligned/${rg}.${species}.bam"
+    if(params.byrg){
+        out_bam = "${rg}/aligned/${family}.${species}.bam"
+    } else {
+        out_bam = "${family}/aligned/${rg}.${species}.bam"
+    }
     """
     samtools sort -n -l0 input.bam \
     | $params.bwa bam2bam -g ${genomes}/$family/\"${species}.fasta\"  -n 0.01 -o 2 -l 16500 --only-aligned - \
@@ -522,7 +532,7 @@ mapped_count
 
 
 process dedupBam {
-    publishDir 'out', mode: 'copy', pattern: "*.bam", saveAs: {"${family}/aligned/${rg}.${species}_deduped.bam"}
+    publishDir 'out', mode: 'copy', pattern: "*.bam", saveAs: {out_bam}
     tag "$rg:$family:$species"
 
     input:
@@ -534,6 +544,11 @@ process dedupBam {
     set family, rg, species, "count.txt" into (deduped_count, deduped_data)
 
     script:
+    if(params.byrg){
+        out_bam = "${rg}/aligned/${family}.${species}_deduped.bam"
+    } else {
+        out_bam = "${family}/aligned/${rg}.${species}_deduped.bam"
+    }
     """
     $params.bamrmdup -r -o output.bam input.bam > rmdup.txt
     samtools coverage -H output.bam | cut -f 5
@@ -579,7 +594,7 @@ Channel.fromPath("${params.bedfiles}/*.bed", type:'file')       //all the bedfil
 //and filter out reads that intersect with masked regions
 process runIntersectBed{
     tag "$rg:$family:$species"
-    publishDir 'out', mode: 'copy', saveAs: {"${family}/bed/${rg}.${species}_deduped_bedfiltered.bam"}
+    publishDir 'out', mode: 'copy', saveAs: {out_bam}
 
     input:
     set species, family, rg, "inbam.bam", "inbed.bed", coverage from to_bed
@@ -590,6 +605,11 @@ process runIntersectBed{
     set family, rg, species, "outbam.bam", stdout, coverage into deam_stats
     
     script:
+    if(params.byrg){
+        out_bam = "${rg}/bed/${family}.${species}_deduped_bedfiltered.bam"
+    } else {
+        out_bam = "${family}/bed/${rg}.${species}_deduped_bedfiltered.bam"
+    }
     """
     bedtools intersect -a inbam.bam -b inbed.bed -v > outbam.bam
     samtools view -c outbam.bam
