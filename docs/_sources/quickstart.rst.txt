@@ -26,7 +26,6 @@ For the run, we need some data: For that we download the Hohlenstein-Stadel mtDN
 
 And run the quicksand pipeline::
 
-	export NXF_OPTS="-Xms128g -Xmx128g"
 	nextflow run mpieva/quicksand \
 		--db 		refseq/kraken/Mito_db_kmer22 \
 		--genome	refseq/genomes \
@@ -34,10 +33,18 @@ And run the quicksand pipeline::
 		--split 	split \
 		--report 	\
 		--analyze	\
-		--byrg		\
-		-profile	singularity
+		--byrg		
 
 Please see the :ref:`output` section for an explaination of the output!
+
+Problems?
+---------
+Some *classical* problems are:
+
+- heap-space error: not enough heap-space allocated for the JVM. please type :code:`export NXF_OPTS="-Xms128g -Xmx128g"` before the run
+- file-not found error: The Singularity installation doesnt allow auto-mounting of paths: See :ref:`singularity`  
+- quicksand-build crashes: The indexing of the kraken-database requires a lot of RAM!
+
 
 .. [README] http://ftp.eva.mpg.de/neandertal/Hohlenstein-Stadel/README
 

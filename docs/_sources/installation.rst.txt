@@ -18,8 +18,7 @@ Before coming to that, make sure you have the two following programs installed.
 
     or Docker: See `get Docker <https://docs.docker.com/get-docker/>`_
 
-Nextflow is the language the pipeline is written in, while Singularity/Docker are software tools for
-containerization of code - used to run software in a consistent environment. 
+Nextflow is the language the pipeline is written in, while Singularity/Docker are software tools for containerization of code - used to run software in a consistent environment. 
 
 .. tip::
     
@@ -43,9 +42,7 @@ Please open your terminal and type::
     mkdir pipeline && cd pipeline
     git clone https://www.github.com/mpieva/quicksand
     
-This code creates a new directory :file:`pipeline` that will contain
-all the data produced over the course of this setup process. 
-Here - the cloned github repository.
+This code creates a new directory :file:`pipeline` that will contain all the data produced over the course of this setup process. Here - the cloned github repository.
 
 
 03. Test Runabilty
@@ -60,8 +57,10 @@ To do that, unpack the test database provided in the repository::
 This will create a directory :file:`TestDB` in the current folder. 
 
 To ensure a stable environment, the pipeline runs within a container that gets
-downloaded from the internet, from `Dockerhub <https://hub.docker.com/r/merszym/sediment_nf>`_. 
+downloaded from the internet, from `Dockerhub <https://hub.docker.com/r/merszym/quicksand>`_. 
 The Dockerfile used to build that image can be found within the :file:`quicksand/docker` directory of the repository.
+
+
 To save the downloaded image at an accessible place, type::
 
     cd ..
@@ -101,41 +100,38 @@ Now the pipeline can be tested by running::
         --specmap   ../quicksand/assets/test/genomes/specmap.tsv \
         --analyze   \
         --report    \
-        -profile    singularity \
         -c          ../singularity/nextflow.config
 
-The meaning of the flags and the different ways of customizing the pipeline is described in the customization section. 
-In case of choosing Docker over Singularity, exchange :code:`-profile singularity` with :code:`-profile docker`.  
+The meaning of the flags and the different ways of customizing the pipeline is described in the :ref:`usage-page` section. In case of choosing Docker over Singularity, add :code:`-profile docker` to the command.  
 
 .. attention::
-    the :code:`-profile` flag has only one dash!
+    the :code:`-profile` and the :code:`-c` flag has only one dash!
 
-If the run was successful, several new files and directories will appear in your current working directory. To
-see an explanation of the files, see the output section.
+If the run was successful, several new files and directories will appear in your current working directory. To see an explanation of the files, see the :ref:`output` section.
 
 .. _setup:
 
 04. Setup Datastructure
 -----------------------
 
-To run the pipeline with a real databases a certain datastructure is required.
+To run the pipeline with a real database a certain datastructure is required.
 
 - A preindexed Kraken-database
 - All Mammalian mitochondrial reference genomes from RefSeq in a fasta-format
 - Bedfiles for these genomes
-- A textfile that points to all species of a clade specified by the NCBI taxID
+- A list that points to all species of a clade specified by the NCBI taxID
 
 Instead of creating this structure manually, a different pipeline is used
 for that
 
 .. seealso::
     Refer to the README of `that pipeline <https://github.com/mpieva/quicksand-build>`_ for custom
-    stettings of the data structure (e.g. kmer-sizes) and a more detailed explanation of the output.
+    settings of the data structure (e.g. kmer-sizes) and a more detailed explanation of the output.
 
 The datastructure-pipeline can be started directly from the repository by tying::
 
     cd ..
-    nextflow run mpieva/quicksand-build -profile singularity --outdir data 
+    nextflow run mpieva/quicksand-build --outdir data 
 
 .. attention::
 
@@ -182,8 +178,7 @@ And run the quicksand pipeline::
         --split     split \
         --report    \
         --analyze   \
-        -profile    singularity
-        -c          ~/pipeline/nextflow.config
+        -c          ~/pipeline/singularity/nextflow.config
 
 | Please see the :ref:`usage-page` section for an explaination of the flags and the input!
 | Please see the :ref:`output` section for an explaination of the output files!

@@ -220,7 +220,7 @@
 </dl>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>For the the internal use (MPI EVA), there is a demultiplexer available in the pipeline. It is thus possible to run quicksand with <code class="code docutils literal notranslate"><span class="pre">-bam</span> <span class="pre">BAM-FILE</span></code> and <code class="code docutils literal notranslate"><span class="pre">--rg</span> <span class="pre">TSV-FILE</span></code> as alternative to the <code class="code docutils literal notranslate"><span class="pre">--split</span></code> parameter.</p>
+<p>For the the internal use (MPI EVA), there is a demultiplexer available in the pipeline. It is thus possible to run quicksand with <code class="code docutils literal notranslate"><span class="pre">-bam</span> <span class="pre">BAM-FILE</span></code> and <code class="code docutils literal notranslate"><span class="pre">--rg</span> <span class="pre">TSV-FILE</span></code> as alternative to the <code class="code docutils literal notranslate"><span class="pre">--split</span> <span class="pre">DIR</span></code> parameter.</p>
 </div>
 </div>
 <div class="section" id="optional">
@@ -276,7 +276,7 @@
 <p>A selection of built-in Nextflow flags that may be of use (Be aware: only one dash - with these flags):</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">-</span><span class="n">profile</span>  <span class="o">&lt;</span><span class="n">profile</span><span class="o">&gt;</span>  <span class="n">pick</span> <span class="n">a</span> <span class="n">profile</span> <span class="k">for</span> <span class="n">executing</span> <span class="n">the</span> <span class="n">pipeline</span> <span class="p">(</span><span class="n">see</span> <span class="n">below</span><span class="p">)</span>
 <span class="o">-</span><span class="n">resume</span>              <span class="n">Resume</span> <span class="n">processing</span><span class="p">;</span> <span class="n">do</span> <span class="ow">not</span> <span class="n">re</span><span class="o">-</span><span class="n">run</span> <span class="n">completed</span> <span class="n">processes</span>
-<span class="o">-</span><span class="n">N</span>        <span class="o">&lt;</span><span class="n">email</span><span class="o">&gt;</span>    <span class="n">send</span> <span class="n">notification</span> <span class="n">to</span> <span class="n">email</span> <span class="n">upon</span> <span class="n">fiishing</span>
+<span class="o">-</span><span class="n">N</span>        <span class="o">&lt;</span><span class="n">email</span><span class="o">&gt;</span>    <span class="n">send</span> <span class="n">notification</span> <span class="n">to</span> <span class="n">email</span> <span class="n">upon</span> <span class="n">finishing</span>
 <span class="o">-</span><span class="n">c</span>        <span class="o">&lt;</span><span class="n">file</span><span class="o">&gt;</span>     <span class="n">path</span> <span class="n">to</span> <span class="n">additional</span> <span class="n">nextflow</span><span class="o">.</span><span class="n">config</span> <span class="n">file</span> <span class="k">for</span> <span class="n">local</span> <span class="n">parameters</span>
 <span class="o">-</span><span class="n">w</span>        <span class="o">&lt;</span><span class="n">path</span><span class="o">&gt;</span>     <span class="n">specify</span> <span class="n">the</span> <span class="s2">&quot;work&quot;</span> <span class="n">directory</span> <span class="k">for</span> <span class="n">the</span> <span class="n">nextflow</span> <span class="n">intermediate</span> <span class="n">files</span>
 </pre></div>
@@ -314,14 +314,12 @@ the <a class="reference internal" href="#input"><span class="std std-ref">input 
 <h3>Run from local repository<a class="headerlink" href="#run-from-local-repository" title="Permalink to this headline">¶</a></h3>
 <p>With everything set up quicksand can be executed by pointing nextflow to the <code class="file docutils literal notranslate"><span class="pre">main.nf</span></code> file in the cloned repository:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">mkdir</span> <span class="n">runDir</span> <span class="o">&amp;&amp;</span> <span class="n">cd</span> <span class="n">runDir</span>
-<span class="n">export</span> <span class="n">NXF_SINGULARITY_CACHEDIR</span><span class="o">=~/</span><span class="n">pipeline</span><span class="o">/</span><span class="n">singularity</span><span class="o">/</span>
 
 <span class="n">nextflow</span> <span class="n">run</span> <span class="o">~/</span><span class="n">pipeline</span><span class="o">/</span><span class="n">quicksand</span><span class="o">/</span><span class="n">main</span><span class="o">.</span><span class="n">nf</span> \
     <span class="o">--</span><span class="n">split</span>     <span class="n">PATH</span><span class="o">/</span><span class="n">TO</span><span class="o">/</span><span class="n">INPUT</span><span class="o">/</span><span class="n">DATA</span> \
     <span class="o">--</span><span class="n">genome</span>    <span class="o">~/</span><span class="n">pipeline</span><span class="o">/</span><span class="n">data</span><span class="o">/</span><span class="n">genomes</span> \
     <span class="o">--</span><span class="n">db</span>        <span class="o">~/</span><span class="n">pipeline</span><span class="o">/</span><span class="n">data</span><span class="o">/</span><span class="n">kraken</span><span class="o">/</span><span class="n">Mito_db_kmer22</span> \
     <span class="o">--</span><span class="n">bedfiles</span>  <span class="o">~/</span><span class="n">pipeline</span><span class="o">/</span><span class="n">data</span><span class="o">/</span><span class="n">masked</span> \
-    <span class="o">-</span><span class="n">profile</span>    <span class="n">singularity</span>
     <span class="o">--</span><span class="n">report</span>
     <span class="o">--</span><span class="n">analyze</span>
 </pre></div>
@@ -331,14 +329,12 @@ the <a class="reference internal" href="#input"><span class="std std-ref">input 
 <h3>Run from remote repository<a class="headerlink" href="#run-from-remote-repository" title="Permalink to this headline">¶</a></h3>
 <p>Instead of cloning the repository, it is also possible to run the pipeline directly from github:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">mkdir</span> <span class="n">runDir</span> <span class="o">&amp;&amp;</span> <span class="n">cd</span> <span class="n">runDir</span>
-<span class="n">export</span> <span class="n">NXF_SINGULARITY_CACHEDIR</span><span class="o">=~/</span><span class="n">pipeline</span><span class="o">/</span><span class="n">singularity</span><span class="o">/</span>
 
 <span class="n">nextflow</span> <span class="n">run</span> <span class="n">mpieva</span><span class="o">/</span><span class="n">quicksand</span> \
     <span class="o">--</span><span class="n">split</span>     <span class="n">PATH</span><span class="o">/</span><span class="n">TO</span><span class="o">/</span><span class="n">INPUT</span><span class="o">/</span><span class="n">DATA</span> \
     <span class="o">--</span><span class="n">genome</span>    <span class="o">~/</span><span class="n">pipeline</span><span class="o">/</span><span class="n">data</span><span class="o">/</span><span class="n">genomes</span> \
     <span class="o">--</span><span class="n">db</span>        <span class="o">~/</span><span class="n">pipeline</span><span class="o">/</span><span class="n">data</span><span class="o">/</span><span class="n">kraken</span><span class="o">/</span><span class="n">Mito_db_kmer22</span> \
     <span class="o">--</span><span class="n">bedfiles</span>  <span class="o">~/</span><span class="n">pipeline</span><span class="o">/</span><span class="n">data</span><span class="o">/</span><span class="n">masked</span> \
-    <span class="o">-</span><span class="n">profile</span>    <span class="n">singularity</span>
     <span class="o">--</span><span class="n">report</span>
     <span class="o">--</span><span class="n">analyze</span>
 </pre></div>

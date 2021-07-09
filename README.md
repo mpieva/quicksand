@@ -56,7 +56,5 @@ And run the quicksand pipeline:
         --bedfiles  refseq/masked \
         --split     split \
         --report    \
-        --analyze   \
-        --byrg      \
-        -profile    singularity
+        --analyze   
 ```

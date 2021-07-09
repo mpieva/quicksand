@@ -50,7 +50,6 @@ params.cutoff         = 35
 params.quality        = 25
 params.min_kmers      = 129    // min 150bp covered (krakenuniq)
 params.min_reads      = 3      // min 3 reads assigned (krakenuniq)
-params.bwacutoff      = 0
 params.krakenthreads  = 4      // number of threads per kraken process
 params.level          = 0      // bgzf compression level for intermediate files, 0..9
 params.keeppaired     = false  // keep paired reads
@@ -64,7 +63,7 @@ def env = System.getenv()
 def validate_dir(path, flag){
     File test = new File("$path")
     if (!(test.exists() && test.isDirectory())){
-        log.info "[sediment_nf]: ${red}InputError: The $flag directory doesn't exist ${white}\nPath: $path"
+        log.info "[quicksand]: ${red}InputError: The $flag directory doesn't exist ${white}\nPath: $path"
         exit 0;
     }
 }
@@ -83,15 +82,15 @@ params.split          = ''
 
 if(params.split && (params.bam || params.rg)){
     log.info """
-    [sediment_nf]: ${red}ArgumentError: Too many arguments ${white}
-    Use: nextflow run sediment_nf {--rg FILE --bam FILE | --split DIR }
+    [quicksand]: ${red}ArgumentError: Too many arguments ${white}
+    Use: nextflow run mpieva/quicksand {--rg FILE --bam FILE | --split DIR }
     """.stripIndent()
     exit 0
 } 
 if(!params.split && !(params.bam && params.rg)){
     log.info """
-    [sediment_nf]: ${red}ArgumentError: Too few arguments ${white}
-    See: nextflow run sediment_nf --help
+    [quicksand]: ${red}ArgumentError: Too few arguments ${white}
+    See: nextflow run mpieva/quicksand --help
     """.stripIndent()
     exit 0
 }
@@ -101,9 +100,9 @@ indexfile = params.rg? Channel.fromPath("${params.rg}") : Channel.empty()
 
 
 // Validate: GENOME and TAXIDMAP
-params.genome = env["SED_GENOME"]
+params.genome = env["QS_GENOME"]
 if(!params.genome){
-    log.info """[sediment_nf]: ${red}ArgumentError: Missing --genome flag ${white}"""
+    log.info """[quicksand]: ${red}ArgumentError: Missing --genome flag ${white}"""
     exit 0;
 } else { 
     validate_dir("${params.genome}","--genome") 
@@ -114,7 +113,7 @@ if(new File("${params.genome}/taxid_map.tsv").exists()){
 } else {
     taxid = Channel.fromPath("${baseDir}/assets/taxid_map_example.tsv", type:'file')
     log.info """
-        [sediment_nf]: ${yellow}CRITICAL WARNING: The file 'taxid_map.tsv' is missing in your genomes dir!
+        [quicksand]: ${yellow}CRITICAL WARNING: The file 'taxid_map.tsv' is missing in your genomes dir!
         In this run you use the fallback ${baseDir}/assets/taxid_map_example.tsv 
         based on the Refseq release 202. This might lead to WRONG OR MISSING assignments. 
         Please check the Docs, how to set up an own taxid_map.tsv ${white}
@@ -122,9 +121,9 @@ if(new File("${params.genome}/taxid_map.tsv").exists()){
 }
 
 // Validate: KRAKEN DB
-params.db = env["SED_DB"]
+params.db = env["QS_DB"]
 if(!params.db){
-    log.info """[sediment_nf]: ${red}ArgumentError: Missing --db flag ${white}"""
+    log.info """[quicksand]: ${red}ArgumentError: Missing --db flag ${white}"""
     exit 0;
 } else {
     validate_dir("${params.db}", "--db")
@@ -132,16 +131,16 @@ if(!params.db){
 
 
 // Validate: BEDFILES
-params.bedfiles = env["SED_BEDFILES"]
+params.bedfiles = env["QS_BEDFILES"]
 if(!params.bedfiles){
-    log.info """[sediment_nf]: ${red}ArgumentError: Missing --bedfiles flag ${white}"""
+    log.info """[quicksand]: ${red}ArgumentError: Missing --bedfiles flag ${white}"""
     exit 0;
 } else {
     validate_dir("${params.bedfiles}", "--bedfiles")
 }
 
 // Optional
-params.specmap = env["SED_SPECMAP"]
+params.specmap = env["QS_SPECMAP"]
 params.capture = false
 params.byrg    = ''
 
@@ -185,11 +184,11 @@ splitscriptstats
 if(params.split){
     File split_test = new File("${params.split}")
     if (!(split_test.exists() && split_test.isDirectory())){
-        log.info "[sediment_nf]: ${red}InputError: The --split directory doesn't exist ${white}\nPath: ${params.split}"
+        log.info "[quicksand]: ${red}InputError: The --split directory doesn't exist ${white}\nPath: ${params.split}"
         exit 0;
     }
     Channel.fromPath("${params.split}/*")
-        .ifEmpty{error "[sediment_nf]: InputError: The Split-Directory is empty"}
+        .ifEmpty{error "[quicksand]: InputError: The Split-Directory is empty"}
         .map{ [it.baseName, it] }
         .set{ splitfiles}
 } else {
@@ -208,7 +207,7 @@ splitfiles
     .set {splitfiles}
 
 splitfiles.fail
-    .view{"[sediment_nf]: ${yellow}WARNING: ${it[1]} omitted. File has neither bam nor fastq-ending!${white}"}
+    .view{"[quicksand]: ${yellow}WARNING: ${it[1]} omitted. File has neither bam nor fastq-ending!${white}"}
 
 process fastq2Bam{
     tag "$rg"
@@ -226,7 +225,7 @@ process fastq2Bam{
 }
 
 splitfiles.bam.mix(converted_bams)
-    .ifEmpty{error "----\n${white}[sediment_nf]:${red}WorkflowError: No input-files. Scheck SPLIT-dir or RG-BAM combination. Exit pipeline${white}"}
+    .ifEmpty{error "----\n${white}[quicksand]:${red}WorkflowError: No input-files. Scheck SPLIT-dir or RG-BAM combination. Exit pipeline${white}"}
     .into{splitfiles; splitstats}
 
 process splitStats {
@@ -437,7 +436,7 @@ for_extraction
     .set{for_extraction}
 
 for_extraction.empty
-    .view{"[sediment_nf]: ${yellow}Info: No Kraken-assignments for Readgroup ${it[0]}${white}"}
+    .view{"[quicksand]: ${yellow}Info: No Kraken-assignments for Readgroup ${it[0]}${white}"}
     .collectFile(storeDir: 'stats') { it -> [ "${it[0]}_extracted.tsv", "\t"] }
 
 for_extraction.assigned_taxa
@@ -445,7 +444,7 @@ for_extraction.assigned_taxa
     .filter { it[3] =~ /c__Mammalia.*f__./ }
     .map { rg, bam, kraken, asn -> [rg, bam, kraken, (asn =~ /f__([^|]*)/)[0][1]] }
     .unique()
-    .ifEmpty{error "----\n${white}[sediment_nf]:${red} WorkflowError: No families assigned by Kraken at all. Check Input and Database! Exit pipeline${white}"}
+    .ifEmpty{error "----\n${white}[quicksand]:${red} WorkflowError: No families assigned by Kraken at all. Check Input and Database! Exit pipeline${white}"}
     .set { for_extraction }
 
 process gatherByFamily {
@@ -479,7 +478,7 @@ process extractBam {
     set rg, family, 'output.bam' into extracted_reads
 
     when:
-    idcount.toInteger() >= params.bwacutoff
+    idcount.toInteger() >= params.min_reads 
 
     script:
     if(params.byrg){

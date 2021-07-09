@@ -23,11 +23,10 @@ optional arguments:
   --byrg             Structure the content of the "out" directory by readgroup instead of taxonomy 
   --cutoff N         length cutoff (default: 35)
   --quality N        quality filter (default: 25)
-  --bwacutoff N      cutoff for number of kraken matches (default: 0)
-  --keeppaired       keep paired reads (default: filter paired)
+  --min_kmers N      minimal required unique kmers (krakenuniq) to keep a family (default: 129)
+  --min_reads N      minimal required number of reads assigend to a family by krakenuniq (default: 3)     --keeppaired       keep paired reads (default: filter paired)
   --filterunmapped   filter unmapped reads
-  --krakenfilter N   kraken-filter with threshold N [0,1] (default: 0)
-  --level N          set BGZF compression level (default: 6)
+  -/-level N          set BGZF compression level (default: 6)
   --krakenthreads N  number of threads per Kraken process (default: 4)
       
 A selection of built-in Nextflow flags that may be of use:
@@ -38,7 +37,7 @@ A selection of built-in Nextflow flags that may be of use:
   -c PATH            path to addtional nextflow.config file
     
 The following execution profiles are available (see '-profile' above):
-  * standard         execute all processes on local host
+  * standard         execute all processes in a singularity container
   * cluster          execute certain CPU-intenisve processes on SGE cluster
-  * singularity      run all processes in a singularity container
+  * conda            run all processes in a conda environment
   * docker           run all processes in a docker container

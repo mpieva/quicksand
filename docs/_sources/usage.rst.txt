@@ -24,7 +24,7 @@ Required
 
 .. note::
     
-    For the the internal use (MPI EVA), there is a demultiplexer available in the pipeline. It is thus possible to run quicksand with :code:`-bam BAM-FILE` and :code:`--rg TSV-FILE` as alternative to the :code:`--split` parameter. 
+    For the the internal use (MPI EVA), there is a demultiplexer available in the pipeline. It is thus possible to run quicksand with :code:`-bam BAM-FILE` and :code:`--rg TSV-FILE` as alternative to the :code:`--split DIR` parameter. 
 
 
 Optional
@@ -56,7 +56,7 @@ A selection of built-in Nextflow flags that may be of use (Be aware: only one da
 
     -profile  <profile>  pick a profile for executing the pipeline (see below)
     -resume              Resume processing; do not re-run completed processes
-    -N        <email>    send notification to email upon fiishing
+    -N        <email>    send notification to email upon finishing
     -c        <file>     path to additional nextflow.config file for local parameters
     -w        <path>     specify the "work" directory for the nextflow intermediate files
 
@@ -98,15 +98,14 @@ Run from local repository
 
 With everything set up quicksand can be executed by pointing nextflow to the :file:`main.nf` file in the cloned repository::
 
+
     mkdir runDir && cd runDir
-    export NXF_SINGULARITY_CACHEDIR=~/pipeline/singularity/ 
 
     nextflow run ~/pipeline/quicksand/main.nf \
         --split     PATH/TO/INPUT/DATA \
         --genome    ~/pipeline/data/genomes \
         --db        ~/pipeline/data/kraken/Mito_db_kmer22 \
         --bedfiles  ~/pipeline/data/masked \
-        -profile    singularity
         --report 
         --analyze 
 
@@ -116,14 +115,12 @@ Run from remote repository
 Instead of cloning the repository, it is also possible to run the pipeline directly from github::
 
     mkdir runDir && cd runDir
-    export NXF_SINGULARITY_CACHEDIR=~/pipeline/singularity/ 
 
     nextflow run mpieva/quicksand \
         --split     PATH/TO/INPUT/DATA \
         --genome    ~/pipeline/data/genomes \
         --db        ~/pipeline/data/kraken/Mito_db_kmer22 \
         --bedfiles  ~/pipeline/data/masked \
-        -profile    singularity
         --report 
         --analyze
 

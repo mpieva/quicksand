@@ -92,6 +92,7 @@
 <li class="toctree-l2"><a class="reference internal" href="#requirements">Requirements</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#create-datastructure">Create Datastructure</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#run-quicksand">Run quicksand</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#problems">Problems?</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="description.html">Description</a></li>
@@ -190,19 +191,26 @@
 </pre></div>
 </div>
 <p>And run the quicksand pipeline:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">export</span> <span class="n">NXF_OPTS</span><span class="o">=</span><span class="s2">&quot;-Xms128g -Xmx128g&quot;</span>
-<span class="n">nextflow</span> <span class="n">run</span> <span class="n">mpieva</span><span class="o">/</span><span class="n">quicksand</span> \
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">nextflow</span> <span class="n">run</span> <span class="n">mpieva</span><span class="o">/</span><span class="n">quicksand</span> \
         <span class="o">--</span><span class="n">db</span>            <span class="n">refseq</span><span class="o">/</span><span class="n">kraken</span><span class="o">/</span><span class="n">Mito_db_kmer22</span> \
         <span class="o">--</span><span class="n">genome</span>        <span class="n">refseq</span><span class="o">/</span><span class="n">genomes</span> \
         <span class="o">--</span><span class="n">bedfiles</span>      <span class="n">refseq</span><span class="o">/</span><span class="n">masked</span> \
         <span class="o">--</span><span class="n">split</span>         <span class="n">split</span> \
         <span class="o">--</span><span class="n">report</span>        \
         <span class="o">--</span><span class="n">analyze</span>       \
-        <span class="o">--</span><span class="n">byrg</span>          \
-        <span class="o">-</span><span class="n">profile</span>        <span class="n">singularity</span>
+        <span class="o">--</span><span class="n">byrg</span>
 </pre></div>
 </div>
 <p>Please see the <a class="reference internal" href="usage.html#output"><span class="std std-ref">Output</span></a> section for an explaination of the output!</p>
+</div>
+<div class="section" id="problems">
+<h2>Problems?<a class="headerlink" href="#problems" title="Permalink to this headline">¶</a></h2>
+<p>Some <em>classical</em> problems are:</p>
+<ul class="simple">
+<li><p>heap-space error: not enough heap-space allocated for the JVM. please type <code class="code docutils literal notranslate"><span class="pre">export</span> <span class="pre">NXF_OPTS=&quot;-Xms128g</span> <span class="pre">-Xmx128g&quot;</span></code> before the run</p></li>
+<li><p>file-not found error: The Singularity installation doesnt allow auto-mounting of paths: See <a class="reference internal" href="configuration.html#singularity"><span class="std std-ref">Singularity</span></a></p></li>
+<li><p>quicksand-build crashes: The indexing of the kraken-database requires a lot of RAM!</p></li>
+</ul>
 <dl class="citation">
 <dt class="label" id="readme"><span class="brackets"><a class="fn-backref" href="#id1">README</a></span></dt>
 <dd><p><a class="reference external" href="http://ftp.eva.mpg.de/neandertal/Hohlenstein-Stadel/README">http://ftp.eva.mpg.de/neandertal/Hohlenstein-Stadel/README</a></p>

@@ -35,17 +35,17 @@ Config-file
 
 save the file by pressing :kbd:`ctrl` + :kbd:`x` and :kbd:`y`. Then run the pipeline with the following parameters::
 
-    nextflow run mpieva/quicksand -profile singularity -c ~/pipeline/nextflow.config --split PATH/TO/INPUT/DATA
+    nextflow run mpieva/quicksand -c ~/pipeline/nextflow.config --split PATH/TO/INPUT/DATA
 
 | **Global config-file**
-| to avoid adding the :code:`-profile singularity` command, it is possible o overwrite the default global config. Downloade the "singularity config", add the desired local parameters and feed the file back to the pipeline with the :code:`-C` flag:
+| to avoid adding the :code:`-profile` flag to the command (in case one uses Docker or conda), it is possible to overwrite the default global config. Downloade the "docker config", add the desired local parameters and feed the file back to the pipeline with the :code:`-C` flag:
 
 ::
 
-    nextflow config mpieva/quicksand -profile singularity > ~/pipeline/nextflow.config
+    nextflow config mpieva/quicksand -profile docker > ~/pipeline/nextflow.config
     nano ~/pipeline/nextflow.config
 
-**Add** the parameters introduced above to the *singularity* and *params* scope. Then run the pipeline with::
+**Add** the parameters introduced above to the *params* scope. Then run the pipeline with::
 
     nextflow -C ~/piepline/nextflow.config  run mpieva/quicksand --split PATH/TO/SPLIT/DATA
 
@@ -56,13 +56,13 @@ save the file by pressing :kbd:`ctrl` + :kbd:`x` and :kbd:`y`. Then run the pipe
 Profiles
 --------
 
-| Profiles are a preinstalled set of parameters the pipeline starts with. Throughout the docs, the :code:`-profile singularity` flag is the predominant one and **should be used by default**.
-| However, more profiles are available:
+| Profiles are a preinstalled set of parameters the pipeline starts with. 
+| The following profiles are available:
 
-    standard      
-        The standard, non-containerized pipeline. All processes are executed with locally installed software and conda. Since the pipeline relies on some MPI-inhouse-packages that are not published on conda, it is not (yet) possible to run the pipeline with this profile! 
-    singularity   
+    standard (no profile picked)   
         Run all processes of quicksand in a Singularity container. see the :ref:`singularity` section for more infos 
+    conda      
+        The non-containerized pipeline. All processes are executed with locally installed software and conda. Since the pipeline relies on some MPI-inhouse-packages that are not published on conda, it is not impossible to run the pipeline (see the :ref:`conda` section) with this profile outside the MPI EVA, but we highly recommend sticking to Singularity or Docker.
     docker
         Run all processes of quicksand in a Docker container. see the :ref:`singularity` section for more infos
     cluster       
@@ -75,10 +75,10 @@ Environmental variables
 Environmental variables can be set to reduce the number of arguments handed over to the pipeline::
 
     Pipeline-variables
-    SED_DB        <path>     Corresponds to the --db flag
-    SED_GENOME    <path>     Corresponds to the --genome flag
-    SED_BEDFILES  <path>     Corresponds to the --bedfiles flag
-    SED_SPECMAP   <path>     Corresponds to the --bedfiles flag
+    QS_DB        <path>     Corresponds to the --db flag
+    QS_GENOME    <path>     Corresponds to the --genome flag
+    QS_BEDFILES  <path>     Corresponds to the --bedfiles flag
+    QS_SPECMAP   <path>     Corresponds to the --bedfiles flag
 
     useful nextflow-variables
     NXF_SINGULARITY_CACHEDIR <path> Where to save the pulled Singularity-images
@@ -96,7 +96,7 @@ Instead of working with :file:`nextflow.config` files, set the desired environme
 
 And run the pipeline::
     
-    nextflow run mpieva/quicksand -profile singularity --split PATH/TO/INPUT/DATA <flags>
+    nextflow run mpieva/quicksand --split PATH/TO/INPUT/DATA
 
 .. _singularity:
 
@@ -106,7 +106,7 @@ Singularity
 | To cite the Nextflow-docs [nxf_docs]_:
 | "Singularity is a container engine alternative to Docker. The main advantages of Singularity is that it can be used with unprivileged permissions and doesn’t require a separate daemon process. These, along other features, like for example the support for autofs mounts, makes Singularity a container engine better suited the requirements of HPC workloads. Singularity is able to use existing Docker images, and pull from Docker registries."
 
-So both the :code:`singularity` and the :code:`docker` profiles use the same container to run the processes of the pipeline in. The image used to construct the containers is hosted on `dockerhub <https://hub.docker.com/repository/docker/merszym/quicksand>`_ and automatically pulled by the pipeline upon request (e.g. by running the pipeline with the :code:`-profile singularity` flag). The Dockerfile used to create the image is hosted in the repository as well, see: :file:`quicksand/docker/Dockerfile`
+So both the :code:`standard` and the :code:`docker` profiles use the same container to run the processes of the pipeline in. The image used to construct the containers is hosted on `dockerhub <https://hub.docker.com/repository/docker/merszym/quicksand>`_ and automatically pulled by the pipeline upon request (by running the pipeline). The Dockerfile used to create the image is hosted in the repository as well, see: :file:`quicksand/docker/Dockerfile`
 
 .. attention::
     When running the pipeline with Singularity make sure that you:
@@ -117,6 +117,15 @@ So both the :code:`singularity` and the :code:`docker` profiles use the same con
             By default, nextflow downloads the Singularity image into the :file:`work/singularity` folder of your run. Since downloading and storing the image takes time and disc-space, it is recommended to set up a Singularity cacheDir. This can be done either by adding the :code:`cacheDir PATH` argument to the *singularity* scope of the custom :file:`nextflow.config` file (see :ref:`above <config>`). or by setting the environmental variable :code:`export NXF_SINGULARITY_CACHEDIR=PATH` before the run. With the directory set, Singularity will reuse your image.
 
 .. [nxf_docs] https://www.nextflow.io/docs/latest/singularity.html
+
+
+.. _conda:
+
+Conda
+-----
+
+WIP
+
 
 .. _work:
 

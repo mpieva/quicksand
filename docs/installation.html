@@ -185,15 +185,14 @@ testing the pipeline. Please follow the instructions step by step.</p>
 <p>or Docker: See <a class="reference external" href="https://docs.docker.com/get-docker/">get Docker</a></p>
 </dd>
 </dl>
-<p>Nextflow is the language the pipeline is written in, while Singularity/Docker are software tools for
-containerization of code - used to run software in a consistent environment.</p>
+<p>Nextflow is the language the pipeline is written in, while Singularity/Docker are software tools for containerization of code - used to run software in a consistent environment.</p>
 <div class="admonition tip">
 <p class="admonition-title">Tip</p>
 <p>check the installation of the software above by running:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">nextflow</span> <span class="o">-</span><span class="n">v</span>
-    <span class="o">&gt;&gt;&gt;</span> <span class="n">nextflow</span> <span class="n">version</span> <span class="mf">20.04</span><span class="o">.</span><span class="mf">1.5335</span>
+    <span class="o">&gt;&gt;&gt;</span> <span class="n">nextflow</span> <span class="n">version</span> <span class="mf">20.04.1.5335</span>
 <span class="n">singularity</span> <span class="o">--</span><span class="n">version</span>
-    <span class="o">&gt;&gt;&gt;</span> <span class="n">singularity</span> <span class="n">version</span> <span class="mf">3.7</span><span class="o">.</span><span class="mi">2</span><span class="o">-</span><span class="n">dirty</span>
+    <span class="o">&gt;&gt;&gt;</span> <span class="n">singularity</span> <span class="n">version</span> <span class="mf">3.7.2</span><span class="o">-</span><span class="n">dirty</span>
 </pre></div>
 </div>
 </div>
@@ -208,9 +207,7 @@ directly from there. The code can be found <a class="reference external" href="h
 <span class="n">git</span> <span class="n">clone</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">www</span><span class="o">.</span><span class="n">github</span><span class="o">.</span><span class="n">com</span><span class="o">/</span><span class="n">mpieva</span><span class="o">/</span><span class="n">quicksand</span>
 </pre></div>
 </div>
-<p>This code creates a new directory <code class="file docutils literal notranslate"><span class="pre">pipeline</span></code> that will contain
-all the data produced over the course of this setup process.
-Here - the cloned github repository.</p>
+<p>This code creates a new directory <code class="file docutils literal notranslate"><span class="pre">pipeline</span></code> that will contain all the data produced over the course of this setup process. Here - the cloned github repository.</p>
 </div>
 <div class="section" id="test-runabilty">
 <h2>03. Test Runabilty<a class="headerlink" href="#test-runabilty" title="Permalink to this headline">¶</a></h2>
@@ -222,9 +219,9 @@ To do that, unpack the test database provided in the repository:</p>
 </div>
 <p>This will create a directory <code class="file docutils literal notranslate"><span class="pre">TestDB</span></code> in the current folder.</p>
 <p>To ensure a stable environment, the pipeline runs within a container that gets
-downloaded from the internet, from <a class="reference external" href="https://hub.docker.com/r/merszym/sediment_nf">Dockerhub</a>.
-The Dockerfile used to build that image can be found within the <code class="file docutils literal notranslate"><span class="pre">quicksand/docker</span></code> directory of the repository.
-To save the downloaded image at an accessible place, type:</p>
+downloaded from the internet, from <a class="reference external" href="https://hub.docker.com/r/merszym/quicksand">Dockerhub</a>.
+The Dockerfile used to build that image can be found within the <code class="file docutils literal notranslate"><span class="pre">quicksand/docker</span></code> directory of the repository.</p>
+<p>To save the downloaded image at an accessible place, type:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span>cd ..
 mkdir singularity
 export NXF_SINGULARITY_CACHEDIR=$PWD/singularity
@@ -262,38 +259,35 @@ config-file and bind the paths into the container:</p>
     <span class="o">--</span><span class="n">specmap</span>   <span class="o">../</span><span class="n">quicksand</span><span class="o">/</span><span class="n">assets</span><span class="o">/</span><span class="n">test</span><span class="o">/</span><span class="n">genomes</span><span class="o">/</span><span class="n">specmap</span><span class="o">.</span><span class="n">tsv</span> \
     <span class="o">--</span><span class="n">analyze</span>   \
     <span class="o">--</span><span class="n">report</span>    \
-    <span class="o">-</span><span class="n">profile</span>    <span class="n">singularity</span> \
     <span class="o">-</span><span class="n">c</span>          <span class="o">../</span><span class="n">singularity</span><span class="o">/</span><span class="n">nextflow</span><span class="o">.</span><span class="n">config</span>
 </pre></div>
 </div>
-<p>The meaning of the flags and the different ways of customizing the pipeline is described in the customization section.
-In case of choosing Docker over Singularity, exchange <code class="code docutils literal notranslate"><span class="pre">-profile</span> <span class="pre">singularity</span></code> with <code class="code docutils literal notranslate"><span class="pre">-profile</span> <span class="pre">docker</span></code>.</p>
+<p>The meaning of the flags and the different ways of customizing the pipeline is described in the <a class="reference internal" href="usage.html#usage-page"><span class="std std-ref">Usage</span></a> section. In case of choosing Docker over Singularity, add <code class="code docutils literal notranslate"><span class="pre">-profile</span> <span class="pre">docker</span></code> to the command.</p>
 <div class="admonition attention">
 <p class="admonition-title">Attention</p>
-<p>the <code class="code docutils literal notranslate"><span class="pre">-profile</span></code> flag has only one dash!</p>
+<p>the <code class="code docutils literal notranslate"><span class="pre">-profile</span></code> and the <code class="code docutils literal notranslate"><span class="pre">-c</span></code> flag has only one dash!</p>
 </div>
-<p>If the run was successful, several new files and directories will appear in your current working directory. To
-see an explanation of the files, see the output section.</p>
+<p>If the run was successful, several new files and directories will appear in your current working directory. To see an explanation of the files, see the <a class="reference internal" href="usage.html#output"><span class="std std-ref">Output</span></a> section.</p>
 </div>
 <div class="section" id="setup-datastructure">
 <span id="setup"></span><h2>04. Setup Datastructure<a class="headerlink" href="#setup-datastructure" title="Permalink to this headline">¶</a></h2>
-<p>To run the pipeline with a real databases a certain datastructure is required.</p>
+<p>To run the pipeline with a real database a certain datastructure is required.</p>
 <ul class="simple">
 <li><p>A preindexed Kraken-database</p></li>
 <li><p>All Mammalian mitochondrial reference genomes from RefSeq in a fasta-format</p></li>
 <li><p>Bedfiles for these genomes</p></li>
-<li><p>A textfile that points to all species of a clade specified by the NCBI taxID</p></li>
+<li><p>A list that points to all species of a clade specified by the NCBI taxID</p></li>
 </ul>
 <p>Instead of creating this structure manually, a different pipeline is used
 for that</p>
 <div class="admonition seealso">
 <p class="admonition-title">See also</p>
 <p>Refer to the README of <a class="reference external" href="https://github.com/mpieva/quicksand-build">that pipeline</a> for custom
-stettings of the data structure (e.g. kmer-sizes) and a more detailed explanation of the output.</p>
+settings of the data structure (e.g. kmer-sizes) and a more detailed explanation of the output.</p>
 </div>
 <p>The datastructure-pipeline can be started directly from the repository by tying:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">cd</span> <span class="o">..</span>
-<span class="n">nextflow</span> <span class="n">run</span> <span class="n">mpieva</span><span class="o">/</span><span class="n">quicksand</span><span class="o">-</span><span class="n">build</span> <span class="o">-</span><span class="n">profile</span> <span class="n">singularity</span> <span class="o">--</span><span class="n">outdir</span> <span class="n">data</span>
+<span class="n">nextflow</span> <span class="n">run</span> <span class="n">mpieva</span><span class="o">/</span><span class="n">quicksand</span><span class="o">-</span><span class="n">build</span> <span class="o">--</span><span class="n">outdir</span> <span class="n">data</span>
 </pre></div>
 </div>
 <div class="admonition attention">
@@ -338,8 +332,7 @@ If the pipeline fails, make sure the computer fits the requirements!</p>
     <span class="o">--</span><span class="n">split</span>     <span class="n">split</span> \
     <span class="o">--</span><span class="n">report</span>    \
     <span class="o">--</span><span class="n">analyze</span>   \
-    <span class="o">-</span><span class="n">profile</span>    <span class="n">singularity</span>
-    <span class="o">-</span><span class="n">c</span>          <span class="o">~/</span><span class="n">pipeline</span><span class="o">/</span><span class="n">nextflow</span><span class="o">.</span><span class="n">config</span>
+    <span class="o">-</span><span class="n">c</span>          <span class="o">~/</span><span class="n">pipeline</span><span class="o">/</span><span class="n">singularity</span><span class="o">/</span><span class="n">nextflow</span><span class="o">.</span><span class="n">config</span>
 </pre></div>
 </div>
 <div class="line-block">

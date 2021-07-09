@@ -97,6 +97,7 @@
 <li class="toctree-l2"><a class="reference internal" href="#profiles">Profiles</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#environmental-variables">Environmental variables</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#singularity">Singularity</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#conda">Conda</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#intermediate-files">Intermediate files</a></li>
 </ul>
 </li>
@@ -199,18 +200,18 @@
 </pre></div>
 </div>
 <p>save the file by pressing <kbd class="kbd docutils literal notranslate">ctrl</kbd> + <kbd class="kbd docutils literal notranslate">x</kbd> and <kbd class="kbd docutils literal notranslate">y</kbd>. Then run the pipeline with the following parameters:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">nextflow</span> <span class="n">run</span> <span class="n">mpieva</span><span class="o">/</span><span class="n">quicksand</span> <span class="o">-</span><span class="n">profile</span> <span class="n">singularity</span> <span class="o">-</span><span class="n">c</span> <span class="o">~/</span><span class="n">pipeline</span><span class="o">/</span><span class="n">nextflow</span><span class="o">.</span><span class="n">config</span> <span class="o">--</span><span class="n">split</span> <span class="n">PATH</span><span class="o">/</span><span class="n">TO</span><span class="o">/</span><span class="n">INPUT</span><span class="o">/</span><span class="n">DATA</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">nextflow</span> <span class="n">run</span> <span class="n">mpieva</span><span class="o">/</span><span class="n">quicksand</span> <span class="o">-</span><span class="n">c</span> <span class="o">~/</span><span class="n">pipeline</span><span class="o">/</span><span class="n">nextflow</span><span class="o">.</span><span class="n">config</span> <span class="o">--</span><span class="n">split</span> <span class="n">PATH</span><span class="o">/</span><span class="n">TO</span><span class="o">/</span><span class="n">INPUT</span><span class="o">/</span><span class="n">DATA</span>
 </pre></div>
 </div>
 <div class="line-block">
 <div class="line"><strong>Global config-file</strong></div>
-<div class="line">to avoid adding the <code class="code docutils literal notranslate"><span class="pre">-profile</span> <span class="pre">singularity</span></code> command, it is possible o overwrite the default global config. Downloade the “singularity config”, add the desired local parameters and feed the file back to the pipeline with the <code class="code docutils literal notranslate"><span class="pre">-C</span></code> flag:</div>
+<div class="line">to avoid adding the <code class="code docutils literal notranslate"><span class="pre">-profile</span></code> flag to the command (in case one uses Docker or conda), it is possible to overwrite the default global config. Downloade the “docker config”, add the desired local parameters and feed the file back to the pipeline with the <code class="code docutils literal notranslate"><span class="pre">-C</span></code> flag:</div>
 </div>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">nextflow</span> <span class="n">config</span> <span class="n">mpieva</span><span class="o">/</span><span class="n">quicksand</span> <span class="o">-</span><span class="n">profile</span> <span class="n">singularity</span> <span class="o">&gt;</span> <span class="o">~/</span><span class="n">pipeline</span><span class="o">/</span><span class="n">nextflow</span><span class="o">.</span><span class="n">config</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">nextflow</span> <span class="n">config</span> <span class="n">mpieva</span><span class="o">/</span><span class="n">quicksand</span> <span class="o">-</span><span class="n">profile</span> <span class="n">docker</span> <span class="o">&gt;</span> <span class="o">~/</span><span class="n">pipeline</span><span class="o">/</span><span class="n">nextflow</span><span class="o">.</span><span class="n">config</span>
 <span class="n">nano</span> <span class="o">~/</span><span class="n">pipeline</span><span class="o">/</span><span class="n">nextflow</span><span class="o">.</span><span class="n">config</span>
 </pre></div>
 </div>
-<p><strong>Add</strong> the parameters introduced above to the <em>singularity</em> and <em>params</em> scope. Then run the pipeline with:</p>
+<p><strong>Add</strong> the parameters introduced above to the <em>params</em> scope. Then run the pipeline with:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">nextflow</span> <span class="o">-</span><span class="n">C</span> <span class="o">~/</span><span class="n">piepline</span><span class="o">/</span><span class="n">nextflow</span><span class="o">.</span><span class="n">config</span>  <span class="n">run</span> <span class="n">mpieva</span><span class="o">/</span><span class="n">quicksand</span> <span class="o">--</span><span class="n">split</span> <span class="n">PATH</span><span class="o">/</span><span class="n">TO</span><span class="o">/</span><span class="n">SPLIT</span><span class="o">/</span><span class="n">DATA</span>
 </pre></div>
 </div>
@@ -222,14 +223,14 @@
 <div class="section" id="profiles">
 <h2>Profiles<a class="headerlink" href="#profiles" title="Permalink to this headline">¶</a></h2>
 <div class="line-block">
-<div class="line">Profiles are a preinstalled set of parameters the pipeline starts with. Throughout the docs, the <code class="code docutils literal notranslate"><span class="pre">-profile</span> <span class="pre">singularity</span></code> flag is the predominant one and <strong>should be used by default</strong>.</div>
-<div class="line">However, more profiles are available:</div>
+<div class="line">Profiles are a preinstalled set of parameters the pipeline starts with.</div>
+<div class="line">The following profiles are available:</div>
 </div>
 <blockquote>
 <div><dl class="simple">
-<dt>standard</dt><dd><p>The standard, non-containerized pipeline. All processes are executed with locally installed software and conda. Since the pipeline relies on some MPI-inhouse-packages that are not published on conda, it is not (yet) possible to run the pipeline with this profile!</p>
+<dt>standard (no profile picked)</dt><dd><p>Run all processes of quicksand in a Singularity container. see the <a class="reference internal" href="#singularity"><span class="std std-ref">Singularity</span></a> section for more infos</p>
 </dd>
-<dt>singularity</dt><dd><p>Run all processes of quicksand in a Singularity container. see the <a class="reference internal" href="#singularity"><span class="std std-ref">Singularity</span></a> section for more infos</p>
+<dt>conda</dt><dd><p>The non-containerized pipeline. All processes are executed with locally installed software and conda. Since the pipeline relies on some MPI-inhouse-packages that are not published on conda, it is not impossible to run the pipeline (see the <a class="reference internal" href="#conda"><span class="std std-ref">Conda</span></a> section) with this profile outside the MPI EVA, but we highly recommend sticking to Singularity or Docker.</p>
 </dd>
 <dt>docker</dt><dd><p>Run all processes of quicksand in a Docker container. see the <a class="reference internal" href="#singularity"><span class="std std-ref">Singularity</span></a> section for more infos</p>
 </dd>
@@ -242,10 +243,10 @@
 <h2>Environmental variables<a class="headerlink" href="#environmental-variables" title="Permalink to this headline">¶</a></h2>
 <p>Environmental variables can be set to reduce the number of arguments handed over to the pipeline:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Pipeline</span><span class="o">-</span><span class="n">variables</span>
-<span class="n">SED_DB</span>        <span class="o">&lt;</span><span class="n">path</span><span class="o">&gt;</span>     <span class="n">Corresponds</span> <span class="n">to</span> <span class="n">the</span> <span class="o">--</span><span class="n">db</span> <span class="n">flag</span>
-<span class="n">SED_GENOME</span>    <span class="o">&lt;</span><span class="n">path</span><span class="o">&gt;</span>     <span class="n">Corresponds</span> <span class="n">to</span> <span class="n">the</span> <span class="o">--</span><span class="n">genome</span> <span class="n">flag</span>
-<span class="n">SED_BEDFILES</span>  <span class="o">&lt;</span><span class="n">path</span><span class="o">&gt;</span>     <span class="n">Corresponds</span> <span class="n">to</span> <span class="n">the</span> <span class="o">--</span><span class="n">bedfiles</span> <span class="n">flag</span>
-<span class="n">SED_SPECMAP</span>   <span class="o">&lt;</span><span class="n">path</span><span class="o">&gt;</span>     <span class="n">Corresponds</span> <span class="n">to</span> <span class="n">the</span> <span class="o">--</span><span class="n">bedfiles</span> <span class="n">flag</span>
+<span class="n">QS_DB</span>        <span class="o">&lt;</span><span class="n">path</span><span class="o">&gt;</span>     <span class="n">Corresponds</span> <span class="n">to</span> <span class="n">the</span> <span class="o">--</span><span class="n">db</span> <span class="n">flag</span>
+<span class="n">QS_GENOME</span>    <span class="o">&lt;</span><span class="n">path</span><span class="o">&gt;</span>     <span class="n">Corresponds</span> <span class="n">to</span> <span class="n">the</span> <span class="o">--</span><span class="n">genome</span> <span class="n">flag</span>
+<span class="n">QS_BEDFILES</span>  <span class="o">&lt;</span><span class="n">path</span><span class="o">&gt;</span>     <span class="n">Corresponds</span> <span class="n">to</span> <span class="n">the</span> <span class="o">--</span><span class="n">bedfiles</span> <span class="n">flag</span>
+<span class="n">QS_SPECMAP</span>   <span class="o">&lt;</span><span class="n">path</span><span class="o">&gt;</span>     <span class="n">Corresponds</span> <span class="n">to</span> <span class="n">the</span> <span class="o">--</span><span class="n">bedfiles</span> <span class="n">flag</span>
 
 <span class="n">useful</span> <span class="n">nextflow</span><span class="o">-</span><span class="n">variables</span>
 <span class="n">NXF_SINGULARITY_CACHEDIR</span> <span class="o">&lt;</span><span class="n">path</span><span class="o">&gt;</span> <span class="n">Where</span> <span class="n">to</span> <span class="n">save</span> <span class="n">the</span> <span class="n">pulled</span> <span class="n">Singularity</span><span class="o">-</span><span class="n">images</span>
@@ -263,7 +264,7 @@
 </pre></div>
 </div>
 <p>And run the pipeline:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">nextflow</span> <span class="n">run</span> <span class="n">mpieva</span><span class="o">/</span><span class="n">quicksand</span> <span class="o">-</span><span class="n">profile</span> <span class="n">singularity</span> <span class="o">--</span><span class="n">split</span> <span class="n">PATH</span><span class="o">/</span><span class="n">TO</span><span class="o">/</span><span class="n">INPUT</span><span class="o">/</span><span class="n">DATA</span> <span class="o">&lt;</span><span class="n">flags</span><span class="o">&gt;</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">nextflow</span> <span class="n">run</span> <span class="n">mpieva</span><span class="o">/</span><span class="n">quicksand</span> <span class="o">--</span><span class="n">split</span> <span class="n">PATH</span><span class="o">/</span><span class="n">TO</span><span class="o">/</span><span class="n">INPUT</span><span class="o">/</span><span class="n">DATA</span>
 </pre></div>
 </div>
 </div>
@@ -273,7 +274,7 @@
 <div class="line">To cite the Nextflow-docs <a class="reference internal" href="#nxf-docs" id="id2"><span>[nxf_docs]</span></a>:</div>
 <div class="line">“Singularity is a container engine alternative to Docker. The main advantages of Singularity is that it can be used with unprivileged permissions and doesn’t require a separate daemon process. These, along other features, like for example the support for autofs mounts, makes Singularity a container engine better suited the requirements of HPC workloads. Singularity is able to use existing Docker images, and pull from Docker registries.”</div>
 </div>
-<p>So both the <code class="code docutils literal notranslate"><span class="pre">singularity</span></code> and the <code class="code docutils literal notranslate"><span class="pre">docker</span></code> profiles use the same container to run the processes of the pipeline in. The image used to construct the containers is hosted on <a class="reference external" href="https://hub.docker.com/repository/docker/merszym/quicksand">dockerhub</a> and automatically pulled by the pipeline upon request (e.g. by running the pipeline with the <code class="code docutils literal notranslate"><span class="pre">-profile</span> <span class="pre">singularity</span></code> flag). The Dockerfile used to create the image is hosted in the repository as well, see: <code class="file docutils literal notranslate"><span class="pre">quicksand/docker/Dockerfile</span></code></p>
+<p>So both the <code class="code docutils literal notranslate"><span class="pre">standard</span></code> and the <code class="code docutils literal notranslate"><span class="pre">docker</span></code> profiles use the same container to run the processes of the pipeline in. The image used to construct the containers is hosted on <a class="reference external" href="https://hub.docker.com/repository/docker/merszym/quicksand">dockerhub</a> and automatically pulled by the pipeline upon request (by running the pipeline). The Dockerfile used to create the image is hosted in the repository as well, see: <code class="file docutils literal notranslate"><span class="pre">quicksand/docker/Dockerfile</span></code></p>
 <div class="admonition attention">
 <p class="admonition-title">Attention</p>
 <p>When running the pipeline with Singularity make sure that you:</p>
@@ -291,6 +292,10 @@
 <dd><p><a class="reference external" href="https://www.nextflow.io/docs/latest/singularity.html">https://www.nextflow.io/docs/latest/singularity.html</a></p>
 </dd>
 </dl>
+</div>
+<div class="section" id="conda">
+<span id="id3"></span><h2>Conda<a class="headerlink" href="#conda" title="Permalink to this headline">¶</a></h2>
+<p>WIP</p>
 </div>
 <div class="section" id="intermediate-files">
 <span id="work"></span><h2>Intermediate files<a class="headerlink" href="#intermediate-files" title="Permalink to this headline">¶</a></h2>
