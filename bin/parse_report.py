@@ -18,24 +18,26 @@ for row in open(sys.argv[1],'r'):
         _, reads, _, kmers, dup, cov, taxid, level, name = row.split('\t', 8)
     except ValueError: #headerline in krakenUniq
         continue
-    if level == 'family':
+    if level == 'order':
+        order = name.strip()
+    elif level == 'family':
         fam = name.strip()
-        results[fam] = {
+        results[(fam,order)] = {
             'id':taxid, 'counts':int(reads), 'kmers':float(kmers), 'tree':{}
         }
     elif level == 'genus':
         gen = name.strip()
-        results[fam]['tree'][gen] = {
+        results[(fam,order)]['tree'][gen] = {
             'id':taxid, 'counts':int(reads), 'kmers':float(kmers), 'tree':{}
         }
     elif level == 'species':
         sp = name.strip()
-        results[fam]['tree'][gen]['tree'][sp] = {
+        results[(fam,order)]['tree'][gen]['tree'][sp] = {
             'id':taxid, 'counts':int(reads), 'kmers':float(kmers), 'tree':{}
         }
     elif level == 'subspecies':
         ssp = name.strip()
-        results[fam]['tree'][gen]['tree'][sp]['tree'][ssp] = {
+        results[(fam,order)]['tree'][gen]['tree'][sp]['tree'][ssp] = {
             'id':taxid, 'counts':int(reads), 'kmers':float(kmers)
         }
     else:
@@ -43,24 +45,24 @@ for row in open(sys.argv[1],'r'):
 
 real_results = {}
 
-for fam in results:
-    if(results[fam]["counts"]<min_reads or results[fam]["kmers"]<min_kmers):
+for (fam,order) in results:
+    if(results[(fam,order)]["counts"]<min_reads or results[(fam,order)]["kmers"]<min_kmers):
         continue
     try:
-        gen = find_best(results[fam]['tree'])
+        gen = find_best(results[(fam,order)]['tree'])
         try:
-            sp = find_best(results[fam]['tree'][gen]['tree'])
+            sp = find_best(results[(fam,order)]['tree'][gen]['tree'])
             try:
-                ssp = find_best(results[fam]['tree'][gen]['tree'][sp]['tree'])
-                real_results[fam] = results[fam]['tree'][gen]['tree'][sp]['tree'][ssp]['id']
+                ssp = find_best(results[(fam,order)]['tree'][gen]['tree'][sp]['tree'])
+                real_results[(fam,order)] = results[(fam,order)]['tree'][gen]['tree'][sp]['tree'][ssp]['id']
             except:
-                real_results[fam] = results[fam]['tree'][gen]['tree'][sp]['id']
+                real_results[(fam,order)] = results[(fam,order)]['tree'][gen]['tree'][sp]['id']
         except:
-            real_results[fam] = results[fam]['tree'][gen]['id']
+            real_results[(fam,order)] = results[(fam,order)]['tree'][gen]['id']
     except:
-        real_results[fam] = results[fam]['id']
+        real_results[(fam,order)] = results[(fam,order)]['id']
 
 with open('parsed_record.tsv', 'w') as outfile:
-    for fam,taxid  in real_results.items():
-        print(fam, taxid, sep='\t', file=outfile)
+    for (fam,order),taxid  in real_results.items():
+        print(fam, order, taxid, sep='\t', file=outfile)
 

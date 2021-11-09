@@ -57,6 +57,14 @@ params.filterunmapped = false  // filter out unmapped (in case of pre-mapping)
 params.analyze        = ""
 params.report         = ""
 params.splitfile      = "stats/splitcounts.tsv"
+params.taxlvl         = "f"
+
+if(params.taxlvl !in ['f','o']){
+    log.info """
+    [quicksand]: ${red}ArgumentError: taxlvl must be one of [o, f] not ${params.taxlvl} ${white}
+    """.stripIndent()
+    exit 0
+} 
 
 def env = System.getenv()
 
@@ -113,9 +121,9 @@ if(new File("${params.genome}/taxid_map.tsv").exists()){
 } else {
     taxid = Channel.fromPath("${baseDir}/assets/taxid_map_example.tsv", type:'file')
     log.info """
-        [quicksand]: ${yellow}CRITICAL WARNING: The file 'taxid_map.tsv' is missing in your genomes dir!
+        [quicksand]: ${yellow}WARNING: The file 'taxid_map.tsv' is missing in your genomes dir!
         In this run you use the fallback ${baseDir}/assets/taxid_map_example.tsv 
-        based on the Refseq release 202. This might lead to WRONG OR MISSING assignments. 
+        based on the Refseq release 209. This might lead to WRONG OR MISSING assignments. 
         Please check the Docs, how to set up an own taxid_map.tsv ${white}
         """.stripIndent()
 }
@@ -141,7 +149,7 @@ if(!params.bedfiles){
 
 // Optional
 params.specmap = env["QS_SPECMAP"]
-params.capture = false
+params.capture = ''
 params.byrg    = ''
 
 capture_families = []
@@ -379,15 +387,16 @@ process findBestSpecies{
 
 taxid.splitCsv()
     .map{it[0].split('\t').flatten()}
-    .map{[it[0], it[2]]}
+    .map{[it[0], it[3]]}
+    .unique()
     .groupTuple()
     .set{taxid}
     
 best_species
     .map{[it[0], it[1].readLines()]}
     .transpose()
-    .map{[it[1].split('\t')[1], it[0], it[1].split('\t')[0]]}
-    .combine(taxid, by:0)  //[taxid, readgroup, family, [species, species]]
+    .map{[it[1].split('\t')[2], it[0], it[1].split('\t')[0], it[1].split('\t')[1]]}
+    .combine(taxid, by:0)  //[taxid, readgroup, family, order, [species, species]]
     .set{best_species}
 
 // This block replaces the default mappings assigned by kraken by those
@@ -402,7 +411,7 @@ if (new File("${params.specmap}").exists()){
         .map{[it[1].split(","), it[0]]} //[[species,species], Family]
    
     best_species
-        .map{[it[1]+it[2], it[2], it[3]]} //[newKey, family, [species, species]]
+        .map{[it[1]+it[2], it[2], it[3], it[4]]} //[newKey, family, order [species, species]]
         .branch {
             replace: it[1] in famList
             keep: true
@@ -410,20 +419,20 @@ if (new File("${params.specmap}").exists()){
         .set{best_species}
 
     best_species.replace
-        .combine(specs, by:1) //[family, newKey, [original_species, ...],[new_species,...])]
-        .map{[it[1], it[0], it[3].flatten()]} //[newKey, family, [new_species,...]]
-        .set{replace}
+        .combine(specs, by:1) //[family, newKey, order, [original_species, ...],[new_species,...])]
+        .map{[it[1], it[0], it[2], it[4].flatten()]} //[newKey, family, [new_species,...]]
+        .set{replace} //[test3Hominidae, Hominidae, Primates, [Homo_sapiens]]
 
-    best_species.keep.mix(replace)
-        .map{[it[0], it[2]]} // [newKey, [species, ...]]
-        .transpose() // [newKey, species]
+    best_species.keep.mix(replace)  
+        .map{[it[0], it[2], it[3]]} // [newKey, order, [species, ...]]
+        .transpose() // [newKey, order, species]
         .set{best_species_post}
 
 } else {
     best_species
         .transpose()
-        .map{[it[1]+it[2], it[3]]}
-        .set{best_species_post}
+        .map{[it[1]+it[2], it[3], it[4]]}
+        .set{best_species_post}  //[newKey, order, species]
 }
 
 for_extraction
@@ -494,10 +503,10 @@ process extractBam {
 extracted_reads
     .map{[it[0]+it[1], it[0], it[1], it[2]]}
     //extracted reads --> [new_Key, rg, fam, ExtractedReads_Hominidae.bam]
-    //best_species --> [New_key, species]
-    .cross(best_species_post)
-    .map{x,y -> [x[1], x[2], y[1], x[3]] }
-    //[Readgroup, Hominidae, Homo_sapiens, ExtractedReads_Hominidae.bam]
+    //best_species --> [New_key, order, species]
+    .cross(best_species_post) 
+    .map{x,y -> [x[1], y[1], x[2], y[2], x[3]] }
+    //[Readgroup, Primates, Hominidae, Homo_sapiens, ExtractedReads_Hominidae.bam]
     .set{extracted_reads}
 
 reference = Channel.fromPath("${params.genome}", type:"dir")
@@ -508,7 +517,7 @@ process mapBwa {
     tag "$rg:$family:$species"
 
     input:
-    set rg, family, species, "input.bam", genomes from pre_bwa
+    set rg, order, family, species, "input.bam", genomes from pre_bwa
 
     output:
     set family, rg, species, 'output.bam' into mapped_bam
