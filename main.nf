@@ -6,7 +6,7 @@ cyan = "\033[0;36m"
 yellow = "\033[0;33m"
 
 log.info """
-[Sediment_nf]: Execution started: ${workflow.start.format('dd.MM.yyyy HH:mm')} ${cyan}
+[quicksand]: Execution started: ${workflow.start.format('dd.MM.yyyy HH:mm')} ${cyan}
 
   ============================================================
   ==========================  =============================  =
@@ -40,7 +40,7 @@ if (params.help) {
 //
 //
 
-// Inhouse programs
+// Inhouse paths
 params.bwa            = '/home/public/usr/bin/bwa'
 params.bamrmdup       = '/home/bioinf/usr/bin/bam-rmdup'
 params.kraken_uniq    = '/home/merlin_szymanski/bin/Krakenuniq/'
@@ -91,7 +91,7 @@ params.split          = ''
 if(params.split && (params.bam || params.rg)){
     log.info """
     [quicksand]: ${red}ArgumentError: Too many arguments ${white}
-    Use: nextflow run mpieva/quicksand {--rg FILE --bam FILE | --split DIR }
+    Use: nextflow run mpieva/quicksand {--rg FILE --bam FILE | --split DIR}
     """.stripIndent()
     exit 0
 } 
@@ -197,12 +197,12 @@ if(params.split){
     }
     Channel.fromPath("${params.split}/*")
         .ifEmpty{error "[quicksand]: InputError: The Split-Directory is empty"}
-        .map{ [it.baseName, it] }
-        .set{ splitfiles}
+        .map{[it.baseName, it]}
+        .set{splitfiles}
 } else {
     splitfiles
-        .map{ [it.baseName, it] }      
-        .set{ splitfiles}
+        .map{[it.baseName, it]}      
+        .set{splitfiles}
 }
 
 //handle fastq-input
@@ -322,7 +322,7 @@ if(new File("$params.splitfile").exists()){
 filtercounts.join(splitcounts)
     .concat(old_splitcount)
     .unique{it[0]}
-    .map { rg, fc, sc -> "${rg}\t${sc.trim()}\t${fc.trim()}"}
+    .map{rg,fc,sc -> "${rg}\t${sc.trim()}\t${fc.trim()}"}
     .collectFile(storeDir: 'stats', name: "splitcounts.tsv", newLine: true,
                  seed: "readgroup\tsplit count\tfiltered count")
 
@@ -385,17 +385,16 @@ process findBestSpecies{
     """
 }
 
-taxid.splitCsv()
-    .map{it[0].split('\t').flatten()}
-    .map{[it[0], it[3]]}
+taxid.splitCsv(sep:'\t')
+    .map{tax_id, order, family, species -> [tax_id, species]}
     .unique()
     .groupTuple()
     .set{taxid}
     
 best_species
-    .map{[it[0], it[1].readLines()]}
-    .transpose()
-    .map{[it[1].split('\t')[2], it[0], it[1].split('\t')[0], it[1].split('\t')[1]]}
+    .map{rg, parsed_record -> [rg, parsed_record.splitCsv(sep:'\t')]}
+    .transpose() // [rg, [Fam, order, taxid]]
+    .map{rg, best_record -> [best_record[2], rg, best_record[0], best_record[1]]}
     .combine(taxid, by:0)  //[taxid, readgroup, family, order, [species, species]]
     .set{best_species}
 
@@ -408,10 +407,10 @@ if (new File("${params.specmap}").exists()){
 
     specs = Channel.fromPath("${params.specmap}", type: "file")
         .splitCsv(sep:'\t')
-        .map{[it[1].split(","), it[0]]} //[[species,species], Family]
+        .map{fam, species -> [species.split(","), fam]} //[[species,species], Family]
  
     best_species
-        .map{[it[1]+it[2], it[2], it[1]+it[3], it[3], it[4]]} //[newKey1, family, newKey2, order [species, species]]
+        .map{taxid,rg,fam,order,species -> [rg+fam,fam,rg+order,order,species]} //[newKey1, family, newKey2, order [species, species]]
         .branch {
             replace: it[1] in famList
             keep: true
@@ -420,47 +419,47 @@ if (new File("${params.specmap}").exists()){
 
     best_species.replace
         .combine(specs, by:1) //[family, newKey1, newKey2, order, [original_species, ...],[new_species,...])]
-        .map{[it[1], it[2], it[0], it[3], it[5].flatten()]}
-        .set{replace} //[test3Hominidae, test3Primates, Hominidae, Primates, [Homo_sapiens]]
+        .map{fam,key1,key2,order,species,new_species -> [key1, key2, fam, order, new_species]}
+        .set{best_species_replace} //[test3Hominidae, test3Primates, Hominidae, Primates, [Homo_sapiens]]
 
     best_species.keep
-        .map{[it[0], it[2], it[1], it[3], it[4]]}
-        .mix(replace)  
+        .map{key1,fam,key2,order,species -> [key1,key2,fam,order,species]}
+        .mix(best_species_replace)  
         .transpose() // [newKey1, newKey2, Family, Order, Species]
-        .into{best_species_post_order; best_species_post_family}  //[newKey1, newkey2, family, order, species]
+        .into{best_species_post_order; best_species_post_family} 
 
 } else {
     best_species
         .transpose()
-        .map{[it[1]+it[2], it[1]+it[3], it[1], it[3], it[4]]}
-        .into{best_species_post_order; best_species_post_family}  //[newKey1, newkey2, family, order, species]
+        .map{taxid,rg,fam,order,species -> [rg+fam,rg+order,fam,order,species]}
+        .into{best_species_post_order; best_species_post_family}  //[key1, key2, family, order, species]
 }
 
 best_species_post_order //Put order-specific newKey2 on first position for the .cross() statement later
-    .map{[it[1],it[2],it[3],it[4]]}
+    .map{key1,key2,fam,order,sp -> [key2,fam,order,sp]}
     .set{best_species_post_order}
 
 
 for_extraction
     .cross(kraken_assignments)
-    .map { [it[0][0], it[0][1], it[1][1], it[1][1].readLines()] }
-    .branch {
-        assigned_taxa: it[3].any{ it =~ /c__Mammalia.*${params.taxlvl}__./  }
+    .map{extr,ass -> [extr[0], extr[1], ass[1], ass[1].readLines()]}
+    .branch{
+        assigned_taxa: it[3].any{it =~ /c__Mammalia.*${params.taxlvl}__./}
         empty: true
     }
     .set{for_extraction}
 
 for_extraction.empty
     .view{"[quicksand]: ${yellow}Info: No Kraken-assignments for Readgroup ${it[0]}${white}"}
-    .collectFile(storeDir: 'stats') { it -> [ "${it[0]}_extracted.tsv", "\t"] }
+    .collectFile(storeDir: 'stats') {it -> [ "${it[0]}_extracted.tsv", "\t"]}
 
 for_extraction.assigned_taxa
     .transpose()
-    .filter { it[3] =~ /c__Mammalia.*${params.taxlvl}__./ }
-    .map { rg, bam, kraken, asn -> [rg, bam, kraken, (asn =~ /${params.taxlvl}__([^|]*)/)[0][1]] }
+    .filter{it[3] =~ /c__Mammalia.*${params.taxlvl}__./}
+    .map{rg,bam,kraken,taxon -> [rg, bam, kraken, (taxon =~ /${params.taxlvl}__([^|]*)/)[0][1]]}
     .unique()
     .ifEmpty{error "----\n${white}[quicksand]:${red} WorkflowError: No families assigned by Kraken at all. Check Input and Database! Exit pipeline${white}"}
-    .set { for_extraction }
+    .set{for_extraction}
 
 process gatherByTaxon {
     tag "$rg:$taxon"
@@ -478,7 +477,7 @@ process gatherByTaxon {
 }
 
 count_for_stats
-        .collectFile(storeDir: 'stats') { taxon, rg, bamf, idf, count ->
+        .collectFile(storeDir: 'stats') {taxon, rg, bamf, idf, count ->
             [ "${rg}_extracted.tsv", "${taxon}\t${count}"]
         }
 
@@ -507,8 +506,8 @@ process extractBam {
 }
 
 extracted_reads // [rg, taxon, extracted_bam] --> newKey1 is rg+fam, newKey2 is rg+order
-    .map{[it[0]+it[1], it[0], it[1], it[2]]}
-    //extracted reads --> [new_KeyN, rg, taxon, ExtractedReads_XXX.bam]
+    .map{rg,taxon,extract_bam -> [rg+taxon, rg, taxon, extract_bam]}
+    //extracted reads --> [KeyN, rg, taxon, ExtractedReads_XXX.bam]
     //best_species --> [Newkey1, newkey2, family, order, species]
     .branch{
         family: it[2] =~ ".*idae"
@@ -518,20 +517,20 @@ extracted_reads // [rg, taxon, extracted_bam] --> newKey1 is rg+fam, newKey2 is 
 
 extracted_reads.family //[newKey1, gr, family, extractedReads.bam]
     .cross(best_species_post_family)
-    .map{x,y -> [x[1],y[3], y[2], y[4], x[3]] } //[rg, order, family, species, ExtractedReads.bam]
+    .map{extr, best_fam -> [extr[1],best_fam[3], best_fam[2], best_fam[4], extr[3]]} //[rg, order, family, species, ExtractedReads.bam]
     .set{extracted_reads_families}
 
 extracted_reads.order
     .cross(best_species_post_order)
-    .map{x,y -> [x[1], y[2], y[1], y[3], x[3]] } //[rg, order, family, species, ExtractedReads.bam]
-    .mix(extracted_reads_families)
+    .map{extr,best_order -> [extr[1], best_order[2], best_order[1], best_order[3], extr[3]]} //[rg, order, family, species, ExtractedReads.bam]
+    .mix(extracted_reads_families) // Mix back together
     .set{extracted_reads}
 
 reference = Channel.fromPath("${params.genome}", type:"dir")
 extracted_reads.combine(reference).set{pre_bwa}
 
 process mapBwa {
-    publishDir 'out', mode: 'copy', saveAs: { out_bam }, pattern: '*.bam'
+    publishDir 'out', mode: 'copy', saveAs: {out_bam}, pattern: '*.bam'
     tag "$rg:$family:$species"
 
     input:
@@ -562,7 +561,7 @@ process mapBwa {
 }
 
 mapped_count
-        .collectFile(storeDir: 'stats') { order, family, rg, species, count ->
+        .collectFile(storeDir: 'stats') {order, family, rg, species, count ->
             [ "${rg}_mapped.tsv", "${order}\t${family}\t${species}\t${count}"]
         }
 
@@ -593,12 +592,12 @@ process dedupBam {
 }
 
 coverage_count
-    .collectFile(storeDir: 'stats') { order, family, rg, species, coverage ->
+    .collectFile(storeDir: 'stats') {order, family, rg, species, coverage ->
         [ "${rg}_mapped_coverage.tsv", "${order}\t${family}\t${species}\t${coverage}"]
     }
 
 deduped_count
-    .collectFile(storeDir: 'stats') { order, family, rg, species, count_file ->
+    .collectFile(storeDir: 'stats') {order, family, rg, species, count_file ->
         [ "${rg}_unique_mapped.tsv", "${order}\t${family}\t${species}\t" + count_file.text]
     }
 
@@ -607,7 +606,8 @@ deduped_bam
     flatMap --> Emit every record in the list separatly (for groupTuple)
     groupTuple by readgroup and family
     Map only the best species per family*/
-    .map{[it[0],it[1],it[2],it[3],it[4],it[5],it[6].text, it[7]]} //[order, species, family, rg, bam, coverage, count, taxon]
+    .map{order,sp,fam,rg,dd_bam,cover,dd_count,taxon -> 
+        [order,sp,fam,rg,dd_bam,cover.strip(),dd_count.text.strip(),taxon]}
     .toSortedList({
         a,b -> a[3]+a[2] <=> b[3]+b[2] ?: a[-3] as int <=> b[-3] as int
         })
@@ -621,11 +621,11 @@ deduped_bam
     .set{best_deduped}
 
 
-Channel.fromPath("${params.bedfiles}/*.bed", type:'file')       //all the bedfiles
-    .map{[it.baseName.replaceAll(/.masked/,""), it] }           //make a map, with species as key
-    .cross(best_deduped.bed)                                    //throw it together
-    .map{x, y -> [y[0],y[1],y[2],y[3],y[4],x[1],y[5],y[7]]}     //get species, order, family, rg, bamfile and bedfile, covered_bp, (count is ignored here), taxon
-    .set{to_bed}
+Channel.fromPath("${params.bedfiles}/*.bed", type:'file') //all the bedfiles
+    .map{bedfile -> [bedfile.baseName.replaceAll(/.masked/,""), bedfile]}
+    .cross(best_deduped.bed)
+    .map{bed, dedup -> [dedup[0],dedup[1],dedup[2],dedup[3],dedup[4],bed[1],dedup[5],dedup[7]]}    
+    .set{to_bed} //[species, order, family, rg, bamfile, bedfile, covered_bp, taxon]
 
 //and filter out reads that intersect with masked regions
 process runIntersectBed{
@@ -653,25 +653,26 @@ process runIntersectBed{
     }
     
 bedfilter_count
-    .collectFile(storeDir: 'stats') { order, family, rg, species, count ->
+    .collectFile(storeDir: 'stats') {order, family, rg, species, count ->
         [ "${rg}_bedfiltered.tsv", "${order}\t${family}\t${species}\t${count}"]
     }
 
 //no bedfiltered families --> prepare for merge with deam_stats
 best_deduped.no_bed //[species, order, family, rg, bamfile, covered_bp, count, taxon]
-    .map{[it[1], it[2], it[3], it[0], it[4], it[6].trim(), it[5].trim()]}
-    .into{captured_no_bed; bedfilter_data_placeholder} //[order, family, rg, species, bamfile, count, coverage]
+    .map{sp,order,fam,rg,dd_bam,cover,dd_count,taxon -> 
+        [order,fam,rg,sp,dd_bam,dd_count,cover]}
+    .into{captured_no_bed; bedfilter_data_placeholder}
 
 deam_stats //[order, family, rg, species, bamfile, count, coverage]
     .concat(captured_no_bed)
-    .map{[it[2], it[0], it[1], it[3], it[4], it[5].trim().toInteger(), it[6].trim()]}
-    //[rg, order, family, species, "input.bam", count, coverage]
-    .into{ deam_stats;total_rg }
+    .map{order,fam,rg,sp,bed_bam,bed_count,cover -> 
+        [rg,order,fam,sp,bed_bam,bed_count.toInteger(),cover]}
+    .into{deam_stats;total_rg}
 
 //In order to get the percentage, we need the count per rg. Thus, sum the counts over the reagroups
-total_rg.map{[it[0],it[5]]}
+total_rg.map{rg,order,fam,sp,bed_bam,bed_count,cover -> [rg,bed_count]}
     .groupTuple()     //[RG, [count, count, count, ...]]
-    .map{[it[0], it[1].sum()]}
+    .map{rg,bed_count -> [rg, bed_count.sum()]}
     .set{total_rg}
 
 //throw it together again
@@ -698,7 +699,7 @@ process reportDamage{
 }
 
 deam_stats_file
-    .collectFile(storeDir: 'stats', keepHeader: true){ rg, order, family, species, content -> [
+    .collectFile(storeDir: 'stats', keepHeader: true){rg, order, family, species, content -> [
         "${rg}_deamination_stats.tsv", content ]
     }
 
@@ -721,8 +722,11 @@ bedfilter_data //values of the actual bedfiltered bamfiles --> [order,family, rg
     .set{bedfilter_data}
 
 //In case --analyze is not set, use a different channel from before damage-analysis
-//deam report --> [rg, order, family, species, bamfile, count, coverage, total_rg]
-deam_report.map{[it[0],it[1],it[2],it[3], it[5] as String]}.set{deam_report}
+//deam report --> [rg, order, family, species, bamfile, count, coverage, total_count]
+deam_report
+    .map{rg,order,fam,sp,bed_bam,bed_count,cover,total_count -> 
+        [rg,order,fam,sp,bed_count as String]}
+    .set{deam_report}
 post_deam = params.analyze ? deam_stats_data : deam_report
 
 //split and fill with 'NA' if the format doesnt fit to the reportDamage output
@@ -734,13 +738,14 @@ post_deam //[rg, order, family, species, count or deam_output]
     .set{post_deam}
 
 post_deam.empty //[rg, order, family, species, count]
-    .map{[it[1], it[2], it[0], it[3], 'NA','NA','NA','NA','NA','NA']}
-    .set{post_deam_empty} //[order, fam,rg, sp, perc, ancient, deam5, deam3, cond5, cond3]
+    .map{rg,order,fam,sp,bed_count -> [order,fam,rg,sp,'NA','NA','NA','NA','NA','NA']}
+    .set{post_deam_empty} //[order,fam,rg,sp,perc,ancient,deam5,deam3,cond5,cond3]
 
 post_deam.correct
-    .map{it[4].split('\n')[1].split('\t').flatten()}
-    .map{rg, ancient, order, fam, sp, perc, count, cov, deam5, deam3, cond5, cond3 -> [order, fam,rg, sp, perc, ancient, deam5, deam3, cond5, cond3]}
-    .concat(post_deam_empty)
+    .map{rg,order,fam,sp,deam_out -> [deam_out.split('\n')[1].split('\t')].flatten()}
+    .map{rg,ancient,order,fam,sp,perc,count,cov,deam5,deam3,cond5,cond3 -> 
+        [order,fam,rg,sp,perc,ancient,deam5,deam3,cond5,cond3]}
+    .concat(post_deam_empty) //mix together with non-analyzed
     .set{post_deam}
 
 //Finally, conbine everything!
@@ -754,7 +759,7 @@ mapping_data
 //To combine the extraction data, we have to use either the order or the family...
 if(params.taxlvl == 'f'){
     mapping_data
-        .map{order, fam, rg, sp, map, ded, cov, bed -> [fam,rg,order,sp,map,ded,cov,bed]}
+        .map{order,fam,rg,sp,map,ded,cov,bed -> [fam,rg,order,sp,map,ded,cov,bed]}
         .combine(extraction_data, by:[0,1])
         .map{fam,rg,order,sp,map,ded,cov,bed,bam,ids,ex -> [order,fam,rg,sp,map,ded,cov,bed,bam,ids,ex]}
         .set{mapping_data}
