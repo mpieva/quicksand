@@ -51,6 +51,7 @@ def print_header():
     print("\t".join([
         "RG",
         "Ancient",
+        "Order",
         "Family",
         "Species",
         "Percentage",
@@ -70,11 +71,12 @@ def print_header():
 
 bamfile = sys.argv[1]
 rg = sys.argv[2]
-family = sys.argv[3]
-species = sys.argv[4]
-count = sys.argv[5]
-covered_bp = sys.argv[6]
-sum_rg = sys.argv[7]
+order = sys.argv[3]
+family = sys.argv[4]
+species = sys.argv[5]
+count = sys.argv[6]
+covered_bp = sys.argv[7]
+sum_rg = sys.argv[8]
 percentage = round(float(int(count)/int(sum_rg))*100,2)
 
 df = import_data(bamfile)
@@ -135,6 +137,7 @@ print_header()
 print("\t".join([
     f"{rg}",
     f"{ancient_string}",
+    f"{order}",
     f"{family}",
     f"{species}",
     f"{percentage}",
