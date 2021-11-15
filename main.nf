@@ -407,7 +407,7 @@ if (new File("${params.specmap}").exists()){
 
     specs = Channel.fromPath("${params.specmap}", type: "file")
         .splitCsv(sep:'\t')
-        .map{fam, species -> [species.split(","), fam]} //[[species,species], Family]
+        .map{fam, sp -> [sp.split(",").flatten(),fam]} //[[species,species], Family]
  
     best_species
         .map{taxid,rg,fam,order,species -> [rg+fam,fam,rg+order,order,species]} //[newKey1, family, newKey2, order [species, species]]
@@ -424,7 +424,7 @@ if (new File("${params.specmap}").exists()){
 
     best_species.keep
         .map{key1,fam,key2,order,species -> [key1,key2,fam,order,species]}
-        .mix(best_species_replace)  
+        .mix(best_species_replace)
         .transpose() // [newKey1, newKey2, Family, Order, Species]
         .into{best_species_post_order; best_species_post_family} 
 
