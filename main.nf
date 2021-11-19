@@ -386,7 +386,7 @@ process findBestSpecies{
 }
 
 taxid.splitCsv(sep:'\t')
-    .map{tax_id, order, family, species -> [tax_id, species]}
+    .map{[it[0], it[2]]} //tax_id, family, species, (order) -> [tax_id, species]}
     .unique()
     .groupTuple()
     .set{taxid}
