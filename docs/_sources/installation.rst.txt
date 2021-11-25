@@ -135,7 +135,7 @@ The datastructure-pipeline can be started directly from the repository by tying:
 
 .. attention::
 
-    The creation of the preindexed kraken-databases requires a lot of RAM. 
+    The creation of the preindexed kraken-databases requires ~50GB of RAM. 
     If the pipeline fails, make sure the computer fits the requirements!
 
 This creates a folder "data" that contains all the database files required to run quicksand::

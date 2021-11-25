@@ -19,11 +19,11 @@
 
 project = 'quicksand'
 copyright = '2021, MPI EVA'
-author = 'MPI EVA'
+author = 'Merlin Szymanski'
 
 # The full version, including alpha/beta/rc tags
-release = '2021'
-
+release = 'v1.3'
+version = 'v1.3'
 
 # -- General configuration ---------------------------------------------------
 

@@ -35,6 +35,7 @@ Optional
 --report    Provided with this flag, quicksand will output a 'final' summary called :file:`final_report.tsv` that summarizes all the stats scattered across the :file:`stats` directory. 
 --byrg  Change the order of output-files in the :file:`out` directory from a taxonomy-based structure to a readgroup-based structure. See the :ref:`output` section for a comparison  
 --specmap TSV-FILE   With the TSV_FILE containing families and species in the format ``Family\tSpecies_name,Species_name`` in each line, ignore the "best taxon" assigned by the kraken classifier as reference for mapping for given families. Instead map the :file:`extractedReads` of the $family to the species specified in the TSV-FILE. The ``Species_name`` must correspond to a filename (without :code:`.fasta`) in the :file:`genomes/$family/` directory
+--taxlvl [f,o]    bin reads assigned by krakenuniq by the specified taxon level (family or order level). Extracted reads ar later mapped against the genome of each families best fitting representative species. For the order-level extract, reads are thus mapped several times to different genomes. For family-level extracts, reads are mapped only once. [default: family level]   
 --capture STRING    Given a STRING ``Family,Family,...``, apply reduced filters to the given families. For provided families, the bedfiltering is ommited
 
 
@@ -128,7 +129,7 @@ Instead of cloning the repository, it is also possible to run the pipeline direc
 It is possible to specify a version (or branch) by providing the :code:`-r <branch/tag>` flag. By default the :code:`master` branch is pulled 
 and stored locally in the hidden :file:`~/.nextflow` directory. If the remote pipeline is updated, make sure to pull the updates by running::
 
-    nextflow pull mpieva/quicksand
+    nextflow pull mpieva/quicksand [-r v1.3] 
 
 To reduce the number of flags manually handed over to the pipeline, see the :ref:`configuration section <configuration-page>` on how to set up an individual configuration of the pipeline.
 
@@ -138,27 +139,27 @@ Output
 ------
 
 For each readgroup, the pipeline outputs the raw reads in :file:`.bam`-format at each stage of the pipeline. 
-Additionally the number of reads assigned to one family/extracted, mapped, deduplicated, and bedfiltered as well as the estimated DNA-damage
+Additionally the number of reads assigned to one taxon-level (Family/Order), reads extracted, reads mapped, reads deduplicated, and bedfiltered as well as the estimated DNA-damage
 are reported for a quick overview in one big summary-file.
 
 Two ways exist to structure the output. Based on the :code:`--byrg` flag either by readgroup or by family.
-without the :code:`--byrg` flag, the output is structured by Family
+without the :code:`--byrg` flag, the output is structured by Taxon
 
-Structured by Family
+Structured by Taxon
 """"""""""""""""""""
 
 This overview corresponds to a run with the :code:`--analyze` and the :code:`--report` flags provided.
-Several directories and files should appear after the run::
+Several directories and files should appear after the run. The 'taxon' corresponds to  either the family or the order level::
 
     RunDir
     ├── out
-    │    └── {family}
+    │    └── {taxon}
     │         ├── {readgroup}_extractedReads-{family}.bam
     │         ├── aligned
-    │         │    ├── {readgroup}.{species}.bam
-    │         │    └── {readgroup}.{species}_deduped.bam
+    │         │    ├── {readgroup}.{family}.{species}.bam
+    │         │    └── {readgroup}.{family}.{species}_deduped.bam
     │         └── bed
-    │              └── {readgroup}.{species}_deduped_bedfiltered.bam
+    │              └── {readgroup}.{family}.{species}_deduped_bedfiltered.bam
     ├── kraken
     │    ├── {readgroup}.report
     │    └── {readgroup}.translate
@@ -186,12 +187,12 @@ This overview of the :file:`out/` dir corresponds to a :code:`--byrg` run::
     RunDir
     ├── out
     │    └── {readgroup}
-    │         ├── {readgroup}_extractedReads-{family}.bam
+    │         ├── {readgroup}_extractedReads-{taxon}.bam
     │         ├── aligned
-    │         │    ├── {family}.{species}.bam
-    │         │    └── {family}.{species}_deduped.bam
+    │         │    ├── {readgroup}.{family}.{species}.bam
+    │         │    └── {readgroup}.{family}.{species}_deduped.bam
     │         └── bed
-    │              └── {family}.{species}_deduped_bedfiltered.bam
+    │              └── {readgroup}.{family}.{species}_deduped_bedfiltered.bam
     ...
 
 .. _files:
@@ -210,7 +211,7 @@ The content of the files is explained here:
    * - File
      - Description
    * - :file:`extractedReads.bam`
-     - For the given readgroup and family, all reads assigned by KrakenUniq to that family
+     - Contains all DNA sequences of one family (or order) from one readgroup assigned by KrakenUniq to that taxon.
    * - :file:`alignedReads.bam`
      - For a given family and species, all extractedReads (see above) mapped/aligned to the genome of the assigned species
    * - :file:`aligned_dedupedReads.bam`
