@@ -392,11 +392,15 @@ taxid.splitCsv(sep:'\t')
     .set{taxid}
     
 best_species
-    .map{rg, parsed_record -> [rg, parsed_record.splitCsv(sep:'\t')]}
-    .transpose() // [rg, [Fam, order, taxid]]
-    .map{rg, best_record -> [best_record[2], rg, best_record[0], best_record[1]]}
-    .combine(taxid, by:0)  //[taxid, readgroup, family, order, [species, species]]
-    .set{best_species}
+    .map{rg, parsed_record -> [rg, parsed_record.splitCsv(sep:'\t',skip:1)]}
+    .transpose() // [rg, [Fam, order, taxid, reads, kmers, cov, dup]]
+    .map{rg, best_record -> [best_record[2], rg, best_record[0], best_record[1],best_record[3..-1]].flatten()}
+    .combine(taxid, by:0)  //[taxid, readgroup, family, order, reads,kmers,cov,dup,[species, species]]
+    .into{best_species;kmer_report}
+
+kmer_report
+    .map{taxid,rg,fam,order,reads,kmers,cov,dup,species -> [order,fam,rg,reads,kmers,cov,dup]}
+    .set{kmer_report}
 
 // This block replaces the default mappings assigned by kraken by those
 // specified in the specmap file
@@ -410,7 +414,7 @@ if (new File("${params.specmap}").exists()){
         .map{fam, sp -> [sp.split(",").flatten(),fam]} //[[species,species], Family]
  
     best_species
-        .map{taxid,rg,fam,order,species -> [rg+fam,fam,rg+order,order,species]} //[newKey1, family, newKey2, order [species, species]]
+        .map{taxid,rg,fam,order,reads,kmers,cov,dup,species -> [rg+fam,fam,rg+order,order,species]} //[newKey1, family, newKey2, order [species, species]]
         .branch {
             replace: it[1] in famList
             keep: true
@@ -431,7 +435,7 @@ if (new File("${params.specmap}").exists()){
 } else {
     best_species
         .transpose()
-        .map{taxid,rg,fam,order,species -> [rg+fam,rg+order,fam,order,species]}
+        .map{taxid,rg,fam,order,reads,kmers,cov,dup,species -> [rg+fam,rg+order,fam,order,species]}
         .into{best_species_post_order; best_species_post_family}  //[key1, key2, family, order, species]
 }
 
@@ -677,29 +681,30 @@ total_rg.map{rg,order,fam,sp,bed_bam,bed_count,cover -> [rg,bed_count]}
 
 //throw it together again
 deam_stats.combine(total_rg, by:0)
-    .into{deam_stats;deam_report} //[rg, order, family, species, bamfile, count, coverage, total_rg]
+    .map{rg,order,family,species,bam,count,coverage,total_rg -> [rg,order,family,species,bam,count,coverage,(count*100/total_rg).trunc(2)]}
+    .into{deam_stats;deam_report} //[rg, order, family, species, bamfile, count, coverage, perc]
 
 
 process reportDamage{
     tag "$rg:$family:$species"
     
     input:
-    set rg, order, family, species, "input.bam", count, coverage, total_rg from deam_stats
+    set rg, order, family, species, "input.bam", count, coverage, perc from deam_stats
     
     output:
-    set rg, order, family, species, stdout into (deam_stats_file, deam_stats_data)
+    set rg, order, family, species, stdout, perc into (deam_stats_file, deam_stats_data)
     
     when:
     params.analyze
     
     script:
     """
-    bam_deam_stats.py input.bam ${rg} ${order} ${family} ${species} ${count} ${coverage} ${total_rg}
+    bam_deam_stats.py input.bam ${rg} ${order} ${family} ${species} ${count} ${coverage} ${perc}
     """
 }
 
 deam_stats_file
-    .collectFile(storeDir: 'stats', keepHeader: true){rg, order, family, species, content -> [
+    .collectFile(storeDir: 'stats', keepHeader: true){rg, order, family, species, content, perc -> [
         "${rg}_deamination_stats.tsv", content ]
     }
 
@@ -722,27 +727,27 @@ bedfilter_data //values of the actual bedfiltered bamfiles --> [order,family, rg
     .set{bedfilter_data}
 
 //In case --analyze is not set, use a different channel from before damage-analysis
-//deam report --> [rg, order, family, species, bamfile, count, coverage, total_count]
+//deam report --> [rg, order, family, species, bamfile, count, coverage, total_count, perc]
 deam_report
-    .map{rg,order,fam,sp,bed_bam,bed_count,cover,total_count -> 
-        [rg,order,fam,sp,bed_count as String]}
+    .map{rg,order,fam,sp,bed_bam,bed_count,cover,perc -> 
+        [rg,order,fam,sp,bed_count as String,perc]}
     .set{deam_report}
 post_deam = params.analyze ? deam_stats_data : deam_report
 
 //split and fill with 'NA' if the format doesnt fit to the reportDamage output
-post_deam //[rg, order, family, species, count or deam_output]
+post_deam //[rg, order, family, species, count or deam_output, perc]
     .branch {
         empty: it[4].split('\n').size() == 1
         correct: true
     }
     .set{post_deam}
 
-post_deam.empty //[rg, order, family, species, count]
-    .map{rg,order,fam,sp,bed_count -> [order,fam,rg,sp,'NA','NA','NA','NA','NA','NA']}
+post_deam.empty //[rg, order, family, species, count, perc]
+    .map{rg,order,fam,sp,bed_count,perc -> [order,fam,rg,sp,perc,'NA','NA','NA','NA','NA']}
     .set{post_deam_empty} //[order,fam,rg,sp,perc,ancient,deam5,deam3,cond5,cond3]
 
 post_deam.correct
-    .map{rg,order,fam,sp,deam_out -> [deam_out.split('\n')[1].split('\t')].flatten()}
+    .map{rg,order,fam,sp,deam_out,perc -> [deam_out.split('\n')[1].split('\t')].flatten()}
     .map{rg,ancient,order,fam,sp,perc,count,cov,deam5,deam3,cond5,cond3 -> 
         [order,fam,rg,sp,perc,ancient,deam5,deam3,cond5,cond3]}
     .concat(post_deam_empty) //mix together with non-analyzed
@@ -761,22 +766,23 @@ if(params.taxlvl == 'f'){
     mapping_data
         .map{order,fam,rg,sp,map,ded,cov,bed -> [fam,rg,order,sp,map,ded,cov,bed]}
         .combine(extraction_data, by:[0,1])
-        .map{fam,rg,order,sp,map,ded,cov,bed,bam,ids,ex -> [order,fam,rg,sp,map,ded,cov,bed,bam,ids,ex]}
+        .map{fam,rg,order,sp,map,ded,cov,bed,bam,ids,ex -> [order,fam,rg,sp,map,ded,cov,bed,bam,ids,ex,((map.trim() as int)/(ex.trim() as int)).trunc(4),((map.trim() as int)/(ded.text.trim() as int)).trunc(2)]}
         .set{mapping_data}
 }else{
     mapping_data
         .map{order, fam, rg, sp, map, ded, cov, bed -> [order,rg,fam,sp,map,ded,cov,bed]}
         .combine(extraction_data, by:[0,1])
-        .map{order,rg,fam,sp,map,ded,cov,bed,bam,ids,ex -> [order,fam,rg,sp,map,ded,cov,bed,bam,ids,ex]}
+        .map{order,rg,fam,sp,map,ded,cov,bed,bam,ids,ex -> [order,fam,rg,sp,map,ded,cov,bed,bam,ids,ex,((map.trim() as int)/(ex.trim() as int)).trunc(4),((map.trim() as int)/(ded.text.trim() as int)).trunc(2)]}
         .set{mapping_data}
 }
 mapping_data
     .combine(post_deam, by:[0,2,1,3])
-    .collectFile(seed:'RG\tOrder\tFamily\tSpecies\tExtractLVL\tReadsExtracted\tReadsMapped\tReadsDeduped\tCoveredBP\tReadsBedfiltered\tFamPercentage\tAncientness\tDeam5\tDeam3\tCondDeam5\tCondDeam3', 
+    .combine(kmer_report, by:[0,2,1])
+    .collectFile(seed:'RG\tFamilyReads\tFamilyKmers\tKmerCoverage\tKmerDupRate\tOrder\tFamily\tSpecies\tExtractLVL\tReadsExtracted\tReadsMapped\tProportionMapped\tReadsDeduped\tDuplicationRate\tCoveredBP\tReadsBedfiltered\tFamPercentage\tAncientness\tDeam5\tDeam3\tCondDeam5\tCondDeam3', 
         storeDir:'.', newLine:true, sort:true){
-        order,fa,rg,sp,map,dd,cov,bed,bam,ids,ex,p,a,d5,d3,cd5,cd3 -> [
+        order,fa,rg,sp,map,dd,cov,bed,bam,ids,ex,mapdrop,dup,p,a,d5,d3,cd5,cd3,read,kmer,kmercov,kmerdup -> [
                 'final_report.tsv', 
-                "${rg}\t${order}\t${fa}\t${sp}\t${params.taxlvl}\t${ex.trim()}\t${map.trim()}\t${dd.text.trim()}\t${cov.trim()}\t${bed.trim()}\t${p}\t${a}\t${d5}\t${d3}\t${cd5}\t${cd3}"
+                "${rg}\t${read}\t${kmer}\t${kmercov}\t${kmerdup}\t${order}\t${fa}\t${sp}\t${params.taxlvl}\t${ex.trim()}\t${map.trim()}\t${mapdrop}\t${dd.text.trim()}\t${dup}\t${cov.trim()}\t${bed.trim()}\t${p}\t${a}\t${d5}\t${d3}\t${cd5}\t${cd3}"
         ]
     }
 }

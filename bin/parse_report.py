@@ -6,6 +6,7 @@ def find_best(tree):
     return max(tree.keys(), key=lambda x: tree[x]['kmers'])
 
 results = {}
+
 sp = 'placeholder'
 
 
@@ -15,7 +16,7 @@ min_reads = int(sys.argv[3])
 #parse the report
 for row in open(sys.argv[1],'r'):
     try:
-        _, reads, _, kmers, dup, cov, taxid, level, name = row.split('\t', 8)
+        perc, reads, taxReads, kmers, dup, cov, taxid, level, name = row.split('\t', 8)
     except ValueError: #headerline in krakenUniq
         continue
     if level == 'order':
@@ -23,7 +24,8 @@ for row in open(sys.argv[1],'r'):
     elif level == 'family':
         fam = name.strip()
         results[(fam,order)] = {
-            'id':taxid, 'counts':int(reads), 'kmers':float(kmers), 'tree':{}
+                'id':taxid,'kmers':kmers, 'cov':cov,
+                'dup':dup,'counts':int(reads), 'kmers':float(kmers), 'tree':{}
         }
     elif level == 'genus':
         gen = name.strip()
@@ -63,6 +65,12 @@ for (fam,order) in results:
         real_results[(fam,order)] = results[(fam,order)]['id']
 
 with open('parsed_record.tsv', 'w') as outfile:
+    print('Family','Order','BestTaxID','FamReads','FamKmers','FamKmerCov','FamKmerDup', sep='\t', file=outfile)
     for (fam,order),taxid  in real_results.items():
-        print(fam, order, taxid, sep='\t', file=outfile)
+        print(fam, order, taxid,
+              results[(fam,order)]['counts'],
+              results[(fam,order)]['kmers'], 
+              results[(fam,order)]['cov'], 
+              results[(fam,order)]['dup'], 
+              sep='\t', file=outfile)
 

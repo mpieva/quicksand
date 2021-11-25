@@ -76,8 +76,7 @@ family = sys.argv[4]
 species = sys.argv[5]
 count = sys.argv[6]
 covered_bp = sys.argv[7]
-sum_rg = sys.argv[8]
-percentage = round(float(int(count)/int(sum_rg))*100,2)
+percentage = sys.argv[8]
 
 df = import_data(bamfile)
 if(len(df)==0):
