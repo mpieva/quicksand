@@ -766,13 +766,15 @@ if(params.taxlvl == 'f'){
     mapping_data
         .map{order,fam,rg,sp,map,ded,cov,bed -> [fam,rg,order,sp,map,ded,cov,bed]}
         .combine(extraction_data, by:[0,1])
-        .map{fam,rg,order,sp,map,ded,cov,bed,bam,ids,ex -> [order,fam,rg,sp,map,ded,cov,bed,bam,ids,ex,((map.trim() as int)/(ex.trim() as int)).trunc(4),((map.trim() as int)/(ded.text.trim() as int)).trunc(2)]}
+	.map{fam,rg,order,sp,map,ded,cov,bed,bam,ids,ex -> [fam,rg,order,sp,map.trim() as int,ded.text.trim() as int,cov.trim() as int,bed.trim() as int,bam,ids,ex.trim() as int]}
+ 	.map{fam,rg,order,sp,map,ded,cov,bed,bam,ids,ex -> [order,fam,rg,sp,map,ded,cov,bed,bam,ids,ex,(ex==0 || map==0) ? 0 : map/ex, (ded == 0 || map==0) ? 0: map/ded]}
         .set{mapping_data}
 }else{
     mapping_data
         .map{order, fam, rg, sp, map, ded, cov, bed -> [order,rg,fam,sp,map,ded,cov,bed]}
         .combine(extraction_data, by:[0,1])
-        .map{order,rg,fam,sp,map,ded,cov,bed,bam,ids,ex -> [order,fam,rg,sp,map,ded,cov,bed,bam,ids,ex,((map.trim() as int)/(ex.trim() as int)).trunc(4),((map.trim() as int)/(ded.text.trim() as int)).trunc(2)]}
+	.map{order,rg,fam,sp,map,ded,cov,bed,bam,ids,ex -> [fam,rg,order,sp,map.trim() as int,ded.text.trim() as int,cov.trim() as int,bed.trim() as int,bam,ids,ex.trim() as int]}
+        .map{fam,rg,order,sp,map,ded,cov,bed,bam,ids,ex -> [order,fam,rg,sp,map,ded,cov,bed,bam,ids,ex,(ex==0 || map==0) ? 0 : map/ex, (ded == 0 || map==0) ? 0: map/ded]}
         .set{mapping_data}
 }
 mapping_data
@@ -782,7 +784,7 @@ mapping_data
         storeDir:'.', newLine:true, sort:true){
         order,fa,rg,sp,map,dd,cov,bed,bam,ids,ex,mapdrop,dup,p,a,d5,d3,cd5,cd3,read,kmer,kmercov,kmerdup -> [
                 'final_report.tsv', 
-                "${rg}\t${read}\t${kmer}\t${kmercov}\t${kmerdup}\t${order}\t${fa}\t${sp}\t${params.taxlvl}\t${ex.trim()}\t${map.trim()}\t${mapdrop}\t${dd.text.trim()}\t${dup}\t${cov.trim()}\t${bed.trim()}\t${p}\t${a}\t${d5}\t${d3}\t${cd5}\t${cd3}"
+                "${rg}\t${read}\t${kmer}\t${kmercov}\t${kmerdup}\t${order}\t${fa}\t${sp}\t${params.taxlvl}\t${ex}\t${map}\t${mapdrop}\t${dd}\t${dup}\t${cov}\t${bed}\t${p}\t${a}\t${d5}\t${d3}\t${cd5}\t${cd3}"
         ]
     }
 }
