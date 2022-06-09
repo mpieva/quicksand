@@ -1,0 +1,77 @@
+FROM ubuntu:20.04
+
+ENV PATH=$PATH:/opt/ghc/bin:/root/.cabal/bin/:/root/.cargo/bin
+
+WORKDIR /home/root/
+
+#get the correct c-compile-library to compile bwa
+RUN echo "deb http://dk.archive.ubuntu.com/ubuntu xenial main" >> /etc/apt/sources.list && \
+    echo "deb http://dk.archive.ubuntu.com/ubuntu xenial universe" >> /etc/apt/sources.list && \
+    apt update && apt install -y g++-4.8 gcc-4.8 && \
+    DEBIAN_FRONTEND=noninteractive apt install -y tzdata build-essential && \
+    update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-4.8 1 && \
+    update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-4.8 1
+
+#install bwa
+RUN apt-get install -y libzmq3-dev pkg-config zlib1g-dev git && \
+    git clone -b 0.5.10-evan.10 --depth 1 https://github.com/mpieva/network-aware-bwa && \
+    cd network-aware-bwa && \
+    make && \
+    mv bwa /bin/ && \
+    cd .. && \
+    rm -r network-aware-bwa
+
+#install ghc
+RUN DEBIAN_FRONTEND=noninteractive apt-get install -y software-properties-common && \
+    add-apt-repository -y ppa:hvr/ghc && \
+    apt-get update && \
+    apt-get install -y ghc-8.0.2 libjudy-dev wget
+
+#install cabal and cabal-install (haskell library-installer)
+RUN update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-9 2 && \
+    update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-9 2 && \
+    update-alternatives --set g++ /usr/bin/g++-9 && \
+    update-alternatives --set gcc /usr/bin/gcc-9 && \
+    wget https://downloads.haskell.org/~cabal/Cabal-1.24.2.0/Cabal-1.24.2.0.tar.gz && \
+    tar xzf Cabal-1.24.2.0.tar.gz && \
+    rm Cabal-1.24.2.0.tar.gz && \
+    cd Cabal-1.24.2.0 && \
+    ghc -threaded --make Setup && \
+    ./Setup configure && \
+    ./Setup build && \
+    ./Setup install && \
+    cd .. && \
+    rm -r Cabal-1.24.2.0
+
+RUN wget https://hackage.haskell.org/package/cabal-install-1.24.0.2/cabal-install-1.24.0.2.tar.gz && \
+    tar xzf cabal-install-1.24.0.2.tar.gz && \
+    rm cabal-install-1.24.0.2.tar.gz && \
+    cd cabal-install-1.24.0.2 && \
+    EXTRA_CONFIGURE_OPTS="" ./bootstrap.sh && \
+    cabal update && \
+    cd .. && \
+    rm -r cabal-install-1.24.0.2
+
+# install Biohazard
+# from the branched version 0.6.15 that is required for bam-rmdup 0.2 with 
+# and fixed a bug that occurs parsing bam header @CO tags
+RUN cabal install --global base-prelude-1.2.0.1 && \
+    git clone https://github.com/mpieva/biohazard && \
+    cd biohazard && \
+    git checkout fixed_bam_header && \
+    cabal install --global . && \
+    cd .. && \
+    rm -r biohazard
+
+# and Biohazard-tools
+# version 0.2 that doesnt loose sequences
+RUN apt-get install -y libsnappy-dev && \
+    git clone https://github.com/mpieva/biohazard-tools && \
+    cd biohazard-tools && \
+    git checkout 2bee15e0 && \
+    cabal install --global . && \
+    cd .. && \
+    rm -r biohazard-tools
+
+# get the additional software
+RUN apt-get install -y samtools
