@@ -209,7 +209,7 @@ if(params.split){
 splitfiles
     .branch{
         bam: it[1].getExtension() == "bam"
-        fastq: has_ending(it[1], ["fastq"])
+        fastq: has_ending(it[1], ["fastq","fastq.gz"])
         fail: true
     }
     .set {splitfiles}
