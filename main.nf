@@ -209,7 +209,7 @@ if(params.split){
 splitfiles
     .branch{
         bam: it[1].getExtension() == "bam"
-        fastq: has_ending(it[1], ["fastq","fastq.gz"])
+        fastq: has_ending(it[1], ["fastq","fastq.gz","fq","fq.gz"])
         fail: true
     }
     .set {splitfiles}
@@ -228,7 +228,7 @@ process fastq2Bam{
     
     script:
     """
-    fastq2bam -1 $fastqfile -o output.bam
+    samtools import -0 $fastqfile -o output.bam
     """
 }
 
