@@ -476,7 +476,7 @@ process gatherByTaxon {
 
     script:
     """
-    grep "c__Mammalia.*${params.taxlvl}__$taxon" kraken.translate | cut -f1 | sed 's/\/{1,2}//' | tee ids.txt | wc -l
+    grep "c__Mammalia.*${params.taxlvl}__${taxon}" kraken.translate | cut -f1 | sed "s/\\/[12]//" | tee ids.txt | wc -l
     """
 }
 
