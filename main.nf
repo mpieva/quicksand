@@ -52,8 +52,8 @@ params.min_kmers      = 129    // min 150bp covered (krakenuniq)
 params.min_reads      = 3      // min 3 reads assigned (krakenuniq)
 params.krakenthreads  = 4      // number of threads per kraken process
 params.level          = 0      // bgzf compression level for intermediate files, 0..9
-params.keeppaired     = false  // keep paired reads
-params.filterunmapped = false  // filter out unmapped (in case of pre-mapping)
+params.keeppaired     = ""     // keep paired reads
+params.filterunmapped = ""     // filter out unmapped (in case of pre-mapping)
 params.analyze        = ""
 params.report         = ""
 params.splitfile      = "stats/splitcounts.tsv"
@@ -269,7 +269,7 @@ process filterPaired {
     """
 }
 //here the paths come together again
-post_filter_paired = params.keeppaired ? splitfiles.bam : filter_paired_out
+post_filter_paired = params.keeppaired ? splitfiles : filter_paired_out
 
 // and do the same with the filter-unmapped step
 filter_unmapped_in = params.filterunmapped ? post_filter_paired : Channel.empty()
@@ -681,7 +681,7 @@ total_rg.map{rg,order,fam,sp,bed_bam,bed_count,cover -> [rg,bed_count]}
 
 //throw it together again
 deam_stats.combine(total_rg, by:0)
-    .map{rg,order,family,species,bam,count,coverage,total_rg -> [rg,order,family,species,bam,count,coverage,(count*100/total_rg).trunc(2)]}
+    .map{rg,order,family,species,bam,count,coverage,total_rg -> [rg,order,family,species,bam,count,coverage,total_rg==0?0:(count*100/total_rg).trunc(2)]}
     .into{deam_stats;deam_report} //[rg, order, family, species, bamfile, count, coverage, perc]
 
 
