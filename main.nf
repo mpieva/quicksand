@@ -83,12 +83,12 @@ def has_ending(file, extension){
 }
 
 //1=filter paired reads (default), 4=filter unmapped, 5=both, 0=none
-params.filterFlag = 1
-if(params.filterUnmapped){
-    params.filterFlag += 4
+params.filterflag = 1
+if(params.filterunmapped){
+    params.filterflag += 4
 }
 if(params.keeppaired){
-    params.filterFlag -= 1
+    params.filterflag -= 1
 }
 
 
@@ -261,10 +261,10 @@ process splitStats {
 }
 
 
-filter_bam_in = params.filterFlag == 0 ? Channel.empty() : splitfiles
+filter_bam_in = params.filterflag == 0 ? Channel.empty() : splitfiles
 
 process filterBam {
-    tag "$rg:${params.filterBam}"
+    tag "$rg:${params.filterflag}"
 
     input:
     set rg, 'input.bam' from filter_bam_in
@@ -274,11 +274,11 @@ process filterBam {
 
     script:
     """
-    samtools view -b -u -F ${params.filterFlag} -o output.bam input.bam
+    samtools view -b -u -F ${params.filterflag} -o output.bam input.bam
     """
 }
 //here the paths come together again
-post_filter_bam = params.filterFlag == 0 ? splitfiles : filter_bam_out
+post_filter_bam = params.filterflag == 0 ? splitfiles : filter_bam_out
 
 process filterLength {
     tag "$rg"
