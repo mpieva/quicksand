@@ -82,6 +82,15 @@ def has_ending(file, extension){
     }
 }
 
+//1=filter paired reads (default), 4=filter unmapped, 5=both, 0=none
+params.filterFlag = 1
+if(params.filterUnmapped){
+    params.filterFlag += 4
+}
+if(params.keeppaired){
+    params.filterFlag -= 1
+}
+
 
 // Validate: BAM, RG and SPLIT
 params.bam            = ''
@@ -251,51 +260,31 @@ process splitStats {
     """
 }
 
-// if keeppaired==True, use an empty channel, else use splitfiles
-filter_paired_in = params.keeppaired ? Channel.empty() : splitfiles
 
-process filterPaired {
-    tag "$rg"
+filter_bam_in = params.filterFlag == 0 ? Channel.empty() : splitfiles
+
+process filterBam {
+    tag "$rg:${params.filterBam}"
 
     input:
-    set rg, 'input.bam' from filter_paired_in
+    set rg, 'input.bam' from filter_bam_in
 
     output:
-    set rg, 'output.bam' into filter_paired_out
+    set rg, 'output.bam' into filter_bam_out
 
     script:
     """
-    samtools view -b -u -F 1 -o output.bam input.bam
+    samtools view -b -u -F ${params.filterFlag} -o output.bam input.bam
     """
 }
 //here the paths come together again
-post_filter_paired = params.keeppaired ? splitfiles : filter_paired_out
-
-// and do the same with the filter-unmapped step
-filter_unmapped_in = params.filterunmapped ? post_filter_paired : Channel.empty()
-
-process filterUnmapped {
-    tag "$rg"
-
-    input:
-    set rg, 'input.bam' from filter_unmapped_in
-
-    output:
-    set rg, 'output.bam' into filter_unmapped_out
-
-    script:
-    """
-    samtools view -b -u -F 4 -o output.bam input.bam
-    """
-}
-
-post_filter_unmapped = params.filterunmapped ? filter_unmapped_out : post_filter_paired
+post_filter_bam = params.filterFlag == 0 ? splitfiles : filter_bam_out
 
 process filterLength {
     tag "$rg"
 
     input:
-    set rg, 'input.bam' from post_filter_unmapped
+    set rg, 'input.bam' from post_filter_bam
 
     output:
     set rg, 'output.bam', stdout into tofasta_in
