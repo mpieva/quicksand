@@ -34,12 +34,28 @@ class Node:
         self.children = []
 
     @property
+    def order(self):
+        if self.level == 'order':
+            return self.name
+        else:
+            return self.parent.order
+
+    @property
     def best_child(self):
-        """Find the direct best children"""
-        return max(self.children, key=lambda x: x.kmers).best_child if len(self.children) > 0  else self
+        return  max(self.children, key=lambda x: x.kmers).best_child if len(self.children) > 0  else self
 
 
-order_nodes = []
+hierarchie = ['order','family','genus','species','subspecies']
+
+parents = {
+    'order':None,    
+    'family':None,
+    'genus':None,
+    'species':None,
+    'subspecies':None
+    }
+
+family_nodes = []
 
 for row in open(report,'r'):
     try:
@@ -47,31 +63,29 @@ for row in open(report,'r'):
     except ValueError: #headerline in krakenUniq
         continue
 
-    if level == 'order':
-        current_node = Node(None,name,level,taxid,cov,kmers,dup,reads)
-        order_nodes.append(current_node)
-
-    elif level in ['family', 'genus','species','subspecies']:
-        node = Node(current_node, name,level,taxid,cov,kmers,dup,reads)
-        current_node.children.append(node)
-        current_node = node
-
-    else:
+    if level not in hierarchie:
         continue
+
+    parent = parents[level]
+    node = Node(parent,name,level,taxid,cov,kmers,dup,reads)
+    if parent!=None:
+        parent.children.append(node)
+
+    for lower in hierarchie[hierarchie.index(level)+1:]:
+        parents[lower] = node
+
+    if level=='family':
+        family_nodes.append(node)
 
 
 with open('parsed_record.tsv', 'w') as outfile:
     print('Family','Order','BestTaxID','FamReads','FamKmers','FamKmerCov','FamKmerDup', sep='\t', file=outfile)
-    for node in order_nodes:
-        for fam_node in node.children:
-            if fam_node.level != 'family':
-                family = 'Undefined'
-            else:
-                family = fam_node.name
-            best = fam_node.best_child
+    for node in family_nodes:
+        best = node.best_child
+        order = node.order
 
-            ## Now apply the filters ##
-            if fam_node.reads < min_reads or fam_node.kmers < min_kmers:
-                continue
+        ## Now apply the filters ##
+        if node.reads < min_reads or node.kmers < min_kmers:
+            continue
 
-            print(family, node.name, best.taxid, fam_node.reads, fam_node.kmers, fam_node.coverage, fam_node.dup, sep='\t', file=outfile)
+        print(node.name,order,best.taxid,node.reads,node.kmers,node.coverage,node.dup, sep='\t', file=outfile)
