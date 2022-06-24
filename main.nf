@@ -437,7 +437,7 @@ for_extraction
     .cross(kraken_assignments)
     .map{extr,ass -> [extr[0], extr[1], ass[1], ass[1].readLines()]}
     .branch{
-        assigned_taxa: it[3].any{it =~ /c__Mammalia.*${params.taxlvl}__./}
+        assigned_taxa: it[3].any{it =~ /${params.taxlvl}__./}
         empty: true
     }
     .set{for_extraction}
@@ -448,7 +448,7 @@ for_extraction.empty
 
 for_extraction.assigned_taxa
     .transpose()
-    .filter{it[3] =~ /c__Mammalia.*${params.taxlvl}__./}
+    .filter{it[3] =~ /${params.taxlvl}__./}
     .map{rg,bam,kraken,taxon -> [rg, bam, kraken, (taxon =~ /${params.taxlvl}__([^|]*)/)[0][1]]}
     .unique()
     .ifEmpty{error "----\n${white}[quicksand]:${red} WorkflowError: No families assigned by Kraken at all. Check Input and Database! Exit pipeline${white}"}
@@ -465,7 +465,7 @@ process gatherByTaxon {
 
     script:
     """
-    grep "c__Mammalia.*${params.taxlvl}__${taxon}" kraken.translate | cut -f1 | sed "s/\\/[12]//" | tee ids.txt | wc -l
+    grep "${params.taxlvl}__${taxon}" kraken.translate | cut -f1 | sed "s/\\/[12]//" | tee ids.txt | wc -l
     """
 }
 
@@ -498,12 +498,13 @@ process extractBam {
     """
 }
 
+//Todo: this doesnt work anymore with also non-mammalian families
 extracted_reads // [rg, taxon, extracted_bam] --> newKey1 is rg+fam, newKey2 is rg+order
     .map{rg,taxon,extract_bam -> [rg+taxon, rg, taxon, extract_bam]}
     //extracted reads --> [KeyN, rg, taxon, ExtractedReads_XXX.bam]
     //best_species --> [Newkey1, newkey2, family, order, species]
     .branch{
-        family: it[2] =~ ".*idae"
+        family: it[2] =~ "ae\$"
         order: true
     }
     .set{extracted_reads}  
