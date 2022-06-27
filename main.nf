@@ -1,4 +1,4 @@
-#!/usr/bin/env nextflow
+#!/usr/bin/env nextflowcd
 
 red = "\033[0;31m"
 white = "\033[0m"
@@ -24,156 +24,92 @@ log.info """
 
 //
 //
+// Functions used within the pipeline
+//
+//
+
+def exit_with_error_msg(error, text){
+    println "[quicksand]: ${red}${error}: ${text}${white}"
+    exit 0
+}
+def get_warn_msg(text){
+    return "[quicksand]: ${yellow}(WARN): ${text}${white}"
+}
+def get_info_msg(text){
+    return "[quicksand]: ${text}"
+}
+def has_ending(file, extension){
+    return extension.any{
+        file.toString().toLowerCase().endsWith(it)
+    }
+}
+def exit_missing_required(flag){
+    exit_with_error_msg("ArgumentError", "Missing required Argument ${flag}")
+}
+
+//
+//
 // Help
 //
 //
 
-params.help = false
-if (params.help) {
+if (params.help){
     print file("$baseDir/assets/help.txt").text
     exit 0
 }
 
 //
 //
-// Variable definition and validation
+// Channel assignment
 //
 //
 
-// Inhouse paths
-params.bwa            = '/home/public/usr/bin/bwa'
-params.bamrmdup       = '/home/bioinf/usr/bin/bam-rmdup'
-params.kraken_uniq    = '/home/merlin_szymanski/bin/Krakenuniq/'
 
-// User-independent params
-params.cutoff         = 35
-params.quality        = 25
-params.min_kmers      = 129    // min 150bp covered (krakenuniq)
-params.min_reads      = 3      // min 3 reads assigned (krakenuniq)
-params.krakenthreads  = 4      // number of threads per kraken process
-params.level          = 0      // bgzf compression level for intermediate files, 0..9
-params.keeppaired     = ""     // keep paired reads
-params.filterunmapped = ""     // filter out unmapped (in case of pre-mapping)
-params.analyze        = ""
-params.report         = ""
-params.splitfile      = "stats/splitcounts.tsv"
-params.taxlvl         = "f"    // extract reads on family or order level
+inbam      = params.bam      ? Channel.fromPath("${params.bam}",                 checkIfExists:true)  : Channel.empty()
+indexfile  = params.rg       ? Channel.fromPath("${params.rg}",                  checkIfExists:true)  : Channel.empty()
+splitdir   = params.split    ? Channel.fromPath("${params.split}/*",             checkIfExists:true)  : Channel.empty()
+genomesdir = params.genomes  ? Channel.fromPath("${params.genomes}", type:'dir', checkIfExists:true)  : exit_missing_required("--genomes")
+database   = params.db       ? Channel.fromPath("${params.db}", type:'dir',      checkIfExists:true)  : exit_missing_required("--db")
+bedfiles   = params.bedfiles ? Channel.fromPath("${params.bedfiles}/*.bed",      checkIfExists:true)  : exit_missing_required("--bedfiles") 
+specmap    = params.specmap  ? Channel.fromPath("${params.specmap}",             checkIfExists:true)  : Channel.empty()
 
+capture_families = params.capture.split(',')
+taxid = new File("${params.genomes}/taxid_map.tsv").exists() ? Channel.fromPath("${params.genomes}/taxid_map.tsv", type:'file') : Channel.fromPath("${baseDir}/assets/taxid_map_example.tsv", type:'file') 
+
+if (! new File("${params.genomes}/taxid_map.tsv").exists()) {
+    log.info get_warn_msg("The file 'taxid_map.tsv' is missing in your genomes dir! Using fallback ${baseDir}/assets/taxid_map_example.tsv")
+}    
+
+//
+//
+// Validation
+//
+//
+
+// Validate user input
 if(params.taxlvl !in ['f','o']){
-    log.info """
-    [quicksand]: ${red}ArgumentError: taxlvl must be one of [o, f] not ${params.taxlvl} ${white}
-    """.stripIndent()
-    exit 0
+    exit_with_error_msg("ArgumentError","taxlvl must be one of [o, f] not ${params.taxlvl}")
 }
-
-def env = System.getenv()
-
-def validate_dir(path, flag){
-    File test = new File("$path")
-    if (!(test.exists() && test.isDirectory())){
-        log.info "[quicksand]: ${red}InputError: The $flag directory doesn't exist ${white}\nPath: $path"
-        exit 0;
-    }
-}
-
-def has_ending(file, extension){
-    extension.any{
-        file.toString().toLowerCase().endsWith(it)
-    }
-}
-
-//1=filter paired reads (default), 4=filter unmapped, 5=both, 0=none
-params.filterflag = 1
-if(params.filterunmapped){
-    params.filterflag += 4
-}
-if(params.keeppaired){
-    params.filterflag -= 1
-}
-
-
-// Validate: BAM, RG and SPLIT
-params.bam            = ''
-params.rg             = ''
-params.split          = ''
 
 if(params.split && (params.bam || params.rg)){
-    log.info """
-    [quicksand]: ${red}ArgumentError: Too many arguments ${white}
-    Use: nextflow run mpieva/quicksand {--rg FILE --bam FILE | --split DIR}
-    """.stripIndent()
-    exit 0
+    log.info get_info_msg("Use: nextflow run mpieva/quicksand {--rg FILE --bam FILE | --split DIR}")
+    exit_with_error_msg("ArgumentError", "Too many arguments")
 } 
 if(!params.split && !(params.bam && params.rg)){
-    log.info """
-    [quicksand]: ${red}ArgumentError: Too few arguments ${white}
-    See: nextflow run mpieva/quicksand --help
-    """.stripIndent()
-    exit 0
-}
-
-inbam = params.bam? Channel.fromPath("${params.bam}") : Channel.empty()
-indexfile = params.rg? Channel.fromPath("${params.rg}") : Channel.empty()
-
-
-// Validate: GENOME and TAXIDMAP
-params.genome = env["QS_GENOME"]
-if(!params.genome){
-    log.info """[quicksand]: ${red}ArgumentError: Missing --genome flag ${white}"""
-    exit 0;
-} else { 
-    validate_dir("${params.genome}","--genome") 
-}
-
-if(new File("${params.genome}/taxid_map.tsv").exists()){
-    taxid = Channel.fromPath("${params.genome}/taxid_map.tsv", type:'file')
-} else {
-    taxid = Channel.fromPath("${baseDir}/assets/taxid_map_example.tsv", type:'file')
-    log.info """
-        [quicksand]: ${yellow}WARNING: The file 'taxid_map.tsv' is missing in your genomes dir!
-        In this run you use the fallback ${baseDir}/assets/taxid_map_example.tsv 
-        based on the Refseq release 209. This might lead to WRONG OR MISSING assignments. 
-        Please check the Docs, how to set up an own taxid_map.tsv ${white}
-        """.stripIndent()
-}
-
-// Validate: KRAKEN DB
-params.db = env["QS_DB"]
-if(!params.db){
-    log.info """[quicksand]: ${red}ArgumentError: Missing --db flag ${white}"""
-    exit 0;
-} else {
-    validate_dir("${params.db}", "--db")
-}
-
-
-// Validate: BEDFILES
-params.bedfiles = env["QS_BEDFILES"]
-if(!params.bedfiles){
-    log.info """[quicksand]: ${red}ArgumentError: Missing --bedfiles flag ${white}"""
-    exit 0;
-} else {
-    validate_dir("${params.bedfiles}", "--bedfiles")
-}
-
-// Optional
-params.specmap = env["QS_SPECMAP"]
-params.capture = ''
-params.byrg    = ''
-
-capture_families = []
-if(params.capture){
-    capture_families = params.capture.split(',')
+    log.info get_info_msg("Use: nextflow run mpieva/quicksand {--rg FILE --bam FILE | --split DIR}")
+    exit_with_error_msg("ArgumentError", "Too few arguments")
 }
 
 //
 //
-// Finally: The Pipeline
+// Pipeline
 //
 //
 
 process splitBam {
-    maxForks 1
+    conda (params.enable_conda ? "${baseDir}/envs/sediment.yaml" : null)    
+    container (workflow.containerEngine ? "merszym/quicksand:1.2" : null)
+
     publishDir 'split', mode: 'copy'
     label 'local'
 
@@ -190,29 +126,23 @@ process splitBam {
 
     script:
     """
-    splitbam -s -c $params.level -f indices.tsv --minscore 10 --maxnumber 0 input.bam
+    splitbam -s -c $params.compression_level -f indices.tsv --minscore 10 --maxnumber 0 input.bam
     """
 }
+
 
 splitscriptstats
     .collectFile(storeDir: 'stats', name: "splitstats.tsv", newLine: true)
 
+
 // If split is defined, start the pipeline here
 if(params.split){
-    File split_test = new File("${params.split}")
-    if (!(split_test.exists() && split_test.isDirectory())){
-        log.info "[quicksand]: ${red}InputError: The --split directory doesn't exist ${white}\nPath: ${params.split}"
-        exit 0;
-    }
-    Channel.fromPath("${params.split}/*")
-        .ifEmpty{error "[quicksand]: InputError: The Split-Directory is empty"}
-        .map{[it.baseName, it]}
-        .set{splitfiles}
-} else {
-    splitfiles
-        .map{[it.baseName, it]}      
-        .set{splitfiles}
-}
+    splitfiles = splitdir
+} 
+
+splitfiles
+   .map{[it.baseName, it]}      
+   .set{splitfiles}
 
 //handle fastq-input
 splitfiles
@@ -260,11 +190,10 @@ process splitStats {
     """
 }
 
-
-filter_bam_in = params.filterflag == 0 ? Channel.empty() : splitfiles
+filter_bam_in = params.bamfilterflag == 0 ? Channel.empty() : splitfiles
 
 process filterBam {
-    tag "$rg:${params.filterflag}"
+    tag "$rg:${params.bamfilterflag}"
 
     input:
     set rg, 'input.bam' from filter_bam_in
@@ -274,13 +203,15 @@ process filterBam {
 
     script:
     """
-    samtools view -b -u -F ${params.filterflag} -o output.bam input.bam
+    samtools view -b -u -F ${params.bamfilterflag} -o output.bam input.bam
     """
 }
-//here the paths come together again
-post_filter_bam = params.filterflag == 0 ? splitfiles : filter_bam_out
+
+post_filter_bam = params.bamfilterflag == 0 ? splitfiles : filter_bam_out
 
 process filterLength {
+    conda (params.enable_conda ? "${baseDir}/envs/sediment.yaml" : null)    
+    container (workflow.containerEngine ? "merszym/quicksand:1.2" : null)
     tag "$rg"
 
     input:
@@ -293,17 +224,17 @@ process filterLength {
 
     script:
     """
-    bam-lengthfilter -c $params.cutoff -l $params.level -o output.bam input.bam
+    bam-lengthfilter -c $params.bamfilter_length_cutoff -l $params.compression_level -o output.bam input.bam
     samtools view -c output.bam
     """
 }
+
 
 // In case one needs to run several splitted bam-files in batches, dont overwrite
 // the old splitcounts file, but gather everything there
 if(new File("$params.splitfile").exists()){
     old_splitcount = Channel.fromPath("${params.splitfile}", type: "file")
-        .splitCsv(sep:'\t')
-        .filter{it[0] != "readgroup"}
+        .splitCsv(sep:'\t', skip:1)
 } else {
     old_splitcount = Channel.empty()
 }
@@ -333,33 +264,36 @@ process toFasta {
     """
 }
 
-kraken_db = Channel.fromPath("${params.db}", type:"dir")
-tofasta_out.combine(kraken_db).set{pre_kraken}
+tofasta_out.combine(database).set{runkraken_in}
 
 process runKrakenUniq {
-	publishDir 'kraken', mode: 'copy', pattern:"*translate", saveAs: {"${rg}.translate"}
+    conda (params.enable_conda ? "${baseDir}/envs/sediment.yaml" : null)    
+    container (workflow.containerEngine ? "merszym/quicksand:1.2" : null)
+    publishDir 'kraken', mode: 'copy', pattern:"*translate", saveAs: {"${rg}.translate"}
     publishDir 'kraken', mode: 'copy', pattern:"*report", saveAs: {"${rg}.report"}
-    cpus "${params.krakenthreads}"
-    memory '16GB'
-    label 'bigmem'
+    label 'process_high'
     label 'local'
     tag "$rg"
 
     input:
-    set rg, "input.fa", db from pre_kraken
+    tuple rg, "input.fa", "database" from runkraken_in
 
     output:
-    set rg, "krakenUniq.translate" into kraken_assignments
-    set rg, "krakenUniq.report" into find_best
+    tuple rg, "krakenUniq.translate" into kraken_assignments
+    tuple rg, "krakenUniq.report" into find_best
 
     script:
     """
-    ${params.kraken_uniq}/krakenuniq --threads ${task.cpus} --db ${db} --fasta-input input.fa --report-file krakenUniq.report > output.krakenUniq
-    ${params.kraken_uniq}/krakenuniq-translate --db ${db} --mpa-format output.krakenUniq > krakenUniq.translate
+    krakenuniq --threads ${task.cpus} --db database --fasta-input input.fa --report-file krakenUniq.report > output.krakenUniq
+    krakenuniq-translate --db database --mpa-format output.krakenUniq > krakenUniq.translate
     """
 }
 
 process findBestSpecies{
+    conda (params.enable_conda ? "${baseDir}/envs/sediment.yaml" : null)    
+    container (workflow.containerEngine ? "merszym/quicksand:1.2" : null)
+    label 'process_low'
+    label 'local'
     tag "$rg"
 
     input:
@@ -370,7 +304,7 @@ process findBestSpecies{
 
     script:
     """
-    parse_report.py krakenUniq.report ${params.min_kmers} ${params.min_reads}
+    parse_report.py krakenUniq.report ${params.krakenuniq_min_kmers} ${params.krakenuniq_min_reads}
     """
 }
 
@@ -455,6 +389,10 @@ for_extraction.assigned_taxa
     .set{for_extraction}
 
 process gatherByTaxon {
+    conda (params.enable_conda ? "${baseDir}/envs/sediment.yaml" : null)
+    container (workflow.containerEngine ? "merszym/quicksand:1.2" : null)
+    label 'process_low'
+    label 'local'
     tag "$rg:$taxon"
 
     input:
@@ -475,8 +413,12 @@ count_for_stats
         }
 
 process extractBam {
+    conda (params.enable_conda ? "${baseDir}/envs/sediment.yaml" : null)    
+    container (workflow.containerEngine ? "merszym/quicksand:1.2" : null)
     publishDir 'out', mode: 'copy', saveAs: {out_bam}
     tag "$rg:$taxon"
+    label "process_low"
+    label 'local'
 
     input:
     set taxon, rg, 'input.bam', 'ids.txt', idcount from prepared_for_extraction
@@ -485,7 +427,7 @@ process extractBam {
     set rg, taxon, 'output.bam' into extracted_reads
 
     when:
-    idcount.toInteger() >= params.min_reads 
+    idcount.toInteger() >= params.krakenuniq_min_reads 
 
     script:
     if(params.byrg){
@@ -494,7 +436,7 @@ process extractBam {
         out_bam = "${taxon}/${rg}_extractedReads-${taxon}.bam"
     }
     """
-    bamfilter -i ids.txt -l $params.level -o output.bam input.bam
+    bamfilter -i ids.txt -l $params.compression_level -o output.bam input.bam
     """
 }
 
@@ -520,36 +462,32 @@ extracted_reads.order
     .mix(extracted_reads_families) // Mix back together
     .set{extracted_reads}
 
-reference = Channel.fromPath("${params.genome}", type:"dir")
-extracted_reads.combine(reference).set{pre_bwa}
+extracted_reads.combine(genomesdir).set{pre_bwa}
 
 process mapBwa {
+    conda (params.enable_conda ? "${baseDir}/envs/sediment.yaml" : null)    
+    container (workflow.containerEngine ? "merszym/quicksand:1.2" : null)
     publishDir 'out', mode: 'copy', saveAs: {out_bam}, pattern: '*.bam'
     tag "$rg:$family:$species"
+    label "process_low"
+    label 'local'
 
     input:
-    set rg, order, family, species, "input.bam", genomes from pre_bwa
+    set rg, order, family, species, "input.bam", "genomes" from pre_bwa
 
     output:
     set order, family, rg, species, 'output.bam', taxon into mapped_bam
     set order, family, rg, species, stdout into (mapped_count, mapping_data)
 
     script:
-    if(params.taxlvl == 'o'){
-    taxon = order
-    } else {
-    taxon = family
-    }
-    if(params.byrg){
-        out_bam = "${rg}/${taxon}/aligned/${family}.${species}.bam"
-    } else {
-        out_bam = "${taxon}/aligned/${rg}.${family}.${species}.bam"
-    }
+    taxon = params.taxlvl == 'o' ? order : family
+    out_bam = params.byrg ? "${rg}/${taxon}/aligned/${family}.${species}.bam" : "${taxon}/aligned/${rg}.${family}.${species}.bam"
+
     """
     samtools sort -n -l0 input.bam \
-    | $params.bwa bam2bam -g ${genomes}/$family/\"${species}.fasta\"  -n 0.01 -o 2 -l 16500 --only-aligned - \
-    | samtools view -b -u -q $params.quality \
-    | samtools sort -l $params.level -o output.bam
+    | bwa bam2bam -g genomes/$family/\"${species}.fasta\"  -n 0.01 -o 2 -l 16500 --only-aligned - \
+    | samtools view -b -u -q $params.bamfilter_quality_cutoff \
+    | samtools sort -l $params.compression_level -o output.bam
     samtools view -c output.bam
     """
 }
@@ -561,8 +499,12 @@ mapped_count
 
 
 process dedupBam {
+    conda (params.enable_conda ? "${baseDir}/envs/sediment.yaml" : null)    
+    container (workflow.containerEngine ? "merszym/biohazard_bamrmdup:v0.2" : null)
     publishDir 'out', mode: 'copy', pattern: "*.bam", saveAs: {out_bam}
     tag "$rg:$family:$species"
+    label "process_low"
+    label 'local'
 
     input:
     set order, family, rg, species, 'input.bam', taxon from mapped_bam
@@ -573,13 +515,9 @@ process dedupBam {
     set order, family, rg, species, "count.txt" into (deduped_count, deduped_data)
 
     script:
-    if(params.byrg){
-        out_bam = "${rg}/${taxon}/aligned/${family}.${species}_deduped.bam"
-    } else {
-        out_bam = "${taxon}/aligned/${rg}.${family}.${species}_deduped.bam"
-    }
+    out_bam = params.byrg ? "${rg}/${taxon}/aligned/${family}.${species}_deduped.bam" : "${taxon}/aligned/${rg}.${family}.${species}_deduped.bam"
     """
-    $params.bamrmdup -r -o output.bam input.bam > rmdup.txt
+    bam-rmdup -r -o output.bam input.bam > rmdup.txt
     samtools coverage -H output.bam | cut -f 5
     samtools view -c output.bam > count.txt
     """
@@ -615,7 +553,7 @@ deduped_bam
     .set{best_deduped}
 
 
-Channel.fromPath("${params.bedfiles}/*.bed", type:'file') //all the bedfiles
+bedfiles
     .map{bedfile -> [bedfile.baseName.replaceAll(/.masked/,""), bedfile]}
     .cross(best_deduped.bed)
     .map{bed, dedup -> [dedup[0],dedup[1],dedup[2],dedup[3],dedup[4],bed[1],dedup[5],dedup[7]]}    
@@ -623,6 +561,10 @@ Channel.fromPath("${params.bedfiles}/*.bed", type:'file') //all the bedfiles
 
 //and filter out reads that intersect with masked regions
 process runIntersectBed{
+    conda (params.enable_conda ? "${baseDir}/envs/sediment.yaml" : null)    
+    container (workflow.containerEngine ? "merszym/quicksand:1.2" : null)
+    label "process_low"
+    label 'local'
     tag "$rg:$family:$species"
     publishDir 'out', mode: 'copy', saveAs: {out_bam}
 
@@ -676,7 +618,11 @@ deam_stats.combine(total_rg, by:0)
 
 
 process reportDamage{
+    conda (params.enable_conda ? "${baseDir}/envs/sediment.yaml" : null)    
+    container (workflow.containerEngine ? "merszym/quicksand:1.2" : null)
     tag "$rg:$family:$species"
+    label 'local'
+    label 'process_low'
     
     input:
     set rg, order, family, species, "input.bam", count, coverage, perc from deam_stats
@@ -685,7 +631,7 @@ process reportDamage{
     set rg, order, family, species, stdout, perc into (deam_stats_file, deam_stats_data)
     
     when:
-    params.analyze
+    params.skip_analyze == false
     
     script:
     """
@@ -705,7 +651,7 @@ deam_stats_file
 //
 //
 
-if(params.report){
+if(! params.skip_report){
 
 //In case the bedfiltering is scipped: replace the value with 'NA'
 bedfilter_data_placeholder //[order, family, rg, species, bamfile, count, coverage]
@@ -722,7 +668,7 @@ deam_report
     .map{rg,order,fam,sp,bed_bam,bed_count,cover,perc -> 
         [rg,order,fam,sp,bed_count as String,perc]}
     .set{deam_report}
-post_deam = params.analyze ? deam_stats_data : deam_report
+post_deam = params.skip_analyze ? deam_report : deam_stats_data
 
 //split and fill with 'NA' if the format doesnt fit to the reportDamage output
 post_deam //[rg, order, family, species, count or deam_output, perc]
@@ -778,5 +724,4 @@ mapping_data
         ]
     }
 }
-
-
+ 
