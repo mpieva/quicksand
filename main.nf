@@ -469,7 +469,7 @@ process dedupBam {
     script:
     out_bam = params.byrg ? "${meta.id}/${meta.Taxon}/aligned/${meta.Family}.${meta.Species}_deduped.bam" : "${meta.Taxon}/aligned/${meta.id}.${meta.Family}.${meta.Species}_deduped.bam"
     """
-    bam-rmdup -r -o ${meta.Species}.deduped.bam ${meta.Species}.bam > rmdup.txt
+    bam-rmdup -r -o ${meta.Species}.deduped.bam \"${meta.Species}.bam\" > rmdup.txt
     samtools coverage -H ${meta.Species}.deduped.bam | cut -f 5
     samtools view -c ${meta.Species}.deduped.bam > count.txt
     """
@@ -528,7 +528,7 @@ process runIntersectBed{
     out_bam = params.byrg ? "${meta.id}/${meta.Taxon}/bed/${meta.Family}.${meta.Species}_deduped_bedfiltered.bam" : 
                             "${meta.Taxon}/bed/${meta.id}.${meta.Family}.${meta.Species}_deduped_bedfiltered.bam"
     """
-    bedtools intersect -a ${meta.Species}.bam -b masked/\"${meta.Species}.masked.bed\" -v > ${meta.Species}.masked.bam
+    bedtools intersect -a \"${meta.Species}.bam\" -b masked/\"${meta.Species}.masked.bed\" -v > ${meta.Species}.masked.bam
     samtools view -c ${meta.Species}.masked.bam
     """
 }
@@ -581,8 +581,8 @@ process analyzeDeamination{
     out_bam = params.byrg ? "${meta.id}/${meta.Taxon}/deaminated/${meta.Family}.${meta.Species}_deduped_deaminated53.bam" : 
                             "${meta.Taxon}/deaminated/${meta.id}.${meta.Family}.${meta.Species}_deduped_deaminated53.bam"
     """
-    samtools view -H -b ${meta.Species}.bam > output.deaminated.bam
-    bam_deam_stats.py ${meta.Species}.bam > ancient_stats.tsv
+    samtools view -H -b \"${meta.Species}.bam\" > output.deaminated.bam
+    bam_deam_stats.py \"${meta.Species}.bam\" > ancient_stats.tsv
     """
 }
 

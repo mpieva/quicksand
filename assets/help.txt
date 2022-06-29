@@ -1,44 +1,52 @@
-Usage: nextflow run mpieva/quicksand {--bam PATH --rg PATH | --split DIR} --db PATH --genome PATH --bedfiles PATH [options]
+Usage: nextflow run mpieva/quicksand -r v1.5 {--bam PATH --rg PATH | --split DIR} --db PATH --genome PATH --bedfiles PATH [options] -profile singularity 
     
 required arguments:
   Either:
-  --bam PATH         input BAM file
-  --rg  PATH         tab-separated file containing index combinations
-                     - format of file: 'LibID<tab>P7<tab>P5'
+  --bam 	PATH   		Multiplexed input BAM file (merged)
+  --rg  	PATH  		tab-separated file containing index combinations
+                     		- format of file: 'LibID<tab>P7<tab>P5'
   Or:
-  --split DIR        directory with already split bamfiles
-                     - format of files within: 'Readgroup.bam' 
+  --split 	DIR		directory with already split files
+                     		- format of files within: 'Readgroup.{bam, fastq, fastq.gz, fq.gz, fq}'
+                     		- Note: Files will be interpreted as merged, PR reads are filtered out by default, PR fastq files are imported to bam as SE 
   And:
-  --db PATH          Path to Kraken database
-  --genome PATH      genomes for alignment - see README for more details
-  --bedfiles PATH    bed-files masking the genomes for alignment
+  --db 		DIR   		 Path to Kraken database dir
+  --genomes 	DIR    		 Path to directory with reference genomes for alignment
+  --bedfiles 	DIR 		 Path to directory with bedfiles masking the genomes for alignment
       
 optional arguments:
-  --specmap PATH     Always map reads assigned to a family to these species
-                     - format of file: 'Family<tab>Species_name,Species_name'
-                     - Species_name must correspond to the filename in the genomes diretory
-  --capture STRING   comma-separated list of families that are ommited from bedfiltering
-  --analyze          Include a DNA-deamination-analysis at the end of the run
-  --report           write a comprehensive summary file "final_report.tsv" with all stats and all readgroups
-  --byrg             Structure the content of the "out" directory by readgroup instead of taxonomy 
-  --taxlvl           'f' or 'o'. The taxonomic level used for binning reads by kraken (default: f). 
-  --cutoff N         length cutoff (default: 35)
-  --quality N        quality filter (default: 25)
-  --min_kmers N      minimal required unique kmers (krakenuniq) to keep a family (default: 129)
-  --min_reads N      minimal required number of reads assigend to a family by krakenuniq (default: 3)     --keeppaired       keep paired reads (default: filter paired)
-  --filterunmapped   filter unmapped reads
-  --level N          set BGZF compression level (default: 6)
-  --krakenthreads N  number of threads per Kraken process (default: 4)
+  --specmap 	PATH     	Path to a config-file. Specify for a family one or more species. Reads assigned to this family (kraken) are mapped to these species
+                    		- format of file: 'Family<tab>Species_name,Species_name'
+                     		- Species_name must correspond to the filename in the genomes diretory
+  --capture 	STRING   	comma-separated list of families that are ommited from bedfiltering (e.g. 'Homindae, Hyaenidae')
+  --skip_analyze     		Skip the DNA-deamination-analysis at the end of the run
+  --skip_report      		Skip the creation of the comprehensive summary file "final_report.tsv" at the end of the run
+  --byrg             		Structure the content of the "out" directory by readgroup instead of taxonomy 
+  --taxlvl           		'f' or 'o'. The taxonomic level used for extracting and mapping assignments by kraken against the reference genomes (default: f).
+                     		- e.g. if 'o' is picked, reads assigned to 'Primates' will be mapped to 'Homo_sapiens' reference genomes instead of only the 'Hominidae' reads
+                     		- the reference genomes are still picked by the best guess per family 
+  
+  --bamfilter_length_cutoff 	N	length cutoff for extracted bam (default: 35)
+  --bamfilter_quality_cutoff 	N       quality filter for extracted bam (default: 25)
+  --krakenuniq_min_kmers	N      	Filter: minimal required unique kmers (krakenuniq) assigned to a family (default: 129)
+  --krakenuniq_min_reads 	N      	Filter: minimal required number of reads assigend to a family by krakenuniq (default: 3)     
+  --krakenuniq_threads 		N	Number of threads used for kraken-uniq (default:4)
+  --bamfilterflag 		N  	The filter used for filter the input bam files (default: 1)
+                     			- The flags are the official bitwise flags specified by the BAM format
+                     			- 0: no filter, 1: filter paired, 4: filter unmapped, 5: filter both
+  
+  --compression_level 		N       set BGZF compression level (default: 0)
+  --krakenthreads 		N  	number of threads per Kraken process (default: 4)
       
+
 A selection of built-in Nextflow flags that may be of use:
   -resume            resume processing; do not re-run completed processes
   -profile NAME      use named execution profile
-  -qs N              queue size; number of CPU cores to use (default: all)
-  -N EMAIL           send completion notifcation to email address
   -c PATH            path to addtional nextflow.config file
     
+PROFILES
+
 The following execution profiles are available (see '-profile' above):
-  * standard         execute all processes in a singularity container
-  * cluster          execute certain CPU-intenisve processes on SGE cluster
   * conda            run all processes in a conda environment
+  * singularity      run all processes in a singularity container
   * docker           run all processes in a docker container
