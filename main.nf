@@ -558,25 +558,88 @@ total_rg.map{meta,bam,count -> [meta.id, count]}
 runbed_out.map{meta,bam,count -> [meta.id, meta, bam, count]}
     .combine(total_rg, by:0)
     .map{rg,meta,bam,count,total_rg -> [add_to_dict(meta,'FamPercentage',total_rg==0?0:(count*100/total_rg).trunc(2)), bam]}
-    .set{runbed_out}
+    .into{runbed_out; analysis_skip}
 
-damagereport_in = params.skip_analyze ? Channel.empty() : runbed_out
+damageanalysis_in = params.skip_analyze ? Channel.empty() : runbed_out
 
-process reportDamage{
+process analyzeDeamination{
     conda (params.enable_conda ? "${baseDir}/envs/sediment.yaml" : null)    
     container (workflow.containerEngine ? "merszym/quicksand:1.2" : null)
-    tag "${meta.od}:${meta.Order}:${meta.Family}:${meta.Species}"
+    publishDir 'out', mode: 'copy', saveAs: { out_bam }, pattern:"*.bam"
+    tag "${meta.id}:${meta.Order}:${meta.Family}:${meta.Species}"
     label 'local'
-    label 'process_low'
+    label 'process_medium'
     
     input:
-    tuple meta, "${meta.Species}.bam" from damagereport_in
+    tuple meta, "${meta.Species}.bam" from damageanalysis_in
     
     output:
-    tuple meta, "${meta.Species}.deaminated.bam", stdout, into damagereport_out
+    path 'output.deaminated.bam'
+    tuple meta, 'ancient_stats.tsv' into damageanalysis_out
     
     script:
+    out_bam = params.byrg ? "${meta.id}/${meta.Taxon}/deaminated/${meta.Family}.${meta.Species}_deduped_deaminated53.bam" : 
+                            "${meta.Taxon}/deaminated/${meta.id}.${meta.Family}.${meta.Species}_deduped_deaminated53.bam"
     """
-    bam_deam_stats.py input.bam ${rg} ${order} ${family} ${species} ${count} ${coverage} ${perc}
+    samtools view -H -b ${meta.Species}.bam > output.deaminated.bam
+    bam_deam_stats.py ${meta.Species}.bam > ancient_stats.tsv
     """
 }
+
+damageanalysis_out.map{meta,damage -> [meta,damage.splitCsv(sep:'\t', header:true)]}
+    .transpose()
+    .map{meta,dmg -> meta+dmg}
+    .into{damageanalysis_out;damageanalysis_file}
+
+damageanalysis_file
+    .collectFile(storeDir: 'stats', newLine:true, seed:'Order\tFamily\tSpecies\tAncient\tReadsDeaminated\tDeam5(95CI)\tDeam3(95CI)\tDeam5Cond(95CI)\tDeam3Cond(95CI)'){
+        meta -> ["${meta.id}_mapped_deduped_deaminated53.tsv",
+       "${meta.Order}\t${meta.Family}\t${meta.Species}\t${meta.Ancient}\t${meta.ReadsDeaminated}\t${meta.Deam5}\t${meta.Deam3}\t${meta.Deam5Cond}\t${meta.Deam3Cond}"]
+    }
+
+
+//now the final report
+if(! params.skip_report){
+    analysis_skip.map{meta, bam -> meta}.set{analysis_skip}
+
+    report_in = params.skip_analyze ? analysis_skip : damageanalysis_out
+    //add vals that are not in meta
+    report_in.map{ meta -> [
+    	meta,
+    	prop_mapped = (meta.Extracted==0 || meta.Mapped == 0) ? 0 : (meta.Mapped/meta.Extracted).trunc(4),
+    	dupl_rate = (meta.Deduped==0 || meta.Mapped==0) ? 0 : (meta.Deduped / meta.Mapped).trunc(4)
+        ]
+    }
+    .collectFile(seed:'RG\tFamilyKmers\tKmerCoverage\tKmerDupRate\tOrder\tFamily\tSpecies\tExtractLVL\tReadsExtracted\tReadsMapped\tProportionMapped\tReadsDeduped\tDuplicationRate\tCoveredBP\tReadsBedfiltered\tFamPercentage\tAncientness\tReadsDeaminated53\tDeam5\tDeam3\tCondDeam5\tCondDeam3', 
+        storeDir:'.', newLine:true, sort:true){ meta, pm, dup -> [
+                'final_report.tsv', [
+                meta.id,
+                meta.FamKmers,
+                meta.FamKmerCov,
+                meta.FamKmerDup,
+                meta.Order,
+                meta.Family,
+                meta.Species,
+                params.taxlvl,
+                meta.Extracted,
+                meta.Mapped,
+                pm,
+                meta.Deduped,
+                dup,
+                meta.CoveredBP,
+		meta.Bedfiltered ?: '-',
+                meta.FamPercentage,
+    	        meta.Ancient ?: 'N/A',
+    	        meta.ReadsDeaminated ?: '-',
+    	        meta.Deam5 ?: '-',
+    	        meta.Deam3 ?: '-',
+   	        meta.Deam5Cond ?: '-',
+    	        meta.Deam3Cond ?: '-'].join('\t') 
+        ]
+    }
+}
+
+
+
+
+

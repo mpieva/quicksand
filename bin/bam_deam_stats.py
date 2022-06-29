@@ -36,32 +36,41 @@ def get_data(read):
     df["SeqBP"] = [read.seq[0]+read.seq[-1]]
     df["RefBP"] = [reference[0]+reference[-1]]
     df["Reverse"] = [read.is_reverse]
+    df["Name"] = [read.query_name]
     return df
 
 
 def import_data(bamfile):
     reads = pysam.AlignmentFile(open(bamfile))
-    df = pd.DataFrame(columns=["SeqBP","RefBP","Reverse"])
+    df = pd.DataFrame(columns=["SeqBP","RefBP","Reverse","Name"])
     for read in reads:
         df = df.append(get_data(read), ignore_index=True)
+    reads.close()
     return df
 
 
 def print_header():
     print("\t".join([
         "Ancient",
-        "Deam5(95CI)",
-        "Deam3(95CI)",
-        "Deam5cond(95CI)",
-        "Deam3cond(95CI)",
+        "ReadsDeaminated",
+        "Deam5",
+        "Deam3",
+        "Deam5Cond",
+        "Deam3Cond",
     ]), file=sys.stdout)
 
 
 def extract_reads(bamfile, df):
-    print(df)
-    reads = df[(df['5deam1']==1) | (df['3deam1']==1)]
+    infile = pysam.AlignmentFile(bamfile, 'rb')
+    reads = set(df[(df['5deam1']==1) | (df['3deam1']==1)]['Name'])
+    #overwrite empty bam-file 
+    with pysam.AlignmentFile('output.deaminated.bam', 'wb', template=infile) as outfile:
+        for read in infile:
+            if read.query_name in reads:
+                outfile.write(read)
+    infile.close()
+    return len(reads)
 
-    
 #
 #
 # MAIN
@@ -79,11 +88,11 @@ def main(bamfile):
     # Create all the stats 
     # Is there an easier way than hardcoding??
     # deam gets a 1 if there is a C-T substitution at the 5' or 3' end
-    df["5deam1"] = df.apply(lambda x: 1 if x[3][0]=="T" and x[4][0]=="C" else 0,axis=1)
-    df["3deam1"] = df.apply(lambda x: 1 if x[3][-1]=="T" and x[4][-1]=="C" else 0,axis=1)
+    df["5deam1"] = df.apply(lambda x: 1 if x[4][0]=="T" and x[5][0]=="C" else 0,axis=1)
+    df["3deam1"] = df.apply(lambda x: 1 if x[4][-1]=="T" and x[5][-1]=="C" else 0,axis=1)
 
     # cond gets a 1 if both ends are deaminated
-    df["cond1"] = df.apply(lambda x: 1 if x[5]==1 and x[6]==1 else 0,axis=1)
+    df["cond1"] = df.apply(lambda x: 1 if x[6]==1 and x[7]==1 else 0,axis=1)
 
     #subsets of possible deaminations
     deam_subset51 = df[df["RefBP_corr"].str.contains("^C")]
@@ -95,16 +104,16 @@ def main(bamfile):
 
     #Now calculate the percentages and other stats
     #percentage of deaminated C
-    deam51 = round(sum(deam_subset51["5deam1"])/len(deam_subset51)*100,2) if len(deam_subset51)>0 else 'NA'
-    deam31 = round(sum(deam_subset31["3deam1"])/len(deam_subset31)*100,2) if len(deam_subset31)>0 else 'NA'
+    deam51 = round(sum(deam_subset51["5deam1"])/len(deam_subset51)*100,2) if len(deam_subset51)>0 else 'N/A'
+    deam31 = round(sum(deam_subset31["3deam1"])/len(deam_subset31)*100,2) if len(deam_subset31)>0 else 'N/A'
 
     #and the confidence interval for that
     deam51_95ci = binomial_ci(sum(deam_subset51["5deam1"]),len(deam_subset51))
     deam31_95ci = binomial_ci(sum(deam_subset31["3deam1"]),len(deam_subset31))
 
     # percentage of deaminated conditional reads
-    deam51cond = round(sum(cond_subset51["cond1"])/len(cond_subset51)*100,2) if len(cond_subset51)>0 else 'NA'
-    deam31cond = round(sum(cond_subset31["cond1"])/len(cond_subset31)*100,2) if len(cond_subset31)>0 else 'NA'
+    deam51cond = round(sum(cond_subset51["cond1"])/len(cond_subset51)*100,2) if len(cond_subset51)>0 else 'N/A'
+    deam31cond = round(sum(cond_subset31["cond1"])/len(cond_subset31)*100,2) if len(cond_subset31)>0 else 'N/A'
 
     # the 95% confidence interval
     deam51cond_95ci = binomial_ci(sum(cond_subset51["cond1"]),len(cond_subset51))
@@ -122,7 +131,7 @@ def main(bamfile):
         ancient_string = "-"
 
     #write the reads with deamination on terminal 5' or 3' end to file
-    extract_reads(bamfile,df)
+    n_deam = extract_reads(bamfile,df)
 
     #header
     print_header()
@@ -130,10 +139,11 @@ def main(bamfile):
     #and row
     print("\t".join([
     f"{ancient_string}",
-    f"{deam51} {deam51_95ci}",
-    f"{deam31} {deam31_95ci}",
-    f"{deam51cond} {deam51cond_95ci}",
-    f"{deam31cond} {deam31cond_95ci}",
+    f"{n_deam}",
+    f"{deam51}{deam51_95ci}".replace(" ",""),
+    f"{deam31}{deam31_95ci}".replace(" ",""),
+    f"{deam51cond}{deam51cond_95ci}".replace(" ",""),
+    f"{deam31cond}{deam31cond_95ci}".replace(" ",""),
     ]
     ), file=sys.stdout)
 
