@@ -430,7 +430,7 @@ process mapBwa {
     tuple meta, "${meta.Taxon}.extracted.bam", "genomes" from mapbwa_in
 
     output:
-    tuple meta, 'output.bam', stdout into (mapbwa_file, mapbwa_out)
+    tuple meta, "${meta.Taxon}.mapped.bam", stdout into (mapbwa_file, mapbwa_out)
 
     script:
     out_bam = params.byrg ? "${meta.id}/${meta.Taxon}/aligned/${meta.Family}.${meta.Species}.bam" : "${meta.Taxon}/aligned/${meta.id}.${meta.Family}.${meta.Species}.bam"
@@ -439,8 +439,8 @@ process mapBwa {
     samtools sort -n -l0 ${meta.Taxon}.extracted.bam \
     | bwa bam2bam -g genomes/${meta.Family}/\"${meta.Species}.fasta\" -n 0.01 -o 2 -l 16500 --only-aligned - \
     | samtools view -b -u -q $params.bamfilter_quality_cutoff \
-    | samtools sort -l $params.compression_level -o output.bam
-    samtools view -c output.bam
+    | samtools sort -l $params.compression_level -o ${meta.Taxon}.mapped.bam
+    samtools view -c ${meta.Taxon}.mapped.bam
     """
 }
 
@@ -469,9 +469,9 @@ process dedupBam {
     script:
     out_bam = params.byrg ? "${meta.id}/${meta.Taxon}/aligned/${meta.Family}.${meta.Species}_deduped.bam" : "${meta.Taxon}/aligned/${meta.id}.${meta.Family}.${meta.Species}_deduped.bam"
     """
-    bam-rmdup -r -o ${meta.Species}.deduped.bam \"${meta.Species}.bam\" > rmdup.txt
-    samtools coverage -H ${meta.Species}.deduped.bam | cut -f 5
-    samtools view -c ${meta.Species}.deduped.bam > count.txt
+    bam-rmdup -r -o \"${meta.Species}.deduped.bam\" \"${meta.Species}.bam\" > rmdup.txt
+    samtools coverage -H \"${meta.Species}.deduped.bam\" | cut -f 5
+    samtools view -c \"${meta.Species}.deduped.bam\" > count.txt
     """
 }
 
@@ -528,8 +528,8 @@ process runIntersectBed{
     out_bam = params.byrg ? "${meta.id}/${meta.Taxon}/bed/${meta.Family}.${meta.Species}_deduped_bedfiltered.bam" : 
                             "${meta.Taxon}/bed/${meta.id}.${meta.Family}.${meta.Species}_deduped_bedfiltered.bam"
     """
-    bedtools intersect -a \"${meta.Species}.bam\" -b masked/\"${meta.Species}.masked.bed\" -v > ${meta.Species}.masked.bam
-    samtools view -c ${meta.Species}.masked.bam
+    bedtools intersect -a \"${meta.Species}.bam\" -b masked/\"${meta.Species}.masked.bed\" -v > \"${meta.Species}.masked.bam\"
+    samtools view -c \"${meta.Species}.masked.bam\"
     """
 }
 
