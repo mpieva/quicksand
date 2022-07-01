@@ -264,7 +264,30 @@ process toFasta {
     """
 }
 
-tofasta_out.combine(database).set{runkraken_in}
+if (params.testrun){
+    // If using test-data, extract the test-database
+    process extractTestDatabase {
+        conda (params.enable_conda ? "${baseDir}/envs/sediment.yaml" : null)    
+        container (workflow.containerEngine ? "merszym/quicksand:1.2" : null)
+        label 'process_medium'
+        label 'local'
+        tag "DB: TestDB"
+
+        input:
+        path 'database' from database
+
+        output:
+        path 'TestDB' into database_extracted
+
+        script:
+        """
+        tar -xvzf database/database.tar.gz
+        """
+    }
+}
+
+database_out = params.testrun ? database_extracted : database 
+tofasta_out.combine(database_out).set{runkraken_in}
 
 process runKrakenUniq {
     conda (params.enable_conda ? "${baseDir}/envs/sediment.yaml" : null)    

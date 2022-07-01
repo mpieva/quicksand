@@ -41,8 +41,8 @@ Download repository
 This code creates a new directory :file:`pipeline` that will contain all the data produced over the course of this setup process. Here - the cloned github repository.
 
 
-03. Test Runabilty
-------------------
+Test runability
+---------------
 
 With the requirements met, the pipeline can be tested.
 To do that, unpack the test database provided in the repository::
