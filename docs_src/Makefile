@@ -27,4 +27,6 @@ github:
 	@make html
 	@mv "$(BUILDDIR)/html" "$(DOCS)"
 	@rm -fr "$(BUILDDIR)"
+	@cp "$(SOURCEDIR)/style.css" "$(DOCS)/_static/css/"
 	@touch "$(DOCS)/.nojekyll"
+	

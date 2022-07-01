@@ -16,5 +16,6 @@ Table of content
    installation
    usage
    configuration
+   quicksand-build
    contribute
    license

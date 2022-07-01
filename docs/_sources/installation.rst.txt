@@ -3,26 +3,24 @@
 Installation
 ============
 
-This section walks you through the stages of downloading, installing and
-testing the pipeline. Please follow the instructions step by step.
+In the case that the :ref:`quickstart-page` didnt work, this section will walk you through the stages of downloading, installing and
+testing the quicksand pipeline in more detail.
 
 .. _requirements:
 
-01. Install Requirements
-------------------------
+Requirements
+------------
 
-Before coming to that, make sure you have the two following programs installed.
+Make sure you have the following two components installed.
 
 :Nextflow: See more details here: `Nextflow <https://www.nextflow.io/docs/latest/getstarted.html>`_
-:Singularity: See more details here: `Singularity <https://sylabs.io/guides/3.0/user-guide/installation.html>`_
+:Singularity or Docker: See more details here: `Singularity <https://sylabs.io/guides/3.0/user-guide/installation.html>`_ or `Docker <https://docs.docker.com/get-docker/>`_
 
-    or Docker: See `get Docker <https://docs.docker.com/get-docker/>`_
-
-Nextflow is the language the pipeline is written in, while Singularity/Docker are software tools for containerization of code - used to run software in a consistent environment. 
+Nextflow is the pipeline framework, while Singularity/Docker are software tools for the containerization of code. 
 
 .. tip::
     
-    check the installation of the software above by running::
+    check the successful installation of the software by running::
         
         nextflow -v
             >>> nextflow version 20.04.1.5335
@@ -30,15 +28,13 @@ Nextflow is the language the pipeline is written in, while Singularity/Docker ar
             >>> singularity version 3.7.2-dirty
 
 
-02. Download Repository
------------------------
+Download repository
+-------------------
 
-The code for the quicksand pipeline is hosted on github. The repository can be downloaded
-directly from there. The code can be found `here <https://github.com/mpieva/quicksand>`_.
-
-Please open your terminal and type::
+| The code for the quicksand pipeline is hosted on `Github <https://github.com/mpieva/quicksand>`_.
+| Clone the repository by typing
+::
     
-    cd
     mkdir pipeline && cd pipeline
     git clone https://www.github.com/mpieva/quicksand
     

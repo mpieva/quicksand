@@ -1,41 +1,45 @@
+.. role:: bold
+.. _quickstart-page:
+
 Quickstart
 ===========
 
-This quickstart section can also be found in the README of the quicksand repository.
-A more comprehensive step-by-step-guide can be found in the :ref:`install-page` section.
+This quickstart section is slightly more detailed than 
+the one in the `README <https://github.com/mpieva/quicksand/blob/master/README.md>`_. of the quicksand repository. A more comprehensive 
+step-by-step-guide for the setup can be found in the :ref:`install-page` section.
 
 Requirements
 ------------
 
-Please ask your admin to install :code:`Nextflow` and :code:`Singularity`, otherwise see :ref:`requirements`
+Please make sure you have installed 
 
-Create Datastructure
+* :code:`Nextflow` and 
+* :code:`Singularity` or :code:`Docker` (see :ref:`requirements`) 
+
+Create datastructure
 --------------------
 
-To make a metagenomic classification, we need a reference database, reference genomes and a taxonomy.
-To run the :code:`quicksand` pipeline, we have to run the supplementary pipeline :code:`quicksand-build` (once) in advance to do
-exactly that for us. The :code:`quicksand-build` pipeline will download the taxonomy from NCBI/taxonomy, the mitochondrial genomes from NCBI/RefSeq
-and build the kraken-database with the specified settings.
+The required underlying datastructure of the pipeline is described in the :ref:`quicksand_build-page` section
 
-For the quickstart-session we create a database containing only the _Primates_ by providing the :code:`--include Primates` flag. If you 
-want to use the pipeline for the analysis of the whole mammalian diversity use :code:`--include Mammalia` or remove the flag if 
-the database should contain _everything_ in RefSeq. 
+In short: You need a :bold:`reference database`, the :bold:`reference genomes` and a :bold:`taxonomy`. 
+Use the supplementary pipeline :code:`quicksand-build` (once) to download the taxonomy from NCBI/taxonomy, all mitochondrial
+genomes from NCBI/RefSeq and create the required databases and files.
 
-To run the pipline open your terminal and type:
-
-Open your terminal with :kbd:`Win` + :kbd:`r` and type::
+For this quickstart-session create a datastructure containing only the :bold:`Primates`::
 	
 	mkdir quickstart && cd quickstart
 	nextflow run mpieva/quicksand-build --outdir refseq --include Primates
 
-Please be patient, the download of the taxonomy and the creation of the database might take ~1h
-After that, we are ready to run the :code:`quicksand` pipeline
+| :bold:`Note:`
+| Building the database requires ~40G of RAM
+| Be patient, downloading the taxonomy plus the creation of the database might take :bold:`~1h`.
 
 Run quicksand
 -------------
 
-With the databases created in :code:`refseq` we can now run the actual pipeline.
-However, before that we need some data: So download the Hohlenstein-Stadel mtDNA (please see the [README]_ for more information) ::
+| With the datastructure created in the :code:`refseq` directory, the pipeline is ready to be used.
+| As :bold:`input` for the pipeline, download the Hominin "Hohlenstein-Stadel" mtDNA [1]_ into a directory :bold:`split` 
+::
 	
 	wget -P split http://ftp.eva.mpg.de/neandertal/Hohlenstein-Stadel/BAM/mtDNA/HST.raw_data.ALL.bam
 
@@ -46,22 +50,30 @@ And run the quicksand pipeline::
 	   --genome    refseq/genomes \
 	   --bedfiles  refseq/masked \
 	   --split     split \
-           -profile    singularity \
-           --byrg
+	   -profile    singularity
+
+| See the :code:`final_report.tsv` for a summary of the results. 
+| See the :ref:`output` section for a detailed explaination of all the output files.               
 
 
-After running the pipeline, please see the :code:`final_report.tsv` for a summary of the results.                
-Please see the :ref:`output` section for an explaination of the output!
+Filter the Results
+------------------
 
-Problems?
----------
-Some *classical* problems are:
+As can be seen in the :code:`final_report.tsv`, not all sequences were assigned to Homindae, but to a couple of other Primate families as well.
+The assignment of false positive taxa is a well-known problem of kmer-based assignment methods and additional filters need to be applied.
 
-- heap-space error: not enough heap-space allocated for the JVM. please type :code:`export NXF_OPTS="-Xms128g -Xmx128g"` before the run
-- file-not found error: The Singularity installation doesnt allow auto-mounting of paths: See :ref:`singularity`  
-- quicksand-build crashes: The indexing of the kraken-database requires a lot of RAM!
+Based on simulated data, our recommended cutoffs are:
 
+- :bold:`FamPercentage` cutoff of 1% and/or
+- :bold:`ProportionMapped` cutoff of 0.5-0.7.
 
-.. [README] http://ftp.eva.mpg.de/neandertal/Hohlenstein-Stadel/README
+The kmer-information is also indicative. If the :bold:`FamilyKmers` and :bold:`KmerCoverage` values are low and
+the :bold:`KmerDupRate` value is high, the assigment of the family is only based on a small number of kmers within the reads 
 
+Troubleshooting
+---------------
 
+- :bold:`heap-space error`: Nextflow related error, not enough memory allocated for the Java Virtual machine to run the processes. Manually set the memory for nextflow by typing :code:`export NXF_OPTS="-Xms128g -Xmx128g"` before the run
+- :bold:`file-not found error`: Your Singularity installation might not allow auto-mounting of paths: See :ref:`singularity`  
+
+.. [1] http://ftp.eva.mpg.de/neandertal/Hohlenstein-Stadel/README
