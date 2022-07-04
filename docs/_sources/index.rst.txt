@@ -11,8 +11,8 @@ Table of content
 .. toctree::
    :maxdepth: 2
 
-   quickstart
    description
+   quickstart
    installation
    usage
    configuration

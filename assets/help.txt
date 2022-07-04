@@ -18,7 +18,7 @@ optional arguments:
   --specmap 	PATH     	Path to a config-file. Specify for a family one or more species. Reads assigned to this family (kraken) are mapped to these species
                     		- format of file: 'Family<tab>Species_name,Species_name'
                      		- Species_name must correspond to the filename in the genomes diretory
-  --capture 	STRING   	comma-separated list of families that are ommited from bedfiltering (e.g. 'Homindae, Hyaenidae')
+  --skip_bed 	STRING   	comma-separated list of families that are ommited from bedfiltering (e.g. 'Homindae, Hyaenidae')
   --skip_analyze     		Skip the DNA-deamination-analysis at the end of the run
   --skip_report      		Skip the creation of the comprehensive summary file "final_report.tsv" at the end of the run
   --byrg             		Structure the content of the "out" directory by readgroup instead of taxonomy 
@@ -30,14 +30,12 @@ optional arguments:
   --bamfilter_quality_cutoff 	N       quality filter for extracted bam (default: 25)
   --krakenuniq_min_kmers	N      	Filter: minimal required unique kmers (krakenuniq) assigned to a family (default: 129)
   --krakenuniq_min_reads 	N      	Filter: minimal required number of reads assigend to a family by krakenuniq (default: 3)     
-  --krakenuniq_threads 		N	Number of threads used for kraken-uniq (default:4)
   --bamfilterflag 		N  	The filter used for filter the input bam files (default: 1)
                      			- The flags are the official bitwise flags specified by the BAM format
                      			- 0: no filter, 1: filter paired, 4: filter unmapped, 5: filter both
   
   --compression_level 		N       set BGZF compression level (default: 0)
-  --krakenthreads 		N  	number of threads per Kraken process (default: 4)
-      
+        
 
 A selection of built-in Nextflow flags that may be of use:
   -resume            resume processing; do not re-run completed processes

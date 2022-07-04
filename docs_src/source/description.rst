@@ -1,26 +1,92 @@
 Description
 ===========
 
-.. image:: images/pipeline_overview.png
+.. image:: images/pipeline_overview_v1.5.png
 	:width: 800
+	:align: center
 	:alt: Graphical overview over the processes of the quicksand pipeline 
 
+
+This section describes the processes implemented in the **quicksand** pipeline. See :ref:`quicksand_build-page` for a description of
+the quicksand-build pipeline 
 
 Workflow
 --------
 
-The pipeline consists of three main parts - **Classification** of reads, **Mapping** of reads to reference genomes and a **Report/Analysis** for the created alignments. The pipeline starts with sequenced and demultiplexed, adapter-clipped, and overlap-merged paired reads from an Illumina Hiseq or Miseq platform in either fastq- or bam-format. Classification of reads by KrakenUniq is followed by a mapping step with [BWA]_ and an analysis of the alignments for quality and aDNA damage patterns. We provide both a taxonomic profile as well as a taxonomic binning of reads by readgroups on a family level. 
+The basic workflow of the quicksand pipline consists of a **metagenomic classification**, a **mapping** and a basic **analysis** of the alignment. The pipeline
+produces taxonomic profiles for the analyzed input files, as well as the binned :file:`bam` files, grouped by redgroup and taxonomy for all levels of the 
+pipeline - as shown in the figure above. Each process is in detail described in the following chapters
 
-In the final report we additionally provide the proportion of assigned families as well as an estimate of the 'ancientness' of the reads. See the Figure for an overview. 
 
-Assignment
+fastq2bam
 """"""""""
-Quicksand uses KrakenUniq with a precompiled database created from the current (see :ref:`setup`) non-redundant mammalian mtDNA RefSeq database [Refseq]_ and by default a k-mer size of 22. The speed of KrakenUniq allows for a quick sorting of reads into families. To filter for false-positive assignments, we disregard families that are assigned by less than 3 reads or 129 unique k-mers. For each family the taxon with the highest number of assigned unique k-mers is picked as the taxon representative for that family at that site. In parallel, all reads assigned to that family are binned and extracted from the original input-file.
 
-Mapping
-"""""""
-The extracted reads - based on the KrakenUniq assignments - are then mapped against all reference genomes of species from the representative taxon using the  `network-aware fork <https://github.com/mpieva/network-aware-bwa>`_ of BWA with ancient parameters [Meyer,2012]_. Exact PCR-duplicates are collapsed into singletons using `bam-rmdup <https://github.com/mpieva/biohazard-tools>`_ based on the sharing of identical alignment start and end coordinates. Reads shorter than 35bp and reads with a mapping quality of less than 25 are removed. From all mapped genomes, the one with the highest numbers of basepairs covered is picked as the final representative for the mapping analysis. To avoid the mapping of sequences to non-informative and repetitive regions, the alignments are depleted of reads that overlap sites marked as non-informative by [dustmasker].
-    
-Analysis
+All :file:`fastq` files entering the pipeline are converted to unpaired and unmapped :file:`bam` files using :code:`samtools import -0`.
+In case of paired end :file:`fastq` files, make sure to merge them before using the pipeline. 
+
+fiterBam
+"""""""""
+
+:file:`Bam` files are filtered based on the provided filterflag using :code:`samtools view -F`. By default paired-end reads are removed from the
+:file:`bam` file.
+
+filterLength
+""""""""""""
+
+Using a custom :code:`bam-lengthfilter` package, sequences are removed from the :file:`bam` file that fall below the :code:`--bamfilter_length_cutoff` threshold (default: 35bp)
+
+toFasta
 """"""""
-Based on the mappings to the reference genome a rough estimate of the ancientness of the mapped reads is reported. Reads generated from ancient DNA show characteristic C to T substitutions at the 3’ and 5’ ends of the fragment - a typical degradation pattern used to identify ancient DNA in silico. Families that have more than 10% of both terminal positions - with a C in the reference genome - replaced with a T are reported as being ancient in the summary report.
+
+As preparation for the krakenuniq run, :file:`bam` files are converted to :file:`fasta` files 
+
+runKrakenUniq
+""""""""""""""
+
+Sequences contained in the :file:`fasta` file are classified by the metagenomic classifier :code:`krakenuniq`. Quicksand uses krakenuniq with a precompiled 
+database created from the current non-redundant mtDNA RefSeq database with a default kmer size of 22 (see :ref:`quicksand_build-page` or :ref:`setup`).
+The speed of krakenuniq allows for a quick sorting of sequences into families. To filter out false-positive assignments, families are 
+removed from the assignment falling below the minimum number of reads (:code:`--krakenuniq_min_reads`) and the minimal number of kmers (:code:`--krakenuniq_min_kmers`)
+on the family node. The result of this process is a taxonomic profile of the readgroup. 
+
+findBestNode
+""""""""""""
+
+This process parses the kraken-reports. For each assigned family reported by krakenuniq, the node with the highest number of assigned unique kmers is 
+picked as the taxon representative for that family.  
+
+extractBam
+""""""""""
+
+Using the kraken-report and the length-filtered :file:`bam` file, this process collects all sequences assigned to one clade into a new :file:`bam` 
+file. Extraction happens either on the family or order-level, as specified with the :code:`--taxlvl` flag, using the custom :code:`bamfilter` package.
+
+mapBWA
+""""""
+
+The extracted sequences are mapped against all the reference genomes of species belonging to the 'bestNode' found in the 'findBestNode' process 
+using the :code:`bwa bam2bam` command of the `network-aware fork <https://github.com/mpieva/network-aware-bwa>`_ of BWA with 
+ancient parameters (:code:`n 0.01 -o 2 -l 16500`). Unmapped sequences or sequences with a mapping quality of less than 25 are removed from the alignment
+
+dedupBam
+""""""""
+
+Exact PCR-duplicates are collapsed into unique sequences using `bam-rmdup <https://github.com/mpieva/biohazard-tools>`_ based on the sharing of identical 
+alignment start and end coordinates. From all mapped genomes, the one with the highest numbers of basepairs covered is picked as _the_ 
+representative species for the subsequent steps.
+
+runIntersectBed
+""""""""""""""""
+
+The deduped alignments are then depleted of reads that overlap sites marked as non-informative by :code:`dustmasker`. That step can be skipped
+for target families using the :code:`--skip_bed` flag.
+
+analyzeDeamination
+""""""""""""""""""
+
+The final step in the pipeline looks for C to T substitutions in the query sequences in respect to the aligned reference genome and extracts these
+sequences into a separate :file:`bam` file using a custom python script. Ancient DNA shows characteristic C to T substitutions at the 3’ and 5’ ends
+of DNA fragments - a degradation pattern used to identify ancient DNA. Assigned families which sequences show more than 10% of terminal C bases in the 
+reference genome replaced by a T are reported as being ancient (++). This step can be skipped using the :code:`--skip_analyze` flag.
+
+

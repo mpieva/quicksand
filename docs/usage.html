@@ -42,16 +42,13 @@
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart</a></li>
 <li class="toctree-l1"><a class="reference internal" href="description.html">Description</a></li>
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart</a></li>
 <li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Usage</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#flags">Flags</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#required">Required</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#optional">Optional</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#nextflow">Nextflow</a></li>
-</ul>
-</li>
+<li class="toctree-l2"><a class="reference internal" href="#required-flags">Required Flags</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#optional-flags">Optional Flags</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#profiles">Profiles</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#input">Input</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#run-the-pipeline">Run the pipeline</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#run-from-local-repository">Run from local repository</a></li>
@@ -98,106 +95,411 @@
              
   <section id="usage">
 <span id="usage-page"></span><h1>Usage<a class="headerlink" href="#usage" title="Permalink to this headline"></a></h1>
-<section id="flags">
-<h2>Flags<a class="headerlink" href="#flags" title="Permalink to this headline"></a></h2>
-<section id="required">
-<h3>Required<a class="headerlink" href="#required" title="Permalink to this headline"></a></h3>
+<p>This section explains the input and output of the pipeline, as well as the commands and flags to run it</p>
+<section id="required-flags">
+<h2>Required Flags<a class="headerlink" href="#required-flags" title="Permalink to this headline"></a></h2>
 <div class="line-block">
-<div class="line"><strong>Database-Flags:</strong></div>
-<div class="line">(see the <a class="reference internal" href="installation.html#setup"><span class="std std-ref">set-up section</span></a> to create these datastructures)</div>
+<div class="line"><strong>Datastructure flags</strong></div>
 </div>
-<dl class="option-list">
-<dt><kbd><span class="option">--db <var>DIR</var></span></kbd></dt>
-<dd><p>The preindexed <code class="docutils literal notranslate"><span class="pre">Kraken</span></code> or <code class="docutils literal notranslate"><span class="pre">KrakenUniq</span></code> database used for the classification of reads</p>
-</dd>
-<dt><kbd><span class="option">--genome <var>DIR</var></span></kbd></dt>
-<dd><p>The directory containing the reference genomes in the format <code class="file docutils literal notranslate"><span class="pre">DIR/$family/$species.fasta</span></code></p>
-</dd>
-<dt><kbd><span class="option">--bedfiles <var>DIR</var></span></kbd></dt>
-<dd><p>The directory containing the dustmasked bedfiles in the format <code class="file docutils literal notranslate"><span class="pre">DIR/$species_masked.bed</span></code></p>
-</dd>
-</dl>
-<div class="line-block">
-<div class="line"><strong>Input-Flags:</strong></div>
-<div class="line">(See <a class="reference internal" href="#input"><span class="std std-ref">Input</span></a>)</div>
-</div>
-<dl class="option-list">
-<dt><kbd><span class="option">--split <var>DIR</var></span></kbd></dt>
-<dd><p>The directory containing the input files in the format <code class="file docutils literal notranslate"><span class="pre">DIR/*.{bam|fastq}</span></code></p>
-</dd>
-<dt><kbd><span class="option">--bam <var>BAM-FILE</var></span></kbd></dt>
-<dd><p>A still multiplexed bam-file, containing all the reads</p>
-</dd>
-<dt><kbd><span class="option">--rg <var>TSV-FILE</var></span></kbd></dt>
-<dd><p>The expected readgroups and primer combinations to demultiplex the BAM_FILE by. Fileformat: <code class="code docutils literal notranslate"><span class="pre">RG\\tP7\\p5</span></code></p>
-</dd>
-</dl>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>For the the internal use (MPI EVA), there is a demultiplexer available in the pipeline. It is thus possible to run quicksand with <code class="code docutils literal notranslate"><span class="pre">-bam</span> <span class="pre">BAM-FILE</span></code> and <code class="code docutils literal notranslate"><span class="pre">--rg</span> <span class="pre">TSV-FILE</span></code> as alternative to the <code class="code docutils literal notranslate"><span class="pre">--split</span> <span class="pre">DIR</span></code> parameter.</p>
-</div>
-</section>
-<section id="optional">
-<h3>Optional<a class="headerlink" href="#optional" title="Permalink to this headline"></a></h3>
-<p><strong>Pipeline parameters</strong></p>
-<dl class="option-list">
-<dt><kbd><span class="option">--analyze</span></kbd></dt>
-<dd><p>Given this flag, quicksand will check all alignments in <code class="file docutils literal notranslate"><span class="pre">bedfilteredReads.bam</span></code> for C to T substitutions compared to the reference genome. The file <code class="file docutils literal notranslate"><span class="pre">$RG_deamination_stats.tsv</span></code> is created for each readgroup. See the <a class="reference internal" href="#files"><span class="std std-ref">Files explained</span></a> section. This step takes some time.</p>
-</dd>
-<dt><kbd><span class="option">--report</span></kbd></dt>
-<dd><p>Provided with this flag, quicksand will output a ‘final’ summary called <code class="file docutils literal notranslate"><span class="pre">final_report.tsv</span></code> that summarizes all the stats scattered across the <code class="file docutils literal notranslate"><span class="pre">stats</span></code> directory.</p>
-</dd>
-<dt><kbd><span class="option">--byrg</span></kbd></dt>
-<dd><p>Change the order of output-files in the <code class="file docutils literal notranslate"><span class="pre">out</span></code> directory from a taxonomy-based structure to a readgroup-based structure. See the <a class="reference internal" href="#output"><span class="std std-ref">Output</span></a> section for a comparison</p>
-</dd>
-<dt><kbd><span class="option">--specmap <var>TSV-FILE</var></span></kbd></dt>
-<dd><p>With the TSV_FILE containing families and species in the format <code class="docutils literal notranslate"><span class="pre">Family\tSpecies_name,Species_name</span></code> in each line, ignore the “best taxon” assigned by the kraken classifier as reference for mapping for given families. Instead map the <code class="file docutils literal notranslate"><span class="pre">extractedReads</span></code> of the $family to the species specified in the TSV-FILE. The <code class="docutils literal notranslate"><span class="pre">Species_name</span></code> must correspond to a filename (without <code class="code docutils literal notranslate"><span class="pre">.fasta</span></code>) in the <code class="file docutils literal notranslate"><span class="pre">genomes/$family/</span></code> directory</p>
-</dd>
-</dl>
-<p>–taxlvl [f,o]    bin reads assigned by krakenuniq by the specified taxon level (family or order level). Extracted reads ar later mapped against the genome of each families best fitting representative species. For the order-level extract, reads are thus mapped several times to different genomes. For family-level extracts, reads are mapped only once. [default: family level]
-–capture STRING    Given a STRING <code class="docutils literal notranslate"><span class="pre">Family,Family,...</span></code>, apply reduced filters to the given families. For provided families, the bedfiltering is ommited</p>
-<p><strong>Process parameters</strong></p>
-<dl class="option-list">
-<dt><kbd><span class="option">--cutoff <var>N</var></span></kbd></dt>
-<dd><p>Length cutoff after BWA-mapping (default: 35). Remove all reads below a length of N from the alignemnt.</p>
-</dd>
-<dt><kbd><span class="option">--quality <var>N</var></span></kbd></dt>
-<dd><p>Mapping quality filter after BWA-mapping (default:25). Remove all reads with a mapping-quality of &lt;N from the alignment.</p>
-</dd>
-<dt><kbd><span class="option">--min_kmers <var>N</var></span></kbd></dt>
-<dd><p>Minimum required unique kmers assigned by KrakenUniq (default: 129). To reduce false-positives: Remove families from the assignments if the total number of assigned unique kmers to taxa of that family by KrakenUniq is below N</p>
-</dd>
-<dt><kbd><span class="option">--min_reads <var>N</var></span></kbd></dt>
-<dd><p>Minimum required assigned reads by KrakenUniq (default: 3). To reduce false-positives: Remove families from the assignments if the total number of assigned reads to taxa of that family by KrakenUniq is below N</p>
-</dd>
-<dt><kbd><span class="option">--keeppaired</span></kbd></dt>
-<dd><p>If <code class="file docutils literal notranslate"><span class="pre">.bam</span></code> files are provided as input, by default, unmerged reads are filtered out. This flag prevents that.</p>
-</dd>
-<dt><kbd><span class="option">--filterunmapped</span></kbd></dt>
-<dd><p>If premapped <code class="file docutils literal notranslate"><span class="pre">.bam</span></code> files are provided as input, use this flag to filter out unmapped reads from the bam-files</p>
-</dd>
-<dt><kbd><span class="option">--level <var>N</var></span></kbd></dt>
-<dd><p>Set BGZF compression level (default: 6)</p>
-</dd>
-<dt><kbd><span class="option">--krakenthreads <var>N</var></span></kbd></dt>
-<dd><p>Number of threads per Kraken process (default: 4)</p>
-</dd>
-</dl>
-</section>
-<section id="nextflow">
-<h3>Nextflow<a class="headerlink" href="#nextflow" title="Permalink to this headline"></a></h3>
-<p>A selection of built-in Nextflow flags that may be of use (Be aware: only one dash - with these flags):</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">-</span><span class="n">profile</span>  <span class="o">&lt;</span><span class="n">profile</span><span class="o">&gt;</span>  <span class="n">pick</span> <span class="n">a</span> <span class="n">profile</span> <span class="k">for</span> <span class="n">executing</span> <span class="n">the</span> <span class="n">pipeline</span> <span class="p">(</span><span class="n">see</span> <span class="n">below</span><span class="p">)</span>
-<span class="o">-</span><span class="n">resume</span>              <span class="n">Resume</span> <span class="n">processing</span><span class="p">;</span> <span class="n">do</span> <span class="ow">not</span> <span class="n">re</span><span class="o">-</span><span class="n">run</span> <span class="n">completed</span> <span class="n">processes</span>
-<span class="o">-</span><span class="n">N</span>        <span class="o">&lt;</span><span class="n">email</span><span class="o">&gt;</span>    <span class="n">send</span> <span class="n">notification</span> <span class="n">to</span> <span class="n">email</span> <span class="n">upon</span> <span class="n">finishing</span>
-<span class="o">-</span><span class="n">c</span>        <span class="o">&lt;</span><span class="n">file</span><span class="o">&gt;</span>     <span class="n">path</span> <span class="n">to</span> <span class="n">additional</span> <span class="n">nextflow</span><span class="o">.</span><span class="n">config</span> <span class="n">file</span> <span class="k">for</span> <span class="n">local</span> <span class="n">parameters</span>
-<span class="o">-</span><span class="n">w</span>        <span class="o">&lt;</span><span class="n">path</span><span class="o">&gt;</span>     <span class="n">specify</span> <span class="n">the</span> <span class="s2">&quot;work&quot;</span> <span class="n">directory</span> <span class="k">for</span> <span class="n">the</span> <span class="n">nextflow</span> <span class="n">intermediate</span> <span class="n">files</span>
+<table class="colwidths-given docutils align-default">
+<colgroup>
+<col style="width: 13%" />
+<col style="width: 13%" />
+<col style="width: 75%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Flag</p></th>
+<th class="head"><p>Input type</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><span class="mono">--db</span></p></td>
+<td><p>PATH</p></td>
+<td><p>The <span class="bold">directory</span> containing the preindexed <code class="file docutils literal notranslate"><span class="pre">Kraken</span></code> or <code class="file docutils literal notranslate"><span class="pre">KrakenUniq</span></code> database (see: <a class="reference internal" href="quicksand-build.html#quicksand-build-page"><span class="std std-ref">quicksand-build</span></a>):</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>Input:
+
+refseq
+  ├── kraken
+  │    └── Mito_db_kmer22
+  │           ├── taxonomy
+  │           ├── ...
+  │           └── database.kdb
+
+
+Example:
+
+--db Path/to/refseq/kraken/Mito_db_kmer22
 </pre></div>
 </div>
+</td>
+</tr>
+<tr class="row-odd"><td><p><span class="mono">--genomes</span></p></td>
+<td><p>PATH</p></td>
+<td><div class="line-block">
+<div class="line">The <span class="bold">directory</span> containing the indexed FASTA-FILES of the reference genomes that were used to build</div>
+<div class="line">the kraken database. Format <code class="file docutils literal notranslate"><span class="pre">PATH/${family}/${species}.fasta</span></code> (see: <a class="reference internal" href="quicksand-build.html#quicksand-build-page"><span class="std std-ref">quicksand-build</span></a>)</div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>Input:
+
+refseq
+  ├── genomes
+  │    └── Hominidae
+  │           ├── Homo_sapiens.fasta
+  │           ├── Homo_sapiens.fasta.fai
+  │           └── ...
+
+
+Example:
+
+--genomes Path/to/refseq/genomes
+</pre></div>
+</div>
+</td>
+</tr>
+<tr class="row-even"><td><p><span class="mono">--bedfiles</span></p></td>
+<td><p>PATH</p></td>
+<td><div class="line-block">
+<div class="line">The <span class="bold">directory</span> containing the dustmasked BED-FILES of the reference genomes FASTA-FILES</div>
+<div class="line">Format <code class="file docutils literal notranslate"><span class="pre">DIR/${species}_masked.bed</span></code> (see: <a class="reference internal" href="quicksand-build.html#quicksand-build-page"><span class="std std-ref">quicksand-build</span></a>)</div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>Input:
+
+refseq
+  ├── masked
+  │      ├── Homo_sapiens_masked.bed
+  │      └── ...
+
+
+Example:
+
+--bedfiles Path/to/refseq/masked
+</pre></div>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+<div class="line-block">
+<div class="line"><strong>Input flags</strong></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The pipeline contains an optional initial demultiplexing process. However, that demultiplexer works only on bam-files
+provided by the <a class="reference external" href="https://www.eva.mpg.de/de/genetics/index/">MPI EVA Core Unit</a> as the result of library preparation and sequencing.
+For the processing of data coming from the MPI EVA run quicksand with the <code class="code docutils literal notranslate"><span class="pre">--bam</span> <span class="pre">PATH</span></code> and <code class="code docutils literal notranslate"><span class="pre">--rg</span> <span class="pre">PATH</span></code> flags as alternative
+to the <code class="code docutils literal notranslate"><span class="pre">--split</span> <span class="pre">PATH</span></code> parameter.</p>
+</div>
+<table class="colwidths-given docutils align-default">
+<colgroup>
+<col style="width: 13%" />
+<col style="width: 13%" />
+<col style="width: 75%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Flag</p></th>
+<th class="head"><p>Input type</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><span class="mono">--split</span></p></td>
+<td><p>PATH</p></td>
+<td><div class="line-block">
+<div class="line">Standard input</div>
+<div class="line">A <strong>directory</strong> containing the demultiplexed, adapter trimmed (and overlap-merged) input files</div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>Input:
+
+split
+  ├── RG1.bam
+  ├── RG2.fastq
+  ├── RG3.fastq.gz
+  ├── RG4.fq.gz
+  └── ...
+
+Example:
+
+--split Path/to/split/
+</pre></div>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td><p><span class="mono">--bam</span></p></td>
+<td><p>PATH</p></td>
+<td><div class="line-block">
+<div class="line">Use together with the <code class="code docutils literal notranslate"><span class="pre">--rg</span></code> flag</div>
+<div class="line">The multiplexed BAM-FILE, as provided by the <a class="reference external" href="https://www.eva.mpg.de/de/genetics/index/">MPI EVA Core Unit</a> containing</div>
+<div class="line">adapter-trimmed and overlap-merged sequencing reads</div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Example</span><span class="p">:</span>
+
+<span class="o">--</span><span class="n">bam</span> <span class="n">Path</span><span class="o">/</span><span class="n">to</span><span class="o">/</span><span class="nb">input</span><span class="o">.</span><span class="n">bam</span>
+</pre></div>
+</div>
+</td>
+</tr>
+<tr class="row-even"><td><p><span class="mono">--rg</span></p></td>
+<td><p>PATH</p></td>
+<td><div class="line-block">
+<div class="line">Use together with the <code class="code docutils literal notranslate"><span class="pre">--bam</span></code> flag</div>
+<div class="line">A TSV-FILE, containing library information for the demultiplexing step.</div>
+<div class="line">Provide the readgroups and respective primer combinations contained in the BAM FILE</div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Input</span> <span class="p">(</span><span class="n">index</span><span class="o">.</span><span class="n">tsv</span><span class="p">):</span>
+
+<span class="c1">#Index library ID     primer_P7       primer_P5</span>
+<span class="n">RG1</span>   <span class="mi">1113</span>    <span class="mi">1137</span>
+<span class="n">RG2</span>   <span class="mi">1114</span>    <span class="mi">1138</span>
+
+<span class="n">Example</span><span class="p">:</span>
+
+<span class="o">--</span><span class="n">rg</span> <span class="n">Path</span><span class="o">/</span><span class="n">to</span><span class="o">/</span><span class="n">index</span><span class="o">.</span><span class="n">tsv</span>
+</pre></div>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
 </section>
+<section id="optional-flags">
+<h2>Optional Flags<a class="headerlink" href="#optional-flags" title="Permalink to this headline"></a></h2>
+<table class="colwidths-given docutils align-default">
+<colgroup>
+<col style="width: 13%" />
+<col style="width: 13%" />
+<col style="width: 75%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Flag</p></th>
+<th class="head"><p>Input type</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><span class="mono">--specmap</span></p></td>
+<td><p>PATH</p></td>
+<td><div class="line-block">
+<div class="line">Provide a config TSV file (No header)</div>
+<div class="line">Map Kraken-assigned family reads (<code class="file docutils literal notranslate"><span class="pre">extractedReads</span></code>) to the specified species instead of the 'best taxa' found by the pipeline.</div>
+<div class="line">Species name must correspond to a filename in <code class="file docutils literal notranslate"><span class="pre">genomes</span></code>.</div>
+<div class="line">Separate multiple species by comma</div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Input</span> <span class="p">(</span><span class="n">specmap</span><span class="o">.</span><span class="n">tsv</span><span class="p">):</span>
+
+<span class="n">Hominidae</span> <span class="n">Homo_sapiens</span>
+
+<span class="n">Example</span><span class="p">:</span>
+
+<span class="o">--</span><span class="n">specmap</span> <span class="n">Path</span><span class="o">/</span><span class="n">to</span><span class="o">/</span><span class="n">specmap</span><span class="o">.</span><span class="n">tsv</span>
+</pre></div>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td><p><span class="mono">--byrg</span></p></td>
+<td></td>
+<td><div class="line-block">
+<div class="line">If provided, change the ordering of the output-files in the <code class="file docutils literal notranslate"><span class="pre">out</span></code> directory from a taxonomy-based structure</div>
+<div class="line">to a readgroup-based structure.</div>
+<div class="line">See the <a class="reference internal" href="#output"><span class="std std-ref">Output</span></a> section for a comparison</div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Example</span><span class="p">:</span>
+
+<span class="o">--</span><span class="n">byrg</span>
+</pre></div>
+</div>
+</td>
+</tr>
+<tr class="row-even"><td><p><span class="mono">--taxlvl</span></p></td>
+<td><p>[o,f]</p></td>
+<td><div class="line-block">
+<div class="line">Default: f</div>
+<div class="line">Bin assigned reads by the specified taxon level (family or order level): e.g. Homindae or Primates.</div>
+<div class="line">These binned reads (<code class="file docutils literal notranslate"><span class="pre">extractedReads</span></code>) are mapped against the genome(s) of each families 'best taxa'.</div>
+<div class="line">or <code class="code docutils literal notranslate"><span class="pre">--specmap</span></code> taxa. e.g. Map all reads assigned to Primates to the Homo_sapiens genome</div>
+<div class="line"><strong>Note:</strong> For the order-level bins, <code class="file docutils literal notranslate"><span class="pre">extractedReads</span></code> are mapped several times to different (family) genomes.</div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Example</span><span class="p">:</span>
+
+<span class="o">--</span><span class="n">taxlvl</span> <span class="n">o</span>
+</pre></div>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td><p><span class="mono">--skip_analyze</span></p></td>
+<td></td>
+<td><div class="line-block">
+<div class="line">Skip the analyzeDeamination process during the pipeline run</div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Example</span><span class="p">:</span>
+
+<span class="o">--</span><span class="n">skip_analyze</span>
+</pre></div>
+</div>
+</td>
+</tr>
+<tr class="row-even"><td><p><span class="mono">--skip_report</span></p></td>
+<td></td>
+<td><div class="line-block">
+<div class="line">Skip the creation of the <code class="file docutils literal notranslate"><span class="pre">final_report.tsv</span></code> during the pipeline run</div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Example</span><span class="p">:</span>
+
+<span class="o">--</span><span class="n">skip_report</span>
+</pre></div>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td><p><span class="mono">--skip_bed</span></p></td>
+<td><p>STRING</p></td>
+<td><div class="line-block">
+<div class="line">Provide a string of comma-separated families</div>
+<div class="line">Skip the runIntersectBed process during the pipeline run for the specified families</div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Example</span><span class="p">:</span>
+
+<span class="o">--</span><span class="n">skip_bed</span> <span class="n">Hominidae</span><span class="p">,</span><span class="n">Hyaenidae</span>
+</pre></div>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Process parameters</strong></p>
+<table class="colwidths-given docutils align-default">
+<colgroup>
+<col style="width: 13%" />
+<col style="width: 13%" />
+<col style="width: 75%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Flag</p></th>
+<th class="head"><p>Input type</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><span class="mono">--bamfilterflag</span></p></td>
+<td><p>N</p></td>
+<td><div class="line-block">
+<div class="line">For process filterBam</div>
+<div class="line">Filter the BAM file based on the provided SAMTOOLS FLAG (default: 1 = filter paired reads).</div>
+<div class="line">see <a class="reference external" href="https://broadinstitute.github.io/picard/explain-flags.html">HERE</a> to find a desired filterflag</div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Example</span><span class="p">:</span>
+
+<span class="o">--</span><span class="n">bamfilterflag</span> <span class="mi">5</span>
+</pre></div>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td><p><span class="mono">--bamfilter_length_cutoff</span></p></td>
+<td><p>N</p></td>
+<td><div class="line-block">
+<div class="line">For process filterLength</div>
+<div class="line">Filter out reads below the given length cutoff (default: 35).</div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Example</span><span class="p">:</span>
+
+<span class="o">--</span><span class="n">bamfilter_length_cutoff</span> <span class="mi">35</span>
+</pre></div>
+</div>
+</td>
+</tr>
+<tr class="row-even"><td><p><span class="mono">--bamfilter_quality_cutoff</span></p></td>
+<td><p>N</p></td>
+<td><div class="line-block">
+<div class="line">For process mapBwa</div>
+<div class="line">Filter out reads with a mapping quality below the given quality cutoff (default: 25).</div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Example</span><span class="p">:</span>
+
+<span class="o">--</span><span class="n">bamfilter_quality_cutoff</span> <span class="mi">25</span>
+</pre></div>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td><p><span class="mono">--krakenuniq_min_kmers</span></p></td>
+<td><p>N</p></td>
+<td><div class="line-block">
+<div class="line">For process runKrakenUniq</div>
+<div class="line">A filter to reduce the number of false-positive krakenuniq assignments</div>
+<div class="line">Filter out assigned families from the krakenuniq classification with a kmer-count &lt; N (default: 129).</div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Example</span><span class="p">:</span>
+
+<span class="o">--</span><span class="n">krakenuniq_min_kmers</span> <span class="mi">129</span>
+</pre></div>
+</div>
+</td>
+</tr>
+<tr class="row-even"><td><p><span class="mono">--krakenuniq_min_reads</span></p></td>
+<td><p>N</p></td>
+<td><div class="line-block">
+<div class="line">For process runKrakenUniq</div>
+<div class="line">A filter to reduce the number of false-positive krakenuniq assignments</div>
+<div class="line">Filter out families from the krakenuniq classification with &lt; N reads assigned (default: 3).</div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Example</span><span class="p">:</span>
+
+<span class="o">--</span><span class="n">krakenuniq_min_reads</span> <span class="mi">3</span>
+</pre></div>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td><p><span class="mono">--compression_level</span></p></td>
+<td><p>[0-9]</p></td>
+<td><div class="line-block">
+<div class="line">For the BAM output processes</div>
+<div class="line">Set BGZF compression level (default: 0)</div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Example</span><span class="p">:</span>
+
+<span class="o">--</span><span class="n">compression_level</span> <span class="mi">9</span>
+</pre></div>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="profiles">
+<h2>Profiles<a class="headerlink" href="#profiles" title="Permalink to this headline"></a></h2>
+<div class="line-block">
+<div class="line">Quicksand includes several profiles that can be used with the <code class="code docutils literal notranslate"><span class="pre">-profile</span></code> flag (Be aware: only one dash -)</div>
+<div class="line">delimit multiple profiles by comma</div>
+</div>
+<table class="colwidths-given docutils align-default">
+<colgroup>
+<col style="width: 25%" />
+<col style="width: 75%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Profile</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>singularity</p></td>
+<td><p>Use Singularity as container software</p></td>
+</tr>
+<tr class="row-odd"><td><p>docker</p></td>
+<td><p>Use Docker as container software</p></td>
+</tr>
+<tr class="row-even"><td><p>conda</p></td>
+<td><p>Use Conda environments for prcesses (WIP)</p></td>
+</tr>
+<tr class="row-odd"><td><p>test</p></td>
+<td><p>Use testdata to run the pipeline <code class="code docutils literal notranslate"><span class="pre">nextflow</span> <span class="pre">run</span> <span class="pre">mpieva/quicksand</span> <span class="pre">-profile</span> <span class="pre">test,singularity</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p>debug</p></td>
+<td><p>Keep intermediate files in the <code class="file docutils literal notranslate"><span class="pre">work</span></code> directory</p></td>
+</tr>
+</tbody>
+</table>
 </section>
 <section id="input">
-<span id="id1"></span><h2>Input<a class="headerlink" href="#input" title="Permalink to this headline"></a></h2>
+<span id="id2"></span><h2>Input<a class="headerlink" href="#input" title="Permalink to this headline"></a></h2>
 <p>The pipeline uses as input <code class="file docutils literal notranslate"><span class="pre">.fastq</span></code> or <code class="file docutils literal notranslate"><span class="pre">.bam</span></code> files that contain demultiplexed, merged, and adapter trimmed reads.
 Use the <code class="code docutils literal notranslate"><span class="pre">--split</span></code> flag to point to the directory that contains these files. The pipeline refers to the name of the files
 as readgroups. The reads within the files are assigned, processed and structured by readgroups.
@@ -210,76 +512,72 @@ as readgroups. The reads within the files are assigned, processed and structured
 </div>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>Quicksand will process all the <code class="file docutils literal notranslate"><span class="pre">.fastq</span></code> and <code class="file docutils literal notranslate"><span class="pre">.bam</span></code>-files within the <code class="code docutils literal notranslate"><span class="pre">--split</span></code> directory and ignore all remaining files.
-Be sure to name/rename your files accordingly (e.g rename <code class="file docutils literal notranslate"><span class="pre">.fq</span></code> to <code class="file docutils literal notranslate"><span class="pre">.fastq</span></code> files)</p>
+<p>Quicksand will process all the <code class="file docutils literal notranslate"><span class="pre">.fastq,fq,fastq.gz,fq.gz</span></code> and <code class="file docutils literal notranslate"><span class="pre">.bam</span></code>-files within the <code class="code docutils literal notranslate"><span class="pre">--split</span></code> directory and ignore all remaining files.
+Be sure to name/rename your files accordingly</p>
 </div>
 </section>
 <section id="run-the-pipeline">
 <h2>Run the pipeline<a class="headerlink" href="#run-the-pipeline" title="Permalink to this headline"></a></h2>
-<p>As outlined below, there are several ways to run the pipeline.
+<p>There are several ways to run the pipeline.
 Please see to the <a class="reference internal" href="installation.html#install-page"><span class="std std-ref">installation</span></a> to set up the required underying databases and
 the <a class="reference internal" href="#input"><span class="std std-ref">input section</span></a> to know about the required input.</p>
 <div class="admonition attention">
 <p class="admonition-title">Attention</p>
-<p>Before starting the pipeline make sure that you are in separate folder. The pipeline writes its output into the current working directory!</p>
+<p>The pipeline writes its output into the current working directory!</p>
 </div>
 <section id="run-from-local-repository">
 <h3>Run from local repository<a class="headerlink" href="#run-from-local-repository" title="Permalink to this headline"></a></h3>
-<p>With everything set up quicksand can be executed by pointing nextflow to the <code class="file docutils literal notranslate"><span class="pre">main.nf</span></code> file in the cloned repository:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">mkdir</span> <span class="n">runDir</span> <span class="o">&amp;&amp;</span> <span class="n">cd</span> <span class="n">runDir</span>
-
-<span class="n">nextflow</span> <span class="n">run</span> <span class="o">~/</span><span class="n">pipeline</span><span class="o">/</span><span class="n">quicksand</span><span class="o">/</span><span class="n">main</span><span class="o">.</span><span class="n">nf</span> \
-    <span class="o">--</span><span class="n">split</span>     <span class="n">PATH</span><span class="o">/</span><span class="n">TO</span><span class="o">/</span><span class="n">INPUT</span><span class="o">/</span><span class="n">DATA</span> \
-    <span class="o">--</span><span class="n">genome</span>    <span class="o">~/</span><span class="n">pipeline</span><span class="o">/</span><span class="n">data</span><span class="o">/</span><span class="n">genomes</span> \
-    <span class="o">--</span><span class="n">db</span>        <span class="o">~/</span><span class="n">pipeline</span><span class="o">/</span><span class="n">data</span><span class="o">/</span><span class="n">kraken</span><span class="o">/</span><span class="n">Mito_db_kmer22</span> \
-    <span class="o">--</span><span class="n">bedfiles</span>  <span class="o">~/</span><span class="n">pipeline</span><span class="o">/</span><span class="n">data</span><span class="o">/</span><span class="n">masked</span> \
-    <span class="o">--</span><span class="n">report</span>
-    <span class="o">--</span><span class="n">analyze</span>
+<p>To run the pipeline locally, pull the code from github:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">git</span> <span class="n">clone</span> <span class="n">git</span><span class="nd">@github</span><span class="o">.</span><span class="n">com</span><span class="p">:</span><span class="n">mpieva</span><span class="o">/</span><span class="n">quicksand</span>
+</pre></div>
+</div>
+<p>and executed the pipeline by pointing nextflow to the <code class="file docutils literal notranslate"><span class="pre">main.nf</span></code> file in the cloned repository:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">nextflow</span> <span class="n">run</span> <span class="n">quicksand</span><span class="o">/</span><span class="n">main</span><span class="o">.</span><span class="n">nf</span> \
+    <span class="o">--</span><span class="n">split</span>      <span class="o">/</span><span class="n">path</span><span class="o">/</span><span class="n">to</span><span class="o">/</span><span class="n">split</span><span class="o">/</span> \
+    <span class="o">--</span><span class="n">genomes</span>    <span class="o">/</span><span class="n">path</span><span class="o">/</span><span class="n">to</span><span class="o">/</span><span class="n">refseq</span><span class="o">/</span><span class="n">genomes</span> \
+    <span class="o">--</span><span class="n">db</span>         <span class="o">/</span><span class="n">path</span><span class="o">/</span><span class="n">to</span><span class="o">/</span><span class="n">refseq</span><span class="o">/</span><span class="n">kraken</span><span class="o">/</span><span class="n">Mito_db_kmer22</span> \
+    <span class="o">--</span><span class="n">bedfiles</span>   <span class="o">/</span><span class="n">path</span><span class="o">/</span><span class="n">to</span><span class="o">/</span><span class="n">refseq</span><span class="o">/</span><span class="n">masked</span> \
+    <span class="o">-</span><span class="n">profile</span>     <span class="n">singularity</span>
 </pre></div>
 </div>
 </section>
 <section id="run-from-remote-repository">
 <h3>Run from remote repository<a class="headerlink" href="#run-from-remote-repository" title="Permalink to this headline"></a></h3>
-<p>Instead of cloning the repository, it is also possible to run the pipeline directly from github:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">mkdir</span> <span class="n">runDir</span> <span class="o">&amp;&amp;</span> <span class="n">cd</span> <span class="n">runDir</span>
-
-<span class="n">nextflow</span> <span class="n">run</span> <span class="n">mpieva</span><span class="o">/</span><span class="n">quicksand</span> \
-    <span class="o">--</span><span class="n">split</span>     <span class="n">PATH</span><span class="o">/</span><span class="n">TO</span><span class="o">/</span><span class="n">INPUT</span><span class="o">/</span><span class="n">DATA</span> \
-    <span class="o">--</span><span class="n">genome</span>    <span class="o">~/</span><span class="n">pipeline</span><span class="o">/</span><span class="n">data</span><span class="o">/</span><span class="n">genomes</span> \
-    <span class="o">--</span><span class="n">db</span>        <span class="o">~/</span><span class="n">pipeline</span><span class="o">/</span><span class="n">data</span><span class="o">/</span><span class="n">kraken</span><span class="o">/</span><span class="n">Mito_db_kmer22</span> \
-    <span class="o">--</span><span class="n">bedfiles</span>  <span class="o">~/</span><span class="n">pipeline</span><span class="o">/</span><span class="n">data</span><span class="o">/</span><span class="n">masked</span> \
-    <span class="o">--</span><span class="n">report</span>
-    <span class="o">--</span><span class="n">analyze</span>
+<p>Instead of cloning the repository, run the pipeline directly from github:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">nextflow</span> <span class="n">run</span> <span class="n">quicksand</span><span class="o">/</span><span class="n">main</span><span class="o">.</span><span class="n">nf</span> <span class="p">[</span><span class="o">-</span><span class="n">r</span> <span class="n">v1</span><span class="mf">.5</span><span class="p">]</span> \
+    <span class="o">--</span><span class="n">split</span>      <span class="o">/</span><span class="n">path</span><span class="o">/</span><span class="n">to</span><span class="o">/</span><span class="n">split</span><span class="o">/</span> \
+    <span class="o">--</span><span class="n">genomes</span>    <span class="o">/</span><span class="n">path</span><span class="o">/</span><span class="n">to</span><span class="o">/</span><span class="n">refseq</span><span class="o">/</span><span class="n">genomes</span> \
+    <span class="o">--</span><span class="n">db</span>         <span class="o">/</span><span class="n">path</span><span class="o">/</span><span class="n">to</span><span class="o">/</span><span class="n">refseq</span><span class="o">/</span><span class="n">kraken</span><span class="o">/</span><span class="n">Mito_db_kmer22</span> \
+    <span class="o">--</span><span class="n">bedfiles</span>   <span class="o">/</span><span class="n">path</span><span class="o">/</span><span class="n">to</span><span class="o">/</span><span class="n">refseq</span><span class="o">/</span><span class="n">masked</span> \
+    <span class="o">-</span><span class="n">profile</span>     <span class="n">singularity</span>
 </pre></div>
 </div>
-<p>It is possible to specify a version (or branch) by providing the <code class="code docutils literal notranslate"><span class="pre">-r</span> <span class="pre">&lt;branch/tag&gt;</span></code> flag. By default the <code class="code docutils literal notranslate"><span class="pre">master</span></code> branch is pulled
-and stored locally in the hidden <code class="file docutils literal notranslate"><span class="pre">~/.nextflow</span></code> directory. If the remote pipeline is updated, make sure to pull the updates by running:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">nextflow</span> <span class="n">pull</span> <span class="n">mpieva</span><span class="o">/</span><span class="n">quicksand</span> <span class="p">[</span><span class="o">-</span><span class="n">r</span> <span class="n">v1</span><span class="mf">.3</span><span class="p">]</span>
+<p>Specify a version (or branch) by providing the <code class="code docutils literal notranslate"><span class="pre">-r</span> <span class="pre">&lt;branch/tag&gt;</span></code> flag. By default the <code class="code docutils literal notranslate"><span class="pre">master</span></code> branch is pulled
+and stored locally in the hidden <code class="file docutils literal notranslate"><span class="pre">~/.nextflow/assets/mpieva/quicksand</span></code> directory. If the remote pipeline is updated, make sure to pull the updates by
+running:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">nextflow</span> <span class="n">pull</span> <span class="n">mpieva</span><span class="o">/</span><span class="n">quicksand</span>
 </pre></div>
 </div>
 <p>To reduce the number of flags manually handed over to the pipeline, see the <a class="reference internal" href="configuration.html#configuration-page"><span class="std std-ref">configuration section</span></a> on how to set up an individual configuration of the pipeline.</p>
 </section>
 </section>
 <section id="output">
-<span id="id2"></span><h2>Output<a class="headerlink" href="#output" title="Permalink to this headline"></a></h2>
-<p>For each readgroup, the pipeline outputs the raw reads in <code class="file docutils literal notranslate"><span class="pre">.bam</span></code>-format at each stage of the pipeline.
-Additionally the number of reads assigned to one taxon-level (Family/Order), reads extracted, reads mapped, reads deduplicated, and bedfiltered as well as the estimated DNA-damage
-are reported for a quick overview in one big summary-file.</p>
-<p>Two ways exist to structure the output. Based on the <code class="code docutils literal notranslate"><span class="pre">--byrg</span></code> flag either by readgroup or by family.
-without the <code class="code docutils literal notranslate"><span class="pre">--byrg</span></code> flag, the output is structured by Taxon</p>
+<span id="id3"></span><h2>Output<a class="headerlink" href="#output" title="Permalink to this headline"></a></h2>
+<p>Based on the <code class="code docutils literal notranslate"><span class="pre">--byrg</span></code> flag, structure the output by either readgroup or family. By default, the output is structured by Taxon</p>
 <section id="structured-by-taxon">
 <h3>Structured by Taxon<a class="headerlink" href="#structured-by-taxon" title="Permalink to this headline"></a></h3>
-<p>This overview corresponds to a run with the <code class="code docutils literal notranslate"><span class="pre">--analyze</span></code> and the <code class="code docutils literal notranslate"><span class="pre">--report</span></code> flags provided.
-Several directories and files should appear after the run. The ‘taxon’ corresponds to  either the family or the order level:</p>
+<p>Several directories and files should appear after the run. The 'taxon' corresponds to either the family or the order level name:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span>RunDir
 ├── out
 │    └── {taxon}
-│         ├── {readgroup}_extractedReads-{family}.bam
+│         ├── {readgroup}_extractedReads-{taxon}.bam
 │         ├── aligned
-│         │    ├── {readgroup}.{family}.{species}.bam
-│         │    └── {readgroup}.{family}.{species}_deduped.bam
-│         └── bed
-│              └── {readgroup}.{family}.{species}_deduped_bedfiltered.bam
+│         │    ├── {family}.{taxon}.{species}.bam
+│         │    └── {family}.{taxon}.{species}_deduped.bam
+│         ├── bed
+│         │    └── {family}.{taxon}.{species}_deduped_bedfiltered.bam
+│         └── deaminated
+│              └── {family}.{taxon}.{species}_deduped_deaminated53.bam
 ├── kraken
 │    ├── {readgroup}.report
 │    └── {readgroup}.translate
@@ -288,9 +586,9 @@ Several directories and files should appear after the run. The ‘taxon’ corre
 │    ├── {readgroup}_extracted.tsv
 │    ├── {readgroup}_mapped.tsv
 │    ├── {readgroup}_mapped_coverage.tsv
-│    ├── {readgroup}_unique_mapped.tsv
-│    ├── {readgroup}_bedfiltered.tsv
-│    └── {readgroup}_deamination_stats
+│    ├── {readgroup}_mapped_deduped.tsv
+│    ├── {readgroup}_mapped_deduped_bedfiltered.tsv
+│    └── {readgroup}_mapped_deduped_deamination53.tsv
 ├── reports
 │    ├── report.html
 │    ├── timeline.html
@@ -311,8 +609,10 @@ Several directories and files should appear after the run. The ‘taxon’ corre
 │         ├── aligned
 │         │    ├── {readgroup}.{family}.{species}.bam
 │         │    └── {readgroup}.{family}.{species}_deduped.bam
-│         └── bed
-│              └── {readgroup}.{family}.{species}_deduped_bedfiltered.bam
+│         ├── bed
+│         │    └── {readgroup}.{family}.{species}_deduped_bedfiltered.bam
+│         └── deaminated
+│              └── {readgroup}.{family}.{species}_deduped_deaminated53.bam
 ...
 </pre></div>
 </div>
@@ -332,17 +632,24 @@ Several directories and files should appear after the run. The ‘taxon’ corre
 </tr>
 </thead>
 <tbody>
-<tr class="row-even"><td><p><code class="file docutils literal notranslate"><span class="pre">extractedReads.bam</span></code></p></td>
-<td><p>Contains all DNA sequences of one family (or order) from one readgroup assigned by KrakenUniq to that taxon.</p></td>
+<tr class="row-even"><td><p><code class="file docutils literal notranslate"><span class="pre">${RG}.extractedReads-${taxon}.bam</span></code></p></td>
+<td><p>Contains all DNA sequences from one readgroup assigned by krakenuniq to one taxon (family or order).</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="file docutils literal notranslate"><span class="pre">alignedReads.bam</span></code></p></td>
-<td><p>For a given family and species, all extractedReads (see above) mapped/aligned to the genome of the assigned species</p></td>
+<tr class="row-odd"><td><p><code class="file docutils literal notranslate"><span class="pre">aligned/${RG}.${family}.${species}.bam</span></code></p></td>
+<td><p>An alignemnt file. The result of mapping all extractedReads (see above) against the genome of the assigned 'best' species</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="file docutils literal notranslate"><span class="pre">aligned_dedupedReads.bam</span></code></p></td>
-<td><p>The aligned reads, but depleted of PCR duplicates</p></td>
+<tr class="row-even"><td><p><code class="file docutils literal notranslate"><span class="pre">aligend/${RG}.${family}.${species}_deduped.bam</span></code></p></td>
+<td><p>The same alignment file, but depleted of PCR duplicates - reads with the same start and end coordinates in the alignment</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="file docutils literal notranslate"><span class="pre">bedfilteredReads</span></code></p></td>
-<td><p>The aligned_deduped reads but additionally depleted of reads overlapping low-complexity regions</p></td>
+<tr class="row-odd"><td><p><code class="file docutils literal notranslate"><span class="pre">bed/${RG}.${family}.${species}_deduped_bedfiltered.bam</span></code></p></td>
+<td><p>The same aligned and deduped bamfile, but additionally depleted of reads overlapping the low-complexity regions specified in the <code class="code docutils literal notranslate"><span class="pre">--bedfiles</span></code> for the given species</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="file docutils literal notranslate"><span class="pre">deaminated/${RG}.${family}.${species}_deduped_deaminated53.bam</span></code></p></td>
+<td><div class="line-block">
+<div class="line">The same aligned, deduped and bedfiltered bamfile, filtered for reads that show a C to T</div>
+<div class="line">substitution at one of the terminal basepair positions in respect to the reference genome</div>
+</div>
+</td>
 </tr>
 </tbody>
 </table>
@@ -358,11 +665,11 @@ Several directories and files should appear after the run. The ‘taxon’ corre
 </tr>
 </thead>
 <tbody>
-<tr class="row-even"><td><p><code class="file docutils literal notranslate"><span class="pre">kraken.report</span></code></p></td>
-<td><p>The raw KrakenUniq report</p></td>
+<tr class="row-even"><td><p><code class="file docutils literal notranslate"><span class="pre">${RG}.report</span></code></p></td>
+<td><p>The standard krakenuniq report</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="file docutils literal notranslate"><span class="pre">kraken.translate</span></code></p></td>
-<td><p>The human readable kraken report in mpa-format</p></td>
+<tr class="row-odd"><td><p><code class="file docutils literal notranslate"><span class="pre">${RG}.translate</span></code></p></td>
+<td><p>The read-wise human readable kraken report in mpa-format</p></td>
 </tr>
 </tbody>
 </table>
@@ -378,32 +685,119 @@ Several directories and files should appear after the run. The ‘taxon’ corre
 </tr>
 </thead>
 <tbody>
-<tr class="row-even"><td><p><code class="file docutils literal notranslate"><span class="pre">splitcounts.tsv</span></code></p></td>
-<td><p>Contains the number of reads per readgroup</p></td>
+<tr class="row-even"><td><p><code class="file docutils literal notranslate"><span class="pre">stats/splitcounts.tsv</span></code></p></td>
+<td><p>For each readgroup (RG), show the number of reads before and after the filterBam process:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">readgroup</span>   <span class="n">split</span> <span class="n">count</span>   <span class="n">filtered</span> <span class="n">count</span>
+<span class="n">test1</span>       <span class="mi">235</span>           <span class="mi">235</span>
+<span class="n">test2</span>       <span class="mi">235</span>           <span class="mi">235</span>
+<span class="n">test3</span>       <span class="mi">235</span>           <span class="mi">235</span>
+</pre></div>
+</div>
+</td>
 </tr>
-<tr class="row-odd"><td><p><code class="file docutils literal notranslate"><span class="pre">extracted.tsv</span></code></p></td>
-<td><p>For each readgroup show the number of reads per extracted family</p></td>
+<tr class="row-odd"><td><p><code class="file docutils literal notranslate"><span class="pre">${RG}_extracted.tsv</span></code></p></td>
+<td><p>For each readgroup (RG) show the number of reads extracted for each assigned taxon:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Taxon</span>       <span class="n">ReadsExtracted</span>
+<span class="n">Hominidae</span>   <span class="mi">235</span>
+</pre></div>
+</div>
+</td>
 </tr>
-<tr class="row-even"><td><p><code class="file docutils literal notranslate"><span class="pre">mapped.tsv</span></code></p></td>
-<td><p>Show the number of reads mapped against the reference genome</p></td>
+<tr class="row-even"><td><p><code class="file docutils literal notranslate"><span class="pre">${RG}_mapped.tsv</span></code></p></td>
+<td><p>For each readgroup (RG) show the number of reads mapped against the reference genome:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Order</span>     <span class="n">Family</span>      <span class="n">Species</span>       <span class="n">ReadsMapped</span>
+<span class="n">Primates</span>  <span class="n">Hominidae</span>   <span class="n">Homo_sapiens</span>  <span class="mi">235</span>
+</pre></div>
+</div>
+</td>
 </tr>
-<tr class="row-odd"><td><p><code class="file docutils literal notranslate"><span class="pre">mapped_coverage.tsv</span></code></p></td>
-<td><p>Contains the number of covered basepairs for each mapping</p></td>
+<tr class="row-odd"><td><p><code class="file docutils literal notranslate"><span class="pre">${RG}_mapped_coverage.tsv</span></code></p></td>
+<td><p>For each readgroup (RG) show the number of covered basepairs in the reference for each mapping:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Order</span>     <span class="n">Family</span>      <span class="n">Species</span>       <span class="n">CoveredBP</span>
+<span class="n">Primates</span>  <span class="n">Hominidae</span>   <span class="n">Homo_sapiens</span>  <span class="mi">4616</span>
+</pre></div>
+</div>
+</td>
 </tr>
-<tr class="row-even"><td><p><code class="file docutils literal notranslate"><span class="pre">unique_mapped.tsv</span></code></p></td>
-<td><p>Contains the number of deduplicated reads mapped against the reference genome</p></td>
+<tr class="row-even"><td><p><code class="file docutils literal notranslate"><span class="pre">${RG}_mapped_deduped.tsv</span></code></p></td>
+<td><p>For each readgroup (RG) report the number of unique (deduplicated) reads mapped against the reference genome:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Order</span>     <span class="n">Family</span>      <span class="n">Species</span>       <span class="n">ReadsDeduped</span>
+<span class="n">Primates</span>  <span class="n">Hominidae</span>   <span class="n">Homo_sapiens</span>  <span class="mi">98</span>
+</pre></div>
+</div>
+</td>
 </tr>
-<tr class="row-odd"><td><p><code class="file docutils literal notranslate"><span class="pre">bedfiltered.tsv</span></code></p></td>
-<td><p>The number of reads remaining in the bam-file after bedfiltering</p></td>
+<tr class="row-odd"><td><p><code class="file docutils literal notranslate"><span class="pre">${RG}_mapped_deduped_bedfiltered.tsv</span></code></p></td>
+<td><p>For each readgroup (RG) show the number of reads remaining in the bam-file after bedfiltering:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Order</span>     <span class="n">Family</span>      <span class="n">Species</span>       <span class="n">ReadsBedfiltered</span>
+<span class="n">Primates</span>  <span class="n">Hominidae</span>   <span class="n">Homo_sapiens</span>  <span class="mi">97</span>
+</pre></div>
+</div>
+</td>
 </tr>
-<tr class="row-even"><td><p><code class="file docutils literal notranslate"><span class="pre">deamination_stats</span></code></p></td>
-<td><p>Show an estimation of the ‘ancientness’ of families based on deamination frequencies of recovered reads</p></td>
+<tr class="row-even"><td><p><code class="file docutils literal notranslate"><span class="pre">${RG}_mapped_deduped_deaminated53.tsv</span></code></p></td>
+<td><p>For each readgroup (RG) show the deamination stats for the mapped bam-file after bedfiltering:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Ancient</span><span class="p">:</span>  <span class="o">++</span>  <span class="o">=</span> <span class="n">more</span> <span class="n">than</span> <span class="mf">9.5</span><span class="o">%</span> <span class="n">of</span> <span class="n">the</span> <span class="n">reads</span> <span class="n">that</span> <span class="n">show</span> <span class="n">a</span> <span class="n">terminal</span> <span class="n">C</span> <span class="ow">in</span> <span class="n">both</span> <span class="n">the</span> <span class="mi">5</span><span class="s1">&#39; and 3&#39;</span> <span class="n">position</span> <span class="ow">in</span> <span class="n">the</span> <span class="n">reference</span> <span class="n">genome</span><span class="p">,</span> <span class="n">carry</span> <span class="n">a</span> <span class="n">T</span>
+          <span class="o">+</span>   <span class="o">=</span> <span class="n">more</span> <span class="n">than</span> <span class="mf">9.5</span><span class="o">%</span> <span class="n">of</span> <span class="n">the</span> <span class="n">reads</span> <span class="n">that</span> <span class="n">show</span> <span class="n">a</span> <span class="n">terminal</span> <span class="n">C</span> <span class="ow">in</span> <span class="n">either</span> <span class="n">the</span> <span class="mi">5</span><span class="s1">&#39; or 3&#39;</span> <span class="n">position</span> <span class="ow">in</span> <span class="n">the</span> <span class="n">reference</span> <span class="n">genome</span><span class="p">,</span> <span class="n">carry</span> <span class="n">a</span> <span class="n">T</span>
+          <span class="o">-</span>   <span class="o">=</span> <span class="n">no</span> <span class="n">signs</span> <span class="k">for</span> <span class="n">DNA</span> <span class="n">deamination</span> <span class="n">patterns</span>
+
+<span class="n">Deam5</span><span class="p">(</span><span class="mi">95</span><span class="n">CI</span><span class="p">):</span> <span class="n">For</span> <span class="n">the</span> <span class="n">terminal</span> <span class="mi">5</span><span class="s1">&#39; end, the percentage of C to T substitutions (and the 95</span><span class="si">% c</span><span class="s1">onfidence interval)</span>
+<span class="n">Deam3</span><span class="p">(</span><span class="mi">95</span><span class="n">CI</span><span class="p">):</span> <span class="n">For</span> <span class="n">the</span> <span class="n">terminal</span> <span class="mi">3</span><span class="s1">&#39; end, the percentage of C to T substitutions (and the 95</span><span class="si">% c</span><span class="s1">onfidence interval)</span>
+<span class="n">Deam5Cond</span><span class="p">(</span><span class="mi">95</span><span class="n">CI</span><span class="p">):</span> <span class="n">Taken</span> <span class="n">only</span> <span class="mi">3</span><span class="s1">&#39; deaminated sequences, report the percentage of C to T substitutions (and the 95</span><span class="si">% c</span><span class="s1">onfidence interval) at the 5&#39;</span> <span class="n">terminal</span> <span class="n">base</span>
+<span class="n">Deam3Cond</span><span class="p">(</span><span class="mi">95</span><span class="n">CI</span><span class="p">):</span> <span class="n">Taken</span> <span class="n">only</span> <span class="mi">5</span><span class="s1">&#39; deaminated sequences, report the percentage of C to T substitutions (and the 95</span><span class="si">% c</span><span class="s1">onfidence interval) at the 3&#39;</span> <span class="n">terminal</span> <span class="n">base</span>
+
+<span class="n">Order</span>       <span class="n">Family</span>      <span class="n">Species</span>         <span class="n">Ancient</span>   <span class="n">ReadsDeaminated</span>   <span class="n">Deam5</span><span class="p">(</span><span class="mi">95</span><span class="n">CI</span><span class="p">)</span>           <span class="n">Deam3</span><span class="p">(</span><span class="mi">95</span><span class="n">CI</span><span class="p">)</span>         <span class="n">Deam5Cond</span><span class="p">(</span><span class="mi">95</span><span class="n">CI</span><span class="p">)</span>     <span class="n">Deam3Cond</span><span class="p">(</span><span class="mi">95</span><span class="n">CI</span><span class="p">)</span>
+<span class="n">Primates</span>    <span class="n">Hominidae</span>   <span class="n">Homo_sapiens</span>    <span class="o">++</span>        <span class="mi">13</span>                <span class="mf">28.57</span><span class="p">(</span><span class="mf">13.22</span><span class="p">,</span><span class="mf">48.67</span><span class="p">)</span>    <span class="mf">27.27</span><span class="p">(</span><span class="mf">10.73</span><span class="p">,</span><span class="mf">50.22</span><span class="p">)</span>  <span class="mf">50.0</span><span class="p">(</span><span class="mf">1.26</span><span class="p">,</span><span class="mf">98.74</span><span class="p">)</span>    <span class="mf">50.0</span><span class="p">(</span><span class="mf">1.26</span><span class="p">,</span><span class="mf">98.74</span><span class="p">)</span>
+</pre></div>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+<p><strong>final report:</strong></p>
+<table class="colwidths-given docutils align-default">
+<colgroup>
+<col style="width: 20%" />
+<col style="width: 80%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>File</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="file docutils literal notranslate"><span class="pre">final_report.tsv</span></code></p></td>
+<td><p>A summary of all the files in the <code class="file docutils literal notranslate"><span class="pre">stats</span></code> dir plus additional information gathered from processes during the pipeline run:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">RG</span>                  <span class="n">The</span> <span class="n">analyzed</span> <span class="n">readgroup</span>
+<span class="n">FamilyKmers</span>         <span class="n">The</span> <span class="n">total</span> <span class="n">number</span> <span class="n">of</span> <span class="n">kmers</span> <span class="n">assigned</span> <span class="n">to</span> <span class="n">the</span> <span class="n">family</span> <span class="n">node</span> <span class="n">by</span> <span class="n">krakenuniq</span>
+<span class="n">KmerCoverage</span>        <span class="n">The</span> <span class="n">proportion</span> <span class="n">of</span> <span class="n">family</span> <span class="n">kmers</span> <span class="n">assigned</span> <span class="n">by</span> <span class="n">the</span> <span class="n">number</span> <span class="n">of</span> <span class="n">kmers</span> <span class="n">present</span> <span class="ow">in</span> <span class="n">the</span> <span class="n">database</span> <span class="k">for</span> <span class="n">that</span> <span class="n">family</span>
+<span class="n">KmerDupRate</span>         <span class="n">The</span> <span class="n">average</span> <span class="n">duplication</span> <span class="n">rate</span> <span class="n">of</span> <span class="n">kmers</span> <span class="n">used</span> <span class="k">for</span> <span class="n">the</span> <span class="n">assignment</span> <span class="n">of</span> <span class="n">the</span> <span class="n">given</span> <span class="n">family</span>
+<span class="n">Order</span>               <span class="n">The</span> <span class="n">name</span> <span class="n">of</span> <span class="n">the</span> <span class="n">Order</span> <span class="n">assigned</span>
+<span class="n">Family</span>              <span class="n">The</span> <span class="n">name</span> <span class="n">of</span> <span class="n">the</span> <span class="n">Family</span> <span class="n">assigned</span>
+<span class="n">Species</span>             <span class="n">The</span> <span class="n">name</span> <span class="n">of</span> <span class="n">the</span> <span class="n">reference</span> <span class="n">species</span> <span class="n">used</span> <span class="k">for</span> <span class="n">mapping</span> <span class="n">assigned</span> <span class="n">taxon</span> <span class="n">reads</span> <span class="n">against</span>
+<span class="n">ExtractLVL</span>          <span class="n">The</span> <span class="n">taxon</span> <span class="n">level</span> <span class="n">used</span> <span class="k">for</span> <span class="n">extraction</span> <span class="n">of</span> <span class="n">reads</span> <span class="p">(</span><span class="n">f</span> <span class="ow">or</span> <span class="n">o</span><span class="p">)</span>
+<span class="n">ReadsExtracted</span>      <span class="n">The</span> <span class="n">number</span> <span class="n">of</span> <span class="n">reads</span> <span class="n">extracted</span><span class="o">/</span><span class="n">assigned</span> <span class="n">to</span> <span class="n">the</span> <span class="n">taxon</span> <span class="n">by</span> <span class="n">krakenuniq</span>
+<span class="n">ReadsMapped</span>         <span class="n">The</span> <span class="n">number</span> <span class="n">of</span> <span class="n">reads</span> <span class="n">mapped</span> <span class="n">against</span> <span class="n">the</span> <span class="n">Species</span> <span class="n">genome</span>
+<span class="n">ProportionMapped</span>    <span class="n">The</span> <span class="n">proportion</span> <span class="n">of</span> <span class="n">mapped</span><span class="o">/</span><span class="n">extracted</span> <span class="n">reads</span>
+<span class="n">ReadsDeduped</span>        <span class="n">The</span> <span class="n">number</span> <span class="n">of</span> <span class="n">deduplicated</span><span class="p">(</span><span class="n">unique</span><span class="p">)</span> <span class="n">reads</span> <span class="ow">in</span> <span class="n">the</span> <span class="n">alignment</span> <span class="n">file</span>
+<span class="n">DuplicationRate</span>     <span class="n">The</span> <span class="n">duplication</span> <span class="n">rate</span> <span class="n">of</span> <span class="n">mapped</span> <span class="n">reads</span> <span class="o">--&gt;</span> <span class="n">mapped</span><span class="o">/</span><span class="n">deduped</span> <span class="n">reads</span>
+<span class="n">CoveredBP</span>           <span class="n">The</span> <span class="n">number</span> <span class="n">of</span> <span class="n">basepairs</span> <span class="ow">in</span> <span class="n">the</span> <span class="n">reference</span> <span class="n">genome</span> <span class="n">covered</span> <span class="n">by</span> <span class="n">the</span> <span class="n">aligned</span> <span class="n">reads</span>
+<span class="n">ReadsBedfiltered</span>    <span class="n">The</span> <span class="n">number</span> <span class="n">of</span> <span class="n">reads</span> <span class="ow">not</span> <span class="n">overlapping</span> <span class="n">low</span><span class="o">-</span><span class="n">complexity</span> <span class="n">regions</span>
+<span class="n">FamPercentage</span>       <span class="n">Taken</span> <span class="nb">all</span> <span class="n">bedfiltered</span> <span class="n">reads</span> <span class="n">of</span> <span class="n">the</span> <span class="n">RG</span><span class="p">,</span> <span class="n">report</span> <span class="n">the</span> <span class="n">percentage</span> <span class="n">of</span> <span class="n">bedfiltered</span> <span class="n">reads</span> <span class="k">for</span> <span class="n">the</span> <span class="n">given</span> <span class="n">family</span>
+<span class="n">Ancientness</span>         <span class="n">One</span> <span class="n">of</span> <span class="o">++</span><span class="p">,</span><span class="o">+</span> <span class="ow">or</span> <span class="o">-</span> <span class="o">--&gt;</span> <span class="n">See</span> <span class="n">above</span> <span class="k">for</span> <span class="n">an</span> <span class="n">explanation</span> <span class="n">of</span> <span class="n">the</span> <span class="n">symbols</span>
+<span class="n">ReadsDeaminated53</span>   <span class="n">The</span> <span class="n">number</span> <span class="n">of</span> <span class="n">reads</span> <span class="n">showing</span> <span class="n">a</span> <span class="n">C</span> <span class="n">to</span> <span class="n">T</span> <span class="n">substitution</span> <span class="n">on</span> <span class="n">either</span> <span class="n">of</span> <span class="n">the</span> <span class="mi">5</span><span class="s1">&#39; or 3&#39;</span> <span class="n">ends</span> <span class="ow">in</span> <span class="n">respect</span> <span class="n">to</span> <span class="n">the</span> <span class="n">reference</span>
+<span class="n">Deam5</span>               <span class="n">For</span> <span class="n">the</span> <span class="n">given</span> <span class="n">family</span><span class="p">,</span> <span class="n">the</span> <span class="n">percentage</span> <span class="n">of</span> <span class="n">C</span> <span class="n">to</span> <span class="n">T</span> <span class="n">substitutions</span> <span class="p">(</span><span class="ow">and</span> <span class="n">the</span> <span class="mi">95</span><span class="o">%</span> <span class="n">confidence</span> <span class="n">interval</span><span class="p">)</span> <span class="n">on</span> <span class="n">the</span> <span class="n">terminal</span> <span class="mi">5</span><span class="s1">&#39; end</span>
+<span class="n">Deam3</span>               <span class="n">For</span> <span class="n">the</span> <span class="n">given</span> <span class="n">family</span><span class="p">,</span> <span class="n">the</span> <span class="n">percentage</span> <span class="n">of</span> <span class="n">C</span> <span class="n">to</span> <span class="n">T</span> <span class="n">substitutions</span> <span class="p">(</span><span class="ow">and</span> <span class="n">the</span> <span class="mi">95</span><span class="o">%</span> <span class="n">confidence</span> <span class="n">interval</span><span class="p">)</span> <span class="n">on</span> <span class="n">the</span> <span class="n">terminal</span> <span class="mi">3</span><span class="s1">&#39; end</span>
+<span class="n">Deam5Cond</span>           <span class="n">Taken</span> <span class="n">only</span> <span class="mi">3</span><span class="s1">&#39; deaminated sequences, report the percentage of C to T substitutions (and the 95</span><span class="si">% c</span><span class="s1">onfidence interval) at the 5&#39;</span> <span class="n">terminal</span> <span class="n">base</span>
+<span class="n">Deam3Cond</span>           <span class="n">Taken</span> <span class="n">only</span> <span class="mi">5</span><span class="s1">&#39; deaminated sequences, report the percentage of C to T substitutions (and the 95</span><span class="si">% c</span><span class="s1">onfidence interval) at the 3&#39;</span> <span class="n">terminal</span> <span class="n">base</span>
+</pre></div>
+</div>
+</td>
 </tr>
 </tbody>
 </table>
 <div class="line-block">
-<div class="line">The <code class="file docutils literal notranslate"><span class="pre">final_report.tsv</span></code> is a summary of all the files in the <code class="file docutils literal notranslate"><span class="pre">stats</span></code> dir.</div>
-<div class="line">The <code class="file docutils literal notranslate"><span class="pre">report</span></code> directory contains information about the run</div>
+<div class="line">The <code class="file docutils literal notranslate"><span class="pre">report</span></code> directory contains nextflow specific information about the run</div>
 <div class="line">the <code class="file docutils literal notranslate"><span class="pre">work</span></code> directory can be deleted after the run - it contains nextflow specific intermediate files</div>
 </div>
 </section>

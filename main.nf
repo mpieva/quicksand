@@ -1,4 +1,4 @@
-#!/usr/bin/env nextflowcd
+#!/usr/bin/env nextflow
 
 red = "\033[0;31m"
 white = "\033[0m"
@@ -82,7 +82,7 @@ specmap    = params.specmap  ? Channel.fromPath("${params.specmap}",            
 
 
 // Additional File Channels
-capture_families = params.capture.split(',')
+nobed_families = params.skip_bed.split(',')
 taxid = new File("${params.genomes}/taxid_map.tsv").exists() ? Channel.fromPath("${params.genomes}/taxid_map.tsv", type:'file') : Channel.fromPath("${baseDir}/assets/taxid_map_example.tsv", type:'file') 
 
 if (! new File("${params.genomes}/taxid_map.tsv").exists()) {
@@ -311,7 +311,7 @@ process runKrakenUniq {
     """
 }
 
-process findBestSpecies{
+process findBestNode{
     conda (params.enable_conda ? "${baseDir}/envs/sediment.yaml" : null)    
     container (workflow.containerEngine ? "merszym/quicksand:1.2" : null)
     label 'process_low'
@@ -524,7 +524,7 @@ dedupedbam_out
     .groupTuple(by:[0,1])   //[[rg, fam, [covered_bp < .. < covered_bp][meta,meta,meta],[bam,bam,bam]]
     .map{n -> [n[3][-1], n[4][-1]]} // [meta, bam]
     .branch{
-        no_bed: it[0].Family in capture_families
+        no_bed: it[0].Family in nobed_families
         bed: true
     }
     .set{dedupedbam_out}
@@ -630,34 +630,34 @@ if(! params.skip_report){
     report_in.map{ meta -> [
     	meta,
     	prop_mapped = (meta.Extracted==0 || meta.Mapped == 0) ? 0 : (meta.Mapped/meta.Extracted).trunc(4),
-    	dupl_rate = (meta.Deduped==0 || meta.Mapped==0) ? 0 : (meta.Deduped / meta.Mapped).trunc(4)
+    	dupl_rate = (meta.Deduped==0 || meta.Mapped==0) ? 0 : (meta.Deduped/meta.Mapped).trunc(4)
         ]
     }
-    .collectFile(seed:'RG\tFamilyKmers\tKmerCoverage\tKmerDupRate\tOrder\tFamily\tSpecies\tExtractLVL\tReadsExtracted\tReadsMapped\tProportionMapped\tReadsDeduped\tDuplicationRate\tCoveredBP\tReadsBedfiltered\tFamPercentage\tAncientness\tReadsDeaminated53\tDeam5\tDeam3\tCondDeam5\tCondDeam3', 
+    .collectFile(seed:'RG\tFamilyKmers\tKmerCoverage\tKmerDupRate\tOrder\tFamily\tSpecies\tExtractLVL\tReadsExtracted\tReadsMapped\tProportionMapped\tReadsDeduped\tDuplicationRate\tCoveredBP\tReadsBedfiltered\tFamPercentage\tAncientness\tReadsDeaminated53\tDeam5\tDeam3\tDeam5Cond\tDeam3Cond', 
         storeDir:'.', newLine:true, sort:true){ meta, pm, dup -> [
-                'final_report.tsv', [
-                meta.id,
-                meta.FamKmers,
-                meta.FamKmerCov,
-                meta.FamKmerDup,
-                meta.Order,
-                meta.Family,
-                meta.Species,
-                params.taxlvl,
-                meta.Extracted,
-                meta.Mapped,
-                pm,
-                meta.Deduped,
-                dup,
-                meta.CoveredBP,
-		meta.Bedfiltered ?: '-',
-                meta.FamPercentage,
-    	        meta.Ancient ?: 'N/A',
-    	        meta.ReadsDeaminated ?: '-',
-    	        meta.Deam5 ?: '-',
-    	        meta.Deam3 ?: '-',
-   	        meta.Deam5Cond ?: '-',
-    	        meta.Deam3Cond ?: '-'].join('\t') 
+            'final_report.tsv', [
+            meta.id,
+            meta.FamKmers,
+            meta.FamKmerCov,
+            meta.FamKmerDup,
+            meta.Order,
+            meta.Family,
+            meta.Species,
+            params.taxlvl,
+            meta.Extracted,
+            meta.Mapped,
+            pm,
+            meta.Deduped,
+            dup,
+            meta.CoveredBP,
+            meta.Bedfiltered ?: '-',
+            meta.FamPercentage,
+            meta.Ancient ?: 'N/A',
+            meta.ReadsDeaminated ?: '-',
+            meta.Deam5 ?: '-',
+            meta.Deam3 ?: '-',
+            meta.Deam5Cond ?: '-',
+            meta.Deam3Cond ?: '-'].join('\t') 
         ]
     }
 }

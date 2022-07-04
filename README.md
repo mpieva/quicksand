@@ -18,7 +18,7 @@ While the default settings are optimized and tested for the assignment of mammal
 #### Workflow   
 
 <p align=center>
-    <img src="assets/pipeline_overview.png" alt="Graphical overview over the pipeline workflow" width=500 height=500>
+    <img src="assets/pipeline_overview_v1.5.png" alt="Graphical overview over the pipeline workflow" width=500 height=500>
 </p>
 
 #### Input

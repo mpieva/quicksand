@@ -19,8 +19,8 @@
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Description" href="description.html" />
-    <link rel="prev" title="Quicksand’s documentation" href="index.html" /> 
+    <link rel="next" title="Installation" href="installation.html" />
+    <link rel="prev" title="Description" href="description.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -42,15 +42,13 @@
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="description.html">Description</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Quickstart</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#requirements">Requirements</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#create-datastructure">Create datastructure</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#run-quicksand">Run quicksand</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#filter-the-results">Filter the Results</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#troubleshooting">Troubleshooting</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="description.html">Description</a></li>
 <li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="usage.html">Usage</a></li>
 <li class="toctree-l1"><a class="reference internal" href="configuration.html">Configuration</a></li>
@@ -85,50 +83,18 @@
              
   <section id="quickstart">
 <span id="quickstart-page"></span><h1>Quickstart<a class="headerlink" href="#quickstart" title="Permalink to this headline"></a></h1>
-<p>This quickstart section is slightly more detailed than
-the one in the <a class="reference external" href="https://github.com/mpieva/quicksand/blob/master/README.md">README</a>. of the quicksand repository. A more comprehensive
-step-by-step-guide for the setup can be found in the <a class="reference internal" href="installation.html#install-page"><span class="std std-ref">Installation</span></a> section.</p>
+<div class="line-block">
+<div class="line">Use this section to test the <span class="bold">runability</span> of the pipeline</div>
+<div class="line">A more comprehensive step-by-step-guide for the setup of the pipeline and the <span class="bold">test on real data</span> can be found in the <a class="reference internal" href="installation.html#install-page"><span class="std std-ref">Installation</span></a> section.</div>
+</div>
 <section id="requirements">
 <h2>Requirements<a class="headerlink" href="#requirements" title="Permalink to this headline"></a></h2>
-<p>Please make sure you have installed</p>
-<ul class="simple">
-<li><p><code class="code docutils literal notranslate"><span class="pre">Nextflow</span></code> and</p></li>
-<li><p><code class="code docutils literal notranslate"><span class="pre">Singularity</span></code> or <code class="code docutils literal notranslate"><span class="pre">Docker</span></code> (see <a class="reference internal" href="installation.html#requirements"><span class="std std-ref">Requirements</span></a>)</p></li>
-</ul>
-</section>
-<section id="create-datastructure">
-<h2>Create datastructure<a class="headerlink" href="#create-datastructure" title="Permalink to this headline"></a></h2>
-<p>The required underlying datastructure of the pipeline is described in the <a class="reference internal" href="quicksand-build.html#quicksand-build-page"><span class="std std-ref">quicksand-build</span></a> section</p>
-<p>In short: You need a <span class="bold">reference database</span>, the <span class="bold">reference genomes</span> and a <span class="bold">taxonomy</span>.
-Use the supplementary pipeline <code class="code docutils literal notranslate"><span class="pre">quicksand-build</span></code> (once) to download the taxonomy from NCBI/taxonomy, all mitochondrial
-genomes from NCBI/RefSeq and create the required databases and files.</p>
-<p>For this quickstart-session create a datastructure containing only the <span class="bold">Primates</span>:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">mkdir</span> <span class="n">quickstart</span> <span class="o">&amp;&amp;</span> <span class="n">cd</span> <span class="n">quickstart</span>
-<span class="n">nextflow</span> <span class="n">run</span> <span class="n">mpieva</span><span class="o">/</span><span class="n">quicksand</span><span class="o">-</span><span class="n">build</span> <span class="o">--</span><span class="n">outdir</span> <span class="n">refseq</span> <span class="o">--</span><span class="n">include</span> <span class="n">Primates</span>
-</pre></div>
-</div>
-<div class="line-block">
-<div class="line"><span class="bold">Note:</span></div>
-<div class="line">Building the database requires ~40G of RAM</div>
-<div class="line">Be patient, downloading the taxonomy plus the creation of the database might take <span class="bold">~1h</span>.</div>
-</div>
+<p>See <a class="reference internal" href="installation.html#requirements"><span class="std std-ref">Requirements</span></a>. Make sure to have <code class="code docutils literal notranslate"><span class="pre">Nextflow</span></code> and <code class="code docutils literal notranslate"><span class="pre">Singularity</span> <span class="pre">or</span> <span class="pre">Docker</span></code> installed</p>
 </section>
 <section id="run-quicksand">
 <h2>Run quicksand<a class="headerlink" href="#run-quicksand" title="Permalink to this headline"></a></h2>
-<div class="line-block">
-<div class="line">With the datastructure created in the <code class="code docutils literal notranslate"><span class="pre">refseq</span></code> directory, the pipeline is ready to be used.</div>
-<div class="line">As <span class="bold">input</span> for the pipeline, download the Hominin “Hohlenstein-Stadel” mtDNA <a class="footnote-reference brackets" href="#id2" id="id1">1</a> into a directory <span class="bold">split</span></div>
-</div>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">wget</span> <span class="o">-</span><span class="n">P</span> <span class="n">split</span> <span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">ftp</span><span class="o">.</span><span class="n">eva</span><span class="o">.</span><span class="n">mpg</span><span class="o">.</span><span class="n">de</span><span class="o">/</span><span class="n">neandertal</span><span class="o">/</span><span class="n">Hohlenstein</span><span class="o">-</span><span class="n">Stadel</span><span class="o">/</span><span class="n">BAM</span><span class="o">/</span><span class="n">mtDNA</span><span class="o">/</span><span class="n">HST</span><span class="o">.</span><span class="n">raw_data</span><span class="o">.</span><span class="n">ALL</span><span class="o">.</span><span class="n">bam</span>
-</pre></div>
-</div>
-<p>And run the quicksand pipeline:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">nextflow</span> <span class="n">run</span> <span class="n">mpieva</span><span class="o">/</span><span class="n">quicksand</span> \
-   <span class="o">--</span><span class="n">db</span>        <span class="n">refseq</span><span class="o">/</span><span class="n">kraken</span><span class="o">/</span><span class="n">Mito_db_kmer22</span> \
-   <span class="o">--</span><span class="n">genome</span>    <span class="n">refseq</span><span class="o">/</span><span class="n">genomes</span> \
-   <span class="o">--</span><span class="n">bedfiles</span>  <span class="n">refseq</span><span class="o">/</span><span class="n">masked</span> \
-   <span class="o">--</span><span class="n">split</span>     <span class="n">split</span> \
-   <span class="o">-</span><span class="n">profile</span>    <span class="n">singularity</span>
+<p>Test the runability of the quicksand pipeline using the included test-data:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">nextflow</span> <span class="n">run</span> <span class="n">mpieva</span><span class="o">/</span><span class="n">quicksand</span> <span class="o">-</span><span class="n">profile</span> <span class="n">singularity</span><span class="p">,</span><span class="n">test</span>
 </pre></div>
 </div>
 <div class="line-block">
@@ -136,29 +102,12 @@ genomes from NCBI/RefSeq and create the required databases and files.</p>
 <div class="line">See the <a class="reference internal" href="usage.html#output"><span class="std std-ref">Output</span></a> section for a detailed explaination of all the output files.</div>
 </div>
 </section>
-<section id="filter-the-results">
-<h2>Filter the Results<a class="headerlink" href="#filter-the-results" title="Permalink to this headline"></a></h2>
-<p>As can be seen in the <code class="code docutils literal notranslate"><span class="pre">final_report.tsv</span></code>, not all sequences were assigned to Homindae, but to a couple of other Primate families as well.
-The assignment of false positive taxa is a well-known problem of kmer-based assignment methods and additional filters need to be applied.</p>
-<p>Based on simulated data, our recommended cutoffs are:</p>
-<ul class="simple">
-<li><p><span class="bold">FamPercentage</span> cutoff of 1% and/or</p></li>
-<li><p><span class="bold">ProportionMapped</span> cutoff of 0.5-0.7.</p></li>
-</ul>
-<p>The kmer-information is also indicative. If the <span class="bold">FamilyKmers</span> and <span class="bold">KmerCoverage</span> values are low and
-the <span class="bold">KmerDupRate</span> value is high, the assigment of the family is only based on a small number of kmers within the reads</p>
-</section>
 <section id="troubleshooting">
 <h2>Troubleshooting<a class="headerlink" href="#troubleshooting" title="Permalink to this headline"></a></h2>
 <ul class="simple">
 <li><p><span class="bold">heap-space error</span>: Nextflow related error, not enough memory allocated for the Java Virtual machine to run the processes. Manually set the memory for nextflow by typing <code class="code docutils literal notranslate"><span class="pre">export</span> <span class="pre">NXF_OPTS=&quot;-Xms128g</span> <span class="pre">-Xmx128g&quot;</span></code> before the run</p></li>
 <li><p><span class="bold">file-not found error</span>: Your Singularity installation might not allow auto-mounting of paths: See <a class="reference internal" href="configuration.html#singularity"><span class="std std-ref">Singularity</span></a></p></li>
 </ul>
-<dl class="footnote brackets">
-<dt class="label" id="id2"><span class="brackets"><a class="fn-backref" href="#id1">1</a></span></dt>
-<dd><p><a class="reference external" href="http://ftp.eva.mpg.de/neandertal/Hohlenstein-Stadel/README">http://ftp.eva.mpg.de/neandertal/Hohlenstein-Stadel/README</a></p>
-</dd>
-</dl>
 </section>
 </section>
 
@@ -166,8 +115,8 @@ the <span class="bold">KmerDupRate</span> value is high, the assigment of the fa
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="index.html" class="btn btn-neutral float-left" title="Quicksand’s documentation" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="description.html" class="btn btn-neutral float-right" title="Description" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="description.html" class="btn btn-neutral float-left" title="Description" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="installation.html" class="btn btn-neutral float-right" title="Installation" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

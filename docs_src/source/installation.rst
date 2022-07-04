@@ -1,10 +1,11 @@
+.. role:: bold
+.. role:: heading1
 .. _install-page:
 
 Installation
 ============
 
-In the case that the :ref:`quickstart-page` didnt work, this section will walk you through the stages of downloading, installing and
-testing the quicksand pipeline in more detail.
+Use this section to set up the pipeline to work with real data. To test if the pipeline works on your computer, see the :ref:`quickstart-page` section
 
 .. _requirements:
 
@@ -28,115 +29,86 @@ Nextflow is the pipeline framework, while Singularity/Docker are software tools 
             >>> singularity version 3.7.2-dirty
 
 
-Download repository
--------------------
-
-| The code for the quicksand pipeline is hosted on `Github <https://github.com/mpieva/quicksand>`_.
-| Clone the repository by typing:
-::
-    
-    mkdir pipeline && cd pipeline
-    git clone https://www.github.com/mpieva/quicksand
-    
-This code creates a new directory :file:`pipeline` that will contain all the data produced over the course of this setup process. Here - the cloned github repository.
-
+:heading1:`Working with test data`
 
 Test runability
 ---------------
 
-With the requirements met, the pipeline can be tested.
-To do that, unpack the test database provided in the repository::
+To test the runability of the pipeline, see the :ref:`quickstart-page` section
 
-    mkdir testrun && cd testrun
-    tar -xvzf ../quicksand/assets/test/kraken/database.tar.gz
+.. _container:
 
-This will create a directory :file:`TestDB` in the current folder. 
+Container Cache
+---------------
 
-To ensure a stable environment, the pipeline runs within a container that gets
-downloaded from the internet, from `Dockerhub <https://hub.docker.com/r/merszym/quicksand>`_. 
-The Dockerfile used to build that image can be found within the :file:`quicksand/docker` directory of the repository.
+Quicksand uses container software (Docker,Singularity) to ensure the pipeline runs within a stable environment. 
+For single-tool processes, container images are either pulled from the `Galaxy image repository <https://depot.galaxyproject.org/singularity>`_ or the
+`Quai.io biocontainer repository <https://quay.io/organization/biocontainers>`_. For multi-tool processes and
+custom functions, self-built images are hosted on `Dockerhub <https://hub.docker.com/r/merszym>`_. The 
+underlying Dockerfiles for those images can be found within the :file:`assets/docker` directory of the `repository <https://www.github.com/mpieva/quicksand>`_.
 
+To reuse downloaded images for multiple pipeline runs, specify a cache-directory. type::
 
-To save the downloaded image at an accessible place, type::
-
-    cd ..
     mkdir singularity
     export NXF_SINGULARITY_CACHEDIR=$PWD/singularity
 
 .. note::
-   In case some files are later stored or read from a shared drive, make sure 
-   that Singularity has the permissions to overlay and access that file-system within the 
-   container. The pipeline will otherwise not be able to read from or write to it. 
-   To avoid a "file doesn't exist" error, create an additional
-   config-file and bind the paths into the container::
-   
-        nano singularity/nextflow.config
-    
+   Make sure that Singularity has the permissions to overlay and access your file-system within the 
+   container. Otherwise the pipeline wont be able to read from or write to it. Upon a 
+   :bold:`"file doesn't exist" error`, create an additional :file:`nextflow.config` config-file
+
    Add the following content to the file::
     
         singularity {
-          runOptions = "--bind /path/to/shared/disc"
+          runOptions = "--bind /directory/in/use"
         }
-   
-   To save and close nano, press :kbd:`ctrl` + :kbd:`x` and confirm with :kbd:`y`.
    
    Add this file to your nextflow run with the :code:`-c` flag::
     
         nextflow run ... -c singularity/nextflow.config
-        
-
-Now the pipeline can be tested by running::
-
-    cd testrun
-    nextflow run    ../quicksand/main.nf \
-        --split     ../quicksand/assets/test/split/ \
-        --genome    ../quicksand/assets/test/genomes/ \
-        --bedfiles  ../quicksand/assets/test/masked/ \
-        --db        TestDB/ \
-        --specmap   ../quicksand/assets/test/genomes/specmap.tsv \
-        --analyze   \
-        --report    \
-        -c          ../singularity/nextflow.config
-
-The meaning of the flags and the different ways of customizing the pipeline is described in the :ref:`usage-page` section. In case of choosing Docker over Singularity, add :code:`-profile docker` to the command.  
 
 .. attention::
-    the :code:`-profile` and the :code:`-c` flag has only one dash!
+    the :code:`-profile` and the :code:`-c` flag have only one dash!
 
-If the run was successful, several new files and directories will appear in your current working directory. To see an explanation of the files, see the :ref:`output` section.
+Now -again- the pipeline can be tested by running::
+
+    nextflow run -profile test,singularity -c singularity/nextflow.config
+
+| The meaning of the flags and the different ways of customizing the pipeline is described in the :ref:`usage-page` section. 
+| In case of choosing Docker over Singularity, use the :code:`-profile test,docker` command.
+
+The :file:`singularity` directory should now contain all the images used in the pipeline::
+
+    singularity
+    ├── depot.galaxyproject.org-singularity-samtools-1.15.1--h1170115_0.img
+    ├── merszym-biohazard_bamrmdup-v0.2.img
+    └── merszym-quicksand-1.2.img
+
+:heading1:`Working with real data`
 
 .. _setup:
 
-04. Setup Datastructure
------------------------
+Create datastructure
+--------------------
 
-To run the pipeline with a real database a certain datastructure is required.
+The required underlying datastructure of the pipeline is in detail described in the :ref:`quicksand_build-page` section
 
-- A preindexed Kraken-database
-- All Mammalian mitochondrial reference genomes from RefSeq in a fasta-format
-- Bedfiles for these genomes
-- A list that points to all species of a clade specified by the NCBI taxID
+In short: You need a :bold:`precompiled kraken database`, the respective :bold:`reference genomes` and :bold:`bedfiles` indicating low-complexity regions. 
+Use the supplementary pipeline :code:`quicksand-build` (once) to download the taxonomy from NCBI/taxonomy, all mitochondrial
+genomes from NCBI/RefSeq and create the required databases and files for you.
 
-Instead of creating this structure manually, a different pipeline is used
-for that
-
-.. seealso::
-    Refer to the README of `that pipeline <https://github.com/mpieva/quicksand-build>`_ for custom
-    settings of the data structure (e.g. kmer-sizes) and a more detailed explanation of the output.
-
-The datastructure-pipeline can be started directly from the repository by tying::
-
-    cd ..
-    nextflow run mpieva/quicksand-build --outdir data 
+For this session create the datastructure for the :bold:`Primate mtDNA` from RefSeq::
+	
+	nextflow run mpieva/quicksand-build --outdir refseq --include Primates
 
 .. attention::
+    | Building the database requires ~40G of RAM
+    | Be patient, downloading the taxonomy plus the creation of the database might take :bold:`~1h`.
 
-    The creation of the preindexed kraken-databases requires ~50GB of RAM. 
-    If the pipeline fails, make sure the computer fits the requirements!
 
-This creates a folder "data" that contains all the database files required to run quicksand::
+This command creates a directory :file:`refseq` that contains the files required to run quicksand::
 
-    data
+    refseq
     ├── kraken
     │    └── Mito_db_kmer22
     ├── genomes
@@ -144,38 +116,53 @@ This creates a folder "data" that contains all the database files required to ru
     │    │    └── {species}.fasta
     │    └── taxid_map.tsv
     └── masked
-         └── {species}.masked.bed
-
-This datastructure can be used by quicksand with the following flags::
-
-    --db         /path/to/data/kraken/Mito_db_kmer22/
-    --genome     /path/to/data/genomes/
-    --bedfiles   /path/to/data/masked/    
+         └── {species}_masked.bed
 
 
-05. Run real Data
------------------
+With the datastructure created, the pipeline is ready to be used with the following flags::
 
-Before running the test, make sure you create a new directory::
+    --db         refseq/kraken/Mito_db_kmer22/
+    --genomes    refseq/genomes/
+    --bedfiles   refseq/masked/   
 
-    mkdir runDir && cd runDir
 
-For this testrun with real data, download the Hohlenstein-Stadel mtDNA (please see the [README]_) ::
-    
 
-    wget -P split http://ftp.eva.mpg.de/neandertal/Hohlenstein-Stadel/BAM/mtDNA/HST.raw_data.ALL.bam
+Run the pipeline
+----------------
+
+As :bold:`input` for the pipeline, download the Hominin "Hohlenstein-Stadel" mtDNA [1]_ into a directory :bold:`split`
+::
+	
+	wget -P split http://ftp.eva.mpg.de/neandertal/Hohlenstein-Stadel/BAM/mtDNA/HST.raw_data.ALL.bam
 
 And run the quicksand pipeline::
 
-    nextflow run ~/pipeline/quicksand/main.nf \
-        --db        ~/pipeline/data/kraken/Mito_db_kmer22 \
-        --genome    ~/pipeline/data/genomes \
-        --bedfiles  ~/pipeline/data/masked \
+    nextflow run mpieva/quicksand \
+        --db        refseq/kraken/Mito_db_kmer22/ \
+        --genomes   refseq/genomes/ \
+        --bedfiles  refseq/masked/ \
         --split     split \
-        --report    \
-        --analyze   \
-        -c          ~/pipeline/singularity/nextflow.config
+        -profile    singularity
 
 | Please see the :ref:`usage-page` section for an explaination of the flags and the input!
 | Please see the :ref:`output` section for an explaination of the output files!
 
+A summary of all the stats can be found in the :file:`final_report.tsv` file
+
+
+Filter the Results
+------------------
+
+As can be seen in the :code:`final_report.tsv`, not all sequences were assigned to Homindae, but to a couple of other Primate families too.
+The assignment of false positive taxa is a well-known problem of kmer-based assignment methods and additional filters need to be applied.
+
+Based on simulated data, our recommended cutoffs are:
+
+- :bold:`FamPercentage` cutoff of 1% and/or
+- :bold:`ProportionMapped` cutoff of 0.5-0.7.
+
+The kmer-information is also indicative. If the :bold:`FamilyKmers` and :bold:`KmerCoverage` values are low and
+the :bold:`KmerDupRate` value is high, the assigment of the family is only based on a small number of kmers within the reads 
+
+
+.. [1] http://ftp.eva.mpg.de/neandertal/Hohlenstein-Stadel/README

@@ -42,12 +42,28 @@
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart</a></li>
 <li class="toctree-l1"><a class="reference internal" href="description.html">Description</a></li>
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart</a></li>
 <li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="usage.html">Usage</a></li>
 <li class="toctree-l1"><a class="reference internal" href="configuration.html">Configuration</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">quicksand-build</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">quicksand-build</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#description">Description</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#workflow">Workflow</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#downloadtaxonomy-downloadgenomes">downloadTaxonomy / downloadGenomes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#extractfamilies">extractFamilies</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#indexfasta">indexFasta</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#writebedfiles">writeBedfiles</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#createkrakendb">createKrakenDB</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#usage">Usage</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#flags">Flags</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#output">Output</a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="contribute.html">Contribute</a></li>
 <li class="toctree-l1"><a class="reference internal" href="license.html">License</a></li>
 </ul>
@@ -78,10 +94,208 @@
              
   <section id="quicksand-build">
 <span id="quicksand-build-page"></span><h1>quicksand-build<a class="headerlink" href="#quicksand-build" title="Permalink to this headline"></a></h1>
-<p>If you
-want to use the pipeline for the analysis of the whole mammalian diversity use <code class="code docutils literal notranslate"><span class="pre">--include</span> <span class="pre">Mammalia</span></code> or remove the flag if
-the database should contain _everything_ in RefSeq.</p>
-<p>by providing the <code class="code docutils literal notranslate"><span class="pre">--include</span> <span class="pre">Primates</span></code> flag.</p>
+<section id="description">
+<h2>Description<a class="headerlink" href="#description" title="Permalink to this headline"></a></h2>
+<p>To run quicksand, an underlying datastructure with databases and reference genomes is required. This datastructure consists of:</p>
+<ul class="simple">
+<li><p>A preindexed Kraken-database</p></li>
+<li><p>A directory containing the indexed <code class="file docutils literal notranslate"><span class="pre">fasta</span></code> files of the mt-genomes from RefSeq that were used to create the kraken-database</p></li>
+<li><p>In the same directory, a file <code class="file docutils literal notranslate"><span class="pre">taxid_map.tsv</span></code>, linking the files in the folder to NCBI Taxonomy Ids</p></li>
+<li><p>A directory containing a <code class="file docutils literal notranslate"><span class="pre">bed</span></code>-file for each genome, indicating non-informative and low-complexity regions within the genome</p></li>
+</ul>
+<p>Instead of creating this files manually, the supplementary pipeline quicksand-build is used for that.
+Note that quicksand-build is a <strong>separate pipeline</strong> hosted <a class="reference external" href="https://github.com/mpieva/quicksand-build">here</a>.</p>
+</section>
+<section id="workflow">
+<h2>Workflow<a class="headerlink" href="#workflow" title="Permalink to this headline"></a></h2>
+<a class="reference internal image-reference" href="_images/pipeline_overview_v1.5.png"><img alt="Graphical overview over the processes of the quicksand pipeline" class="align-center" src="_images/pipeline_overview_v1.5.png" style="width: 800px;" /></a>
+<section id="downloadtaxonomy-downloadgenomes">
+<h3>downloadTaxonomy / downloadGenomes<a class="headerlink" href="#downloadtaxonomy-downloadgenomes" title="Permalink to this headline"></a></h3>
+<p>The first step of the pipeline is downloading of the genbank-files from the <a href="#id1"><span class="problematic" id="id2">`NCBI RefSeq mitochondrion FTP-Server&lt;https://ftp.ncbi.nlm.nih.gov/refseq/release/mitochondrion/&gt;`_</span></a> and
+the NCBI taxonomy using the <code class="code docutils literal notranslate"><span class="pre">kraken-build</span> <span class="pre">--download-taxonomy</span></code> command.</p>
+</section>
+<section id="extractfamilies">
+<h3>extractFamilies<a class="headerlink" href="#extractfamilies" title="Permalink to this headline"></a></h3>
+<p>A custim python script is used to extract the fasta-files from the NCBI genbank files. Use the <code class="code docutils literal notranslate"><span class="pre">--include</span></code> flag to specify taxa that
+should be extracted. (default: all). All included taxa are used to build the kraken-database and can thus be identified by the quicksand pipeline.</p>
+</section>
+<section id="indexfasta">
+<h3>indexFasta<a class="headerlink" href="#indexfasta" title="Permalink to this headline"></a></h3>
+<p>The extracted <code class="file docutils literal notranslate"><span class="pre">fasta</span></code> files are indexed using the <code class="code docutils literal notranslate"><span class="pre">bwa</span> <span class="pre">index</span></code> command.</p>
+</section>
+<section id="writebedfiles">
+<h3>writeBedfiles<a class="headerlink" href="#writebedfiles" title="Permalink to this headline"></a></h3>
+<dl class="simple">
+<dt>For each <code class="file docutils literal notranslate"><span class="pre">fasta</span></code> file, <code class="code docutils literal notranslate"><span class="pre">dustmasker</span></code> is used to specify non-informative and low-complexity regions and write them</dt><dd><p>as coordinates into a separate <code class="file docutils literal notranslate"><span class="pre">bed</span></code> file.</p>
+</dd>
+</dl>
+</section>
+<section id="createkrakendb">
+<h3>createKrakenDB<a class="headerlink" href="#createkrakendb" title="Permalink to this headline"></a></h3>
+<p>Use <code class="code docutils literal notranslate"><span class="pre">kraken-build</span></code> to add the extracted <code class="file docutils literal notranslate"><span class="pre">fasta</span></code> files to the database. The database is then built using the with the flag <code class="code docutils literal notranslate"><span class="pre">--kmers</span></code> specified kmer sizes
+(default: 22)</p>
+</section>
+</section>
+<section id="usage">
+<h2>Usage<a class="headerlink" href="#usage" title="Permalink to this headline"></a></h2>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<div class="line-block">
+<div class="line">quicksand-build uses singularity by default!</div>
+<div class="line">Use the <code class="code docutils literal notranslate"><span class="pre">-profile</span> <span class="pre">docker</span></code> flag to use docker instead.</div>
+</div>
+</div>
+<p>To run the pipeline with default parameters open the terminal and type:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">nextflow</span> <span class="n">run</span> <span class="n">mpieva</span><span class="o">/</span><span class="n">quicksand</span><span class="o">-</span><span class="n">build</span> <span class="o">--</span><span class="n">outdir</span> <span class="o">&lt;</span><span class="n">PATH</span><span class="o">&gt;</span> <span class="p">[</span> <span class="o">--</span><span class="n">kmers</span> <span class="n">KMERS</span> <span class="o">--</span><span class="n">include</span> <span class="n">TAXA</span> <span class="o">--</span><span class="n">exclude</span> <span class="n">PATH</span> <span class="p">]</span>
+</pre></div>
+</div>
+<section id="flags">
+<h3>Flags<a class="headerlink" href="#flags" title="Permalink to this headline"></a></h3>
+<table class="colwidths-given docutils align-default">
+<colgroup>
+<col style="width: 13%" />
+<col style="width: 13%" />
+<col style="width: 75%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Flag</p></th>
+<th class="head"><p>Input type</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><span class="mono">--outdir</span></p></td>
+<td><p>STRING</p></td>
+<td><div class="line-block">
+<div class="line">Specify the directory</div>
+<div class="line">used to save the datastructure in</div>
+<div class="line">Default: 'out'</div>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td><p><span class="mono">--include</span></p></td>
+<td><p>STRING</p></td>
+<td><div class="line-block">
+<div class="line">A string of comma-separated taxa (exact match to the ncbi taxonomy names)</div>
+<div class="line">that should be included in the kraken database</div>
+<div class="line">Default: 'root' (all)</div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Example</span><span class="p">:</span>
+
+<span class="o">--</span><span class="n">include</span> <span class="n">Mammalia</span><span class="p">,</span><span class="n">Aves</span>
+</pre></div>
+</div>
+</td>
+</tr>
+<tr class="row-even"><td><p><span class="mono">--kmers</span></p></td>
+<td><p>STRING</p></td>
+<td><div class="line-block">
+<div class="line">A string of comma-separated numbers.</div>
+<div class="line">For each number a kraken database is built with the respective kmer-size</div>
+<div class="line">Default: '22'</div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>outdir
+  ├── kraken
+  │    ├── Mito_db_kmer22
+  │    ├── Mito_db_kmer23
+  │    └── Mito_db_kmer24
+
+        Example:
+
+--kmers 22,23,24
+</pre></div>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td><p><span class="mono">--exclude</span></p></td>
+<td><p>PATH</p></td>
+<td><div class="line-block">
+<div class="line">A TSV file containing family and comma-separated species names.
+| The listed species are excluded from the kraken database</div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="nb">input</span> <span class="p">(</span><span class="n">exclude</span><span class="o">.</span><span class="n">tsv</span><span class="p">):</span>
+
+        <span class="n">Hominidae</span>     <span class="n">Homo_sapiens</span><span class="p">,</span><span class="n">Homo_neandertalensis</span>
+        <span class="n">Bovidae</span>       <span class="n">Capra_aegagrus</span>
+
+        <span class="n">Example</span><span class="p">:</span>
+
+<span class="o">--</span><span class="n">exclude</span> <span class="n">exclude</span><span class="o">.</span><span class="n">tsv</span>
+</pre></div>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+<section id="output">
+<h2>Output<a class="headerlink" href="#output" title="Permalink to this headline"></a></h2>
+<p>The output of quicksand-build is structured as follows:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>outdir
+├── kraken
+│    ├── Mito_db_kmer22
+│    │      ├── taxonomy
+│    │      ├── ...
+│    │      └── database.kdb
+│    └── Mito_db_kmer24
+│           ├── taxonomy
+│           ├── ...
+│           └── database.kdb
+├── genomes
+│    ├── ${Family}
+│    │      ├── ${Species}.fasta
+│    │      ├── ${Species}.fasta.fai
+│    │      └── ...
+│    └── taxid_map.tsv
+├── masked
+│    └── ${Species}.masked.bed
+├── ncbi
+│    └── raw gbff.gz files
+└── work
+     └── intermediate nextflow files
+</pre></div>
+</div>
+<p>The <code class="file docutils literal notranslate"><span class="pre">taxid_map.tsv</span></code> file contains the following information:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="mi">1425170</span>  <span class="n">Hominidae</span>   <span class="n">Homo_heidelbergensis</span>              <span class="n">Primates</span>
+<span class="mi">9605</span>     <span class="n">Hominidae</span>   <span class="n">Homo_heidelbergensis</span>              <span class="n">Primates</span>
+<span class="mi">9604</span>     <span class="n">Hominidae</span>   <span class="n">Homo_heidelbergensis</span>              <span class="n">Primates</span>
+<span class="mi">9443</span>     <span class="n">Hominidae</span>   <span class="n">Homo_heidelbergensis</span>              <span class="n">Primates</span>
+<span class="mi">63221</span>    <span class="n">Hominidae</span>   <span class="n">Homo_sapiens_neanderthalensis</span>     <span class="n">Primates</span>
+<span class="mi">9605</span>     <span class="n">Hominidae</span>   <span class="n">Homo_sapiens_neanderthalensis</span>     <span class="n">Primates</span>
+<span class="mi">9604</span>     <span class="n">Hominidae</span>   <span class="n">Homo_sapiens_neanderthalensis</span>     <span class="n">Primates</span>
+<span class="mi">9443</span>     <span class="n">Hominidae</span>   <span class="n">Homo_sapiens_neanderthalensis</span>     <span class="n">Primates</span>
+<span class="mi">9606</span>     <span class="n">Hominidae</span>   <span class="n">Homo_sapiens</span>                      <span class="n">Primates</span>
+<span class="mi">9605</span>     <span class="n">Hominidae</span>   <span class="n">Homo_sapiens</span>                      <span class="n">Primates</span>
+<span class="mi">9604</span>     <span class="n">Hominidae</span>   <span class="n">Homo_sapiens</span>                      <span class="n">Primates</span>
+<span class="mi">9443</span>     <span class="n">Hominidae</span>   <span class="n">Homo_sapiens</span>                      <span class="n">Primates</span>
+<span class="mi">741158</span>   <span class="n">Hominidae</span>   <span class="n">Homo_sapiens_subsp</span><span class="o">.</span><span class="n">_</span><span class="s1">&#39;Denisova&#39;</span>    <span class="n">Primates</span>
+<span class="mi">9605</span>     <span class="n">Hominidae</span>   <span class="n">Homo_sapiens_subsp</span><span class="o">.</span><span class="n">_</span><span class="s1">&#39;Denisova&#39;</span>    <span class="n">Primates</span>
+<span class="mi">9604</span>     <span class="n">Hominidae</span>   <span class="n">Homo_sapiens_subsp</span><span class="o">.</span><span class="n">_</span><span class="s1">&#39;Denisova&#39;</span>    <span class="n">Primates</span>
+<span class="mi">9443</span>     <span class="n">Hominidae</span>   <span class="n">Homo_sapiens_subsp</span><span class="o">.</span><span class="n">_</span><span class="s1">&#39;Denisova&#39;</span>    <span class="n">Primates</span>
+</pre></div>
+</div>
+<div class="line-block">
+<div class="line">The columns are &quot;NCBI TaxonID&quot;, &quot;Family&quot;, &quot;Species&quot;, &quot;Order&quot;</div>
+<div class="line">The species are represented in the file multiple times for different nodes.</div>
+<div class="line">e.g. TaxId '9605' (Homo)</div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="mi">9605</span>  <span class="n">Hominidae</span>  <span class="n">Homo_heidelbergensis</span>            <span class="n">Primates</span>
+<span class="mi">9605</span>  <span class="n">Hominidae</span>  <span class="n">Homo_sapiens_neanderthalensis</span>   <span class="n">Primates</span>
+<span class="mi">9605</span>  <span class="n">Hominidae</span>  <span class="n">Homo_sapiens</span>                    <span class="n">Primates</span>
+<span class="mi">9605</span>  <span class="n">Hominidae</span>  <span class="n">Homo_sapiens_subsp</span><span class="o">.</span><span class="n">_</span><span class="s1">&#39;Denisova&#39;</span>  <span class="n">Primates</span>
+</pre></div>
+</div>
+<div class="line-block">
+<div class="line">The quicksand process 'findBestNode' returns a taxon id. This <code class="file docutils literal notranslate"><span class="pre">taxid_map.tsv</span></code> file is used to provide the 'mapBwa' process</div>
+<div class="line">with all the species reference genomes linked to that TaxonId</div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>In case of editing or manually building the datastructure, be aware that the $\{Species\} in the <code class="file docutils literal notranslate"><span class="pre">taxid_map.tsv</span></code> file must correspond to
+the $\{Species\} filenames in the <code class="file docutils literal notranslate"><span class="pre">genomes</span></code> and <code class="file docutils literal notranslate"><span class="pre">masked</span></code> directories. Otherwise quicksand won't find the appropriate files</p>
+</div>
+</section>
 </section>
 
 

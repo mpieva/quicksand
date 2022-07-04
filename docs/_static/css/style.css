@@ -1,3 +1,17 @@
 .bold{
     font-weight: bold;
 }
+.heading1{
+    padding-top: 40px;
+    font-size: 32pt;
+    display: block;
+}
+.wy-nav-content {
+    padding: 1.618em 3.236em;
+    height: 100%;
+    max-width: 1200px;
+}
+.mono{
+    font-family: SFMono-Regular,Menlo,Monaco,Consolas,Liberation Mono,Courier New,Courier,monospace;
+    font-size: 16px;
+}
