@@ -1,0 +1,31 @@
+name: Quicksand CI
+
+on:
+  # Triggers the workflow on push or pull request events but only for the "master" branch
+  push:
+    branches: [ "dev","master" ]
+  pull_request:
+    branches: [ "master" ]
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  run_pipeline_with_testdata:
+    name: Run pipeline with test data
+    if: "${{ github.repository == 'mpieva/quicksand' }}"
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout_code
+        uses: actions/checkout@v2
+
+      - name: Install_Singularity
+        uses: eWaterCycle/setup-singularity@v7
+
+      - name: Install_Nextflow
+        uses: MillironX/setup-nextflow@v1
+
+      - name: Run_test_data
+        run:  nextflow run ${GITHUB_WORKSPACE} -profile test,singularity
+
