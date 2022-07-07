@@ -1,7 +1,7 @@
 # Quicksand
 
 ![MIT License](https://img.shields.io/github/license/mpieva/quicksand?style=for-the-badge)
-![Status Warning](https://img.shields.io/badge/status-WIP-ff69b4?style=for-the-badge)
+![Singularity](https://img.shields.io/badge/singularity-pass-ff69b4?style=for-the-badge)
 
 **Quicksand**: quick analysis of sedimentary ancient DNA \
 Please see https://mpieva.github.io/quicksand for a **comprehensive documentation**.

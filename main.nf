@@ -165,7 +165,7 @@ splitbam_out.fail
     .view{get_warn_msg("${it[1]} omitted. File has neither bam nor fastq-ending!")}
 
 process fastq2Bam{
-    conda (params.enable_conda ? "${baseDir}/envs/sediment.yaml" : null)
+    conda (params.enable_conda ? "bioconda::samtools=1.15.1" : null)
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
         'https://depot.galaxyproject.org/singularity/samtools:1.15.1--h1170115_0' :
         'quay.io/biocontainers/samtools:1.15.1--h1170115_0' }"
@@ -180,14 +180,14 @@ process fastq2Bam{
     
     script:
     """
-    samtools import -0 ${meta.id}.fq -o ${meta.id}.bam
+    samtools import -0 \"${meta.id}.fq\" -o \"${meta.id}.bam\"
     """
 }
 
 splitbam_out.bam.mix(fastq2bam_out).set{filterbam_in}
 
 process filterBam {
-    conda (params.enable_conda ? "${baseDir}/envs/sediment.yaml" : null)
+    conda (params.enable_conda ? "bioconda::samtools=1.15.1" : null)
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
         'https://depot.galaxyproject.org/singularity/samtools:1.15.1--h1170115_0' :
         'quay.io/biocontainers/samtools:1.15.1--h1170115_0' }"
@@ -202,11 +202,10 @@ process filterBam {
 
     script:
     """
-    samtools view -c ${meta.id}.bam
-    samtools view -b -u -F ${params.bamfilterflag} -o ${meta.id}.filtered.bam ${meta.id}.bam
+    samtools view -c \"${meta.id}.bam\"
+    samtools view -b -u -F ${params.bamfilterflag} -o \"${meta.id}.filtered.bam\" \"${meta.id}.bam\"
     """
 }
-
 
 //add splitcounts to meta
 filterbam_out.map{[add_to_dict(it[0],'splitcount',it[2].trim()), it[1]]}.set{filterlength_in}
@@ -218,20 +217,39 @@ process filterLength {
     label 'local'
 
     input:
-    set meta, "${meta.id}.bam" from filterlength_in
+    tuple meta, "${meta.id}.bam" from filterlength_in
 
     output:
-    tuple meta, "${meta.id}.output.bam", stdout into filterlength_out
+    tuple meta, "${meta.id}.output.bam" into filterlength_out
 
     script:
     """
-    bam-lengthfilter -c $params.bamfilter_length_cutoff -l $params.compression_level -o ${meta.id}.output.bam ${meta.id}.bam
-    samtools view -c ${meta.id}.output.bam
+    bam-lengthfilter -c $params.bamfilter_length_cutoff -l $params.compression_level -o \"${meta.id}.output.bam\" \"${meta.id}.bam\"
+    """
+}
+
+process filterLengthCount {
+    conda (params.enable_conda ? "bioconda::samtools=1.15.1" : null)
+    container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
+        'https://depot.galaxyproject.org/singularity/samtools:1.15.1--h1170115_0' :
+        'quay.io/biocontainers/samtools:1.15.1--h1170115_0' }"
+    tag "$meta.id"
+    label 'local'
+
+    input:
+    tuple meta, "${meta.id}.bam" from filterlength_out
+
+    output:
+    tuple meta, "${meta.id}.bam", stdout into filterlengthcount_out
+    
+    script:
+    """
+    samtools view -c \"${meta.id}.bam\"
     """
 }
 
 //add filterlength count to meta
-filterlength_out.map{[add_to_dict(it[0],'lengthfiltercount',it[2].trim()), it[1]]}.into{ gathertaxon_in; splitcount_file; tofasta_in }
+filterlengthcount_out.map{[add_to_dict(it[0],'lengthfiltercount',it[2].trim()), it[1]]}.into{ gathertaxon_in; splitcount_file; tofasta_in }
 
 // Include the old splitcounts file in the summary
 splitcount_file.map{meta,bam -> ["$meta.id\t$meta.splitcount\t$meta.lengthfiltercount"]}
@@ -242,7 +260,7 @@ splitcount_file.map{meta,bam -> ["$meta.id\t$meta.splitcount\t$meta.lengthfilter
                  seed: "readgroup\tsplit count\tfiltered count")
 
 process toFasta {
-    conda (params.enable_conda ? "${baseDir}/envs/sediment.yaml" : null)
+    conda (params.enable_conda ? "bioconda::samtools=1.15.1" : null)
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
         'https://depot.galaxyproject.org/singularity/samtools:1.15.1--h1170115_0' :
         'quay.io/biocontainers/samtools:1.15.1--h1170115_0' }"
@@ -260,15 +278,17 @@ process toFasta {
 
     script:
     """
-    samtools fasta ${meta.id}.bam > ${meta.id}.fa
+    samtools fasta \"${meta.id}.bam\" > \"${meta.id}.fa\"
     """
 }
 
 if (params.testrun){
     // If using test-data, extract the test-database
     process extractTestDatabase {
-        conda (params.enable_conda ? "${baseDir}/envs/sediment.yaml" : null)    
-        container (workflow.containerEngine ? "merszym/quicksand:1.2" : null)
+        conda (params.enable_conda ? "conda-forge::tar=1.34" : null)    
+        container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
+        'https://depot.galaxyproject.org/singularity/ubuntu:20.04' :
+        'quay.io/biocontainers/ubuntu:20.04' }"
         label 'process_medium'
         label 'local'
         tag "DB: TestDB"
@@ -290,8 +310,11 @@ database_out = params.testrun ? database_extracted : database
 tofasta_out.combine(database_out).set{runkraken_in}
 
 process runKrakenUniq {
-    conda (params.enable_conda ? "${baseDir}/envs/sediment.yaml" : null)    
-    container (workflow.containerEngine ? "merszym/quicksand:1.2" : null)
+    conda (params.enable_conda ? "bioconda::krakenuniq=0.7.3" : null)    
+    container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
+        'https://depot.galaxyproject.org/singularity/krakenuniq:0.7.3--pl5321h19e8d03_0' :
+        'quay.io/biocontainers/krakenuniq:0.7.3--pl5321h19e8d03_0' }"
+
     publishDir 'kraken', mode: 'copy', pattern:"*translate", saveAs: {"${meta.id}.translate"}
     publishDir 'kraken', mode: 'copy', pattern:"*report", saveAs: {"${meta.id}.report"}
     label 'process_high'
@@ -306,14 +329,16 @@ process runKrakenUniq {
 
     script:
     """
-    krakenuniq --threads ${task.cpus} --db database --fasta-input ${meta.id}.fa --report-file krakenUniq.report > output.krakenUniq
+    krakenuniq --threads ${task.cpus} --db database --fasta-input \"${meta.id}.fa\" --report-file krakenUniq.report > output.krakenUniq
     krakenuniq-translate --db database --mpa-format output.krakenUniq > krakenUniq.translate
     """
 }
 
 process findBestNode{
-    conda (params.enable_conda ? "${baseDir}/envs/sediment.yaml" : null)    
-    container (workflow.containerEngine ? "merszym/quicksand:1.2" : null)
+    conda (params.enable_conda ? "conda-forge::python=3.9.1" : null)    
+    container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
+        'https://depot.galaxyproject.org/singularity/python:3.9--1' :
+        'quay.io/biocontainers/python:3.9--1' }"
     label 'process_low'
     label 'local'
     tag "$meta.id"
@@ -382,8 +407,9 @@ gathertaxon_in.map{meta, bam -> [meta.id, meta, bam]}
     .set{gathertaxon_in}
 
 process gatherByTaxon {
-    conda (params.enable_conda ? "${baseDir}/envs/sediment.yaml" : null)
-    container (workflow.containerEngine ? "merszym/quicksand:1.2" : null)
+    container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
+        'https://depot.galaxyproject.org/singularity/ubuntu:20.04' :
+        'quay.io/biocontainers/ubuntu:20.04' }"
     label 'process_low'
     label 'local'
     tag "$meta.id:$meta.Taxon"
@@ -396,7 +422,7 @@ process gatherByTaxon {
 
     script:
     """
-    grep "${params.taxlvl}__${meta.Taxon}" ${meta.id}.translate | cut -f1 | tee ids.txt | wc -l
+    grep "${params.taxlvl}__${meta.Taxon}" \"${meta.id}.translate\" | cut -f1 | tee ids.txt | wc -l
     """
 }
 
@@ -431,13 +457,37 @@ process extractBam {
     out_bam = params.byrg ? "${meta.id}/${meta.Taxon}/${meta.id}_extractedReads-${meta.Taxon}.bam" : "${meta.Taxon}/${meta.id}_extractedReads-${meta.Taxon}.bam"
     
     """
-    bamfilter -i ids.txt -l $params.compression_level -o ${meta.id}.output.bam ${meta.id}.bam
+    bamfilter -i ids.txt -l $params.compression_level -o \"${meta.id}.output.bam\" \"${meta.id}.bam\"
     """
 }
 
 extractbam_out
     .transpose()
     .map{meta,bam,ref -> [add_to_dict(meta,"Species",ref),bam]}
+    .set{sortbam_in}
+
+process sortBam{
+    conda (params.enable_conda ? "bioconda::samtools=1.15.1" : null)
+    container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
+        'https://depot.galaxyproject.org/singularity/samtools:1.15.1--h1170115_0' :
+        'quay.io/biocontainers/samtools:1.15.1--h1170115_0' }"
+    tag "$meta.id"
+    label "process_low"
+    label "local"
+
+    input:
+    tuple meta, "${meta.Taxon}.extracted.bam" from sortbam_in
+
+    output:
+    tuple meta, "${meta.Taxon}.sorted.bam" into sortbam_out
+
+    script:
+    """
+    samtools sort -n -l $params.compression_level -o \"${meta.Taxon}.sorted.bam\"  \"${meta.Taxon}.extracted.bam\" 
+    """
+}
+
+sortbam_out
     .combine(genomesdir)
     .set{mapbwa_in}
 
@@ -450,28 +500,47 @@ process mapBwa {
     label 'local'
 
     input:
-    tuple meta, "${meta.Taxon}.extracted.bam", "genomes" from mapbwa_in
+    tuple meta, "${meta.Taxon}.sorted.bam", "genomes" from mapbwa_in
 
     output:
-    tuple meta, "${meta.Taxon}.mapped.bam", stdout into (mapbwa_file, mapbwa_out)
+    tuple meta, "${meta.Taxon}.mapped.bam" into mapbwa_out
 
     script:
     out_bam = params.byrg ? "${meta.id}/${meta.Taxon}/aligned/${meta.Family}.${meta.Species}.bam" : "${meta.Taxon}/aligned/${meta.id}.${meta.Family}.${meta.Species}.bam"
 
     """
-    samtools sort -n -l0 ${meta.Taxon}.extracted.bam \
-    | bwa bam2bam -g genomes/${meta.Family}/\"${meta.Species}.fasta\" -n 0.01 -o 2 -l 16500 --only-aligned - \
-    | samtools view -b -u -q $params.bamfilter_quality_cutoff \
-    | samtools sort -l $params.compression_level -o ${meta.Taxon}.mapped.bam
-    samtools view -c ${meta.Taxon}.mapped.bam
+    bwa bam2bam -g genomes/\"${meta.Family}\"/\"${meta.Species}.fasta\" -n 0.01 -o 2 -l 16500 --only-aligned \"${meta.Taxon}.sorted.bam\" > \"${meta.Taxon}.mapped.bam\"
     """
 }
 
-mapbwa_file
+process filterMappedBam{
+    conda (params.enable_conda ? "bioconda::samtools=1.15.1" : null)
+    container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
+        'https://depot.galaxyproject.org/singularity/samtools:1.15.1--h1170115_0' :
+        'quay.io/biocontainers/samtools:1.15.1--h1170115_0' }"
+    tag "$meta.id"
+    label "process_low"
+    label "local"
+
+    input:
+    tuple meta, "${meta.Taxon}.mapped.bam" from mapbwa_out
+
+    output:
+    tuple meta, "${meta.Taxon}.mapped_filtered.bam", stdout into (filtermappedbam_out, filtermappedbam_file)
+
+    script:
+    """
+    samtools view -b -u -q $params.bamfilter_quality_cutoff \"${meta.Taxon}.mapped.bam\" \
+    | samtools sort -l $params.compression_level -o \"${meta.Taxon}.mapped_filtered.bam\"
+    samtools view -c \"${meta.Taxon}.mapped_filtered.bam\"
+    """
+}
+
+filtermappedbam_file
     .collectFile(storeDir: 'stats', seed:'Order\tFamily\tSpecies\tReadsMapped', newLine:true) {meta,bam,count ->
         [ "${meta.id}_mapped.tsv", "${meta.Order}\t${meta.Family}\t${meta.Species}\t${count.trim()}"]
     }
-mapbwa_out
+filtermappedbam_out
     .map{meta,bam,count -> [add_to_dict(meta,'Mapped',count.trim() as int), bam]}
     .set{dedupbam_in}
 
@@ -487,35 +556,55 @@ process dedupBam {
     tuple meta, "${meta.Species}.bam" from dedupbam_in
 
     output:
-    tuple meta, "${meta.Species}.deduped.bam", stdout, "count.txt" into dedupedbam_out
+    tuple meta, "${meta.Species}.deduped.bam" into dedupedbam_out
 
     script:
     out_bam = params.byrg ? "${meta.id}/${meta.Taxon}/aligned/${meta.Family}.${meta.Species}_deduped.bam" : "${meta.Taxon}/aligned/${meta.id}.${meta.Family}.${meta.Species}_deduped.bam"
     """
     bam-rmdup -r -o \"${meta.Species}.deduped.bam\" \"${meta.Species}.bam\" > rmdup.txt
+    """
+}
+
+process getDedupStats{
+    conda (params.enable_conda ? "bioconda::samtools=1.15.1" : null)
+    container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
+        'https://depot.galaxyproject.org/singularity/samtools:1.15.1--h1170115_0' :
+        'quay.io/biocontainers/samtools:1.15.1--h1170115_0' }"
+    tag "$meta.id"
+    label "process_low"
+    label "local"
+
+    input:
+    tuple meta, "${meta.Species}.deduped.bam" from dedupedbam_out
+
+    output:
+    tuple meta, "${meta.Species}.deduped.bam", stdout, "count.txt" into dedupedstats_out
+
+    script:
+    """
     samtools coverage -H \"${meta.Species}.deduped.bam\" | cut -f 5
     samtools view -c \"${meta.Species}.deduped.bam\" > count.txt
     """
 }
 
-dedupedbam_out
+dedupedstats_out
     .map{meta,bam,coverage,count -> [add_to_dict(meta,'CoveredBP',coverage.trim() as int), bam, count]}
     .map{meta,bam,count -> [add_to_dict(meta,'Deduped', count.text.strip() as int), bam]}
-    .into{dedupedbam_out;dedupedbam_file;dedupedbam_file_counts}
+    .into{dedupedstats_out;dedupedstats_file;dedupedstats_file_counts}
 
 //write stats to file
-dedupedbam_file
+dedupedstats_file
     .collectFile(storeDir: 'stats',newLine:true,seed:'Order\tFamily\tSpecies\tCoveredBP') {meta,bam ->
         [ "${meta.id}_mapped_coverage.tsv", "${meta.Order}\t${meta.Family}\t${meta.Species}\t${meta.CoveredBP}"]
     }
 
-dedupedbam_file_counts
+dedupedstats_file_counts
     .collectFile(storeDir: 'stats', newLine:true,seed:'Order\tFamily\tSpecies\tReadsDeduped') {meta,bam ->
         [ "${meta.id}_mapped_deduped.tsv", "${meta.Order}\t${meta.Family}\t${meta.Species}\t${meta.Deduped}"]
     }
 
 //continue with pipeline
-dedupedbam_out
+dedupedstats_out
     //sort by readgroup, family and if same (?:) by count. GroupTuple by readgroup and family
     //continue with the best species per family
     .map{meta,bam -> [meta.id, meta.Family, meta.CoveredBP, meta, bam]}
@@ -527,15 +616,17 @@ dedupedbam_out
         no_bed: it[0].Family in nobed_families
         bed: true
     }
-    .set{dedupedbam_out}
+    .set{dedupedstats_out}
 
-dedupedbam_out.bed
+dedupedstats_out.bed
     .combine(bedfiledir)
     .set{runbed_in} 
 
 process runIntersectBed{
-    conda (params.enable_conda ? "${baseDir}/envs/sediment.yaml" : null)    
-    container (workflow.containerEngine ? "merszym/quicksand:1.2" : null)
+    conda (params.enable_conda ? "bioconda::bedtools=2.27.1" : null)
+    container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
+        'https://depot.galaxyproject.org/singularity/bedtools:2.27.1--1' :
+        'quay.io/biocontainers/bedtools:2.27.1--1' }"
     label "process_low"
     label 'local'
     tag "${meta.id}:${meta.Family}:${meta.Species}"
@@ -545,45 +636,63 @@ process runIntersectBed{
     tuple meta, "${meta.Species}.bam", "masked" from runbed_in
 
     output:
-    tuple meta, "${meta.Species}.masked.bam", stdout into runbed_out
+    tuple meta, "${meta.Species}.masked.bam" into runbed_out
     
     script:
     out_bam = params.byrg ? "${meta.id}/${meta.Taxon}/bed/${meta.Family}.${meta.Species}_deduped_bedfiltered.bam" : 
                             "${meta.Taxon}/bed/${meta.id}.${meta.Family}.${meta.Species}_deduped_bedfiltered.bam"
     """
     bedtools intersect -a \"${meta.Species}.bam\" -b masked/\"${meta.Species}.masked.bed\" -v > \"${meta.Species}.masked.bam\"
+    """
+}
+
+process getBedfilteredCounts{
+    conda (params.enable_conda ? "bioconda::samtools=1.15.1" : null)
+    container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
+        'https://depot.galaxyproject.org/singularity/samtools:1.15.1--h1170115_0' :
+        'quay.io/biocontainers/samtools:1.15.1--h1170115_0' }"
+    tag "$meta.id"
+    label "process_low"
+    label "local"
+
+    input:
+    tuple meta, "${meta.Species}.masked.bam" from runbed_out
+
+    output:
+    tuple meta, "${meta.Species}.masked.bam", stdout into bedfiltercounts_out
+
+    """
     samtools view -c \"${meta.Species}.masked.bam\"
     """
 }
 
+bedfiltercounts_out.map{meta,bam,count -> [add_to_dict(meta, 'Bedfiltered', count.trim() as int), bam]}
+    .into{bedfiltercounts_file;bedfiltercounts_out}
 
-runbed_out.map{meta,bam,count -> [add_to_dict(meta, 'Bedfiltered', count.trim() as int), bam]}
-    .into{runbed_file;runbed_out}
-
-runbed_file
+bedfiltercounts_file
     .collectFile(storeDir: 'stats', newLine:true, seed:'Order\tFamily\tSpecies\tReadsBedfiltered') {meta, bam ->
         [ "${meta.id}_mapped_deduped_bedfiltered.tsv", "${meta.Order}\t${meta.Family}\t${meta.Species}\t${meta.Bedfiltered}"]
     }
 
 //calculate the percentage of a family here
-runbed_out.map{meta, bam -> [meta, bam, meta.Bedfiltered]}.set{runbed_out}
+bedfiltercounts_out.map{meta, bam -> [meta, bam, meta.Bedfiltered]}.set{bedfiltercounts_out}
 
-dedupedbam_out.no_bed
+dedupedstats_out.no_bed
     .map{meta,bam -> [meta, bam, meta.Deduped]}
-    .mix(runbed_out)
-    .into{runbed_out;total_rg}
+    .mix(bedfiltercounts_out)
+    .into{bedfiltercounts_out;total_rg}
 
 total_rg.map{meta,bam,count -> [meta.id, count]}
     .groupTuple()    // [RG, [count, count, count, ...]]
     .map{rg,count -> [rg, count.sum()]}
     .set{total_rg}
 
-runbed_out.map{meta,bam,count -> [meta.id, meta, bam, count]}
+bedfiltercounts_out.map{meta,bam,count -> [meta.id, meta, bam, count]}
     .combine(total_rg, by:0)
     .map{rg,meta,bam,count,total_rg -> [add_to_dict(meta,'FamPercentage',total_rg==0?0:(count*100/total_rg).trunc(2)), bam]}
-    .into{runbed_out; analysis_skip}
+    .into{bedfiltercounts_out; analysis_skip}
 
-damageanalysis_in = params.skip_analyze ? Channel.empty() : runbed_out
+damageanalysis_in = params.skip_analyze ? Channel.empty() : bedfiltercounts_out
 
 process analyzeDeamination{
     conda (params.enable_conda ? "${baseDir}/envs/sediment.yaml" : null)    
