@@ -288,7 +288,7 @@ if (params.testrun){
         conda (params.enable_conda ? "conda-forge::tar=1.34" : null)    
         container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
         'https://depot.galaxyproject.org/singularity/ubuntu:20.04' :
-        'quay.io/biocontainers/ubuntu:20.04' }"
+        'ubuntu:20.04' }"
         label 'process_medium'
         label 'local'
         tag "DB: TestDB"
@@ -409,7 +409,7 @@ gathertaxon_in.map{meta, bam -> [meta.id, meta, bam]}
 process gatherByTaxon {
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
         'https://depot.galaxyproject.org/singularity/ubuntu:20.04' :
-        'quay.io/biocontainers/ubuntu:20.04' }"
+        'ubuntu:20.04' }"
     label 'process_low'
     label 'local'
     tag "$meta.id:$meta.Taxon"

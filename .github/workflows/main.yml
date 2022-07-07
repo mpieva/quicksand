@@ -12,20 +12,24 @@ on:
 
 jobs:
   run_pipeline_with_testdata:
-    name: Run pipeline with test data
+    name: Quicksand Runtest
     if: "${{ github.repository == 'mpieva/quicksand' }}"
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        profile: ['singularity', 'docker']
 
     steps:
-      - name: Checkout_code
+      - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Install_Singularity
+      - name: Install Singularity
         uses: eWaterCycle/setup-singularity@v7
 
-      - name: Install_Nextflow
+      - name: Install Nextflow
         uses: MillironX/setup-nextflow@v1
 
-      - name: Run_test_data
-        run:  nextflow run ${GITHUB_WORKSPACE} -profile test,singularity
+      - name: Test ${{matrix.profile}}
+        run:  nextflow run ${GITHUB_WORKSPACE} -profile test,${{matrix.profile}}
+      
 
