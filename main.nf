@@ -1,5 +1,7 @@
 #!/usr/bin/env nextflow
 
+nextflow.enable.dsl = 1
+
 red = "\033[0;31m"
 white = "\033[0m"
 cyan = "\033[0;36m"
@@ -471,7 +473,7 @@ process sortBam{
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
         'https://depot.galaxyproject.org/singularity/samtools:1.15.1--h1170115_0' :
         'quay.io/biocontainers/samtools:1.15.1--h1170115_0' }"
-    tag "$meta.id"
+    tag "${meta.id}:${meta.Taxon}"
     label "process_low"
     label "local"
 
@@ -493,7 +495,7 @@ sortbam_out
 
 process mapBwa {
     conda (params.enable_conda ? "${baseDir}/envs/sediment.yaml" : null)    
-    container (workflow.containerEngine ? "merszym/quicksand:1.2" : null)
+    container (workflow.containerEngine ? "merszym/network-aware-bwa:v0.5.10" : null)
     publishDir 'out', mode: 'copy', saveAs: {out_bam}, pattern: '*.bam'
     tag "${meta.id}:${meta.Taxon}:${meta.Species}"
     label "process_low"
@@ -518,7 +520,7 @@ process filterMappedBam{
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
         'https://depot.galaxyproject.org/singularity/samtools:1.15.1--h1170115_0' :
         'quay.io/biocontainers/samtools:1.15.1--h1170115_0' }"
-    tag "$meta.id"
+    tag "${meta.id}:${meta.Taxon}:${meta.Species}"
     label "process_low"
     label "local"
 
@@ -546,7 +548,7 @@ filtermappedbam_out
 
 process dedupBam {
     conda (params.enable_conda ? "${baseDir}/envs/sediment.yaml" : null)    
-    container (workflow.containerEngine ? "merszym/biohazard_bamrmdup:v0.2" : null)
+    container (workflow.containerEngine ? "merszym/biohazard_bamrmdup:v0.2.2" : null)
     publishDir 'out', mode: 'copy', pattern: "*.bam", saveAs: {out_bam}
     tag "${meta.id}:${meta.Family}:${meta.Species}"
     label "process_low"
@@ -570,7 +572,7 @@ process getDedupStats{
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
         'https://depot.galaxyproject.org/singularity/samtools:1.15.1--h1170115_0' :
         'quay.io/biocontainers/samtools:1.15.1--h1170115_0' }"
-    tag "$meta.id"
+    tag "${meta.id}:${meta.Family}:${meta.Species}"
     label "process_low"
     label "local"
 
@@ -651,7 +653,7 @@ process getBedfilteredCounts{
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
         'https://depot.galaxyproject.org/singularity/samtools:1.15.1--h1170115_0' :
         'quay.io/biocontainers/samtools:1.15.1--h1170115_0' }"
-    tag "$meta.id"
+    tag "${meta.id}:${meta.Family}:${meta.Species}"
     label "process_low"
     label "local"
 
@@ -695,10 +697,10 @@ bedfiltercounts_out.map{meta,bam,count -> [meta.id, meta, bam, count]}
 damageanalysis_in = params.skip_analyze ? Channel.empty() : bedfiltercounts_out
 
 process analyzeDeamination{
-    conda (params.enable_conda ? "${baseDir}/envs/sediment.yaml" : null)    
+    conda (params.enable_conda ? "${baseDir}/envs/analyzeDeamination.yaml" : null)    
     container (workflow.containerEngine ? "merszym/quicksand:1.2" : null)
     publishDir 'out', mode: 'copy', saveAs: { out_bam }, pattern:"*.bam"
-    tag "${meta.id}:${meta.Order}:${meta.Family}:${meta.Species}"
+    tag "${meta.id}:${meta.Taxon}:${meta.Species}"
     label 'process_medium'
     label 'local'
     
