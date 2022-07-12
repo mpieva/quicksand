@@ -122,7 +122,7 @@ if(!params.split && !(params.bam && params.rg)){
 
 process splitBam {
     conda (params.enable_conda ? "${baseDir}/envs/sediment.yaml" : null)    
-    container (workflow.containerEngine ? "merszym/quicksand:1.2" : null)
+    container (workflow.containerEngine ? "merszym/splitbam:v0.1.6" : null)
     publishDir 'split', mode: 'copy', pattern: '*.bam'
     publishDir 'stats', mode: 'copy', pattern: '*.tsv'
     label 'local'
@@ -214,7 +214,7 @@ filterbam_out.map{[add_to_dict(it[0],'splitcount',it[2].trim()), it[1]]}.set{fil
 
 process filterLength {
     conda (params.enable_conda ? "${baseDir}/envs/sediment.yaml" : null)    
-    container (workflow.containerEngine ? "merszym/quicksand:1.2" : null)
+    container (workflow.containerEngine ? "merszym/bam-lengthfilter:v0.1.1" : null)
     tag "$meta.id"
     label 'local'
 
@@ -440,7 +440,7 @@ gathertaxon_file
 
 process extractBam {
     conda (params.enable_conda ? "${baseDir}/envs/sediment.yaml" : null)    
-    container (workflow.containerEngine ? "merszym/quicksand:1.2" : null)
+    container (workflow.containerEngine ? "merszym/bamfilter:v0.2.9" : null)
     publishDir 'out', mode: 'copy', saveAs: {out_bam}
     tag "$meta.id:$meta.Taxon"
     label "process_low"
