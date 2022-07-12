@@ -1,0 +1,24 @@
+FROM rust:latest as base
+
+COPY pkgs/bamfilter-0.2.9.crate .
+
+RUN set -eux \
+    && rustup target add x86_64-unknown-linux-musl
+
+# Use musl to create a static binary for the multi-staged container
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends clang && \
+    apt-get install -y --no-install-recommends musl-tools && \
+    rm -fr /var/lib/apt/lists/*
+    
+RUN set -eux && \
+    tar xzf bamfilter-0.2.9.crate && \
+    cargo install --path bamfilter-0.2.9 --root /usr/local --target x86_64-unknown-linux-musl && \
+    rm bamfilter-0.2.9.crate && \
+    rm -r bamfilter-0.2.9/
+
+FROM bash:5.2-rc1
+COPY --from=base "/usr/local/bin/bamfilter" "/usr/local/bin/"
+RUN ln -s /usr/local/bin/bash /bin/bash
+ENTRYPOINT ["/usr/local/bin/bamfilter"]
+CMD ["--help"]

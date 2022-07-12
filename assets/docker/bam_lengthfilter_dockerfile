@@ -1,0 +1,25 @@
+FROM rust:latest as base
+
+COPY pkgs/bam-lengthfilter-0.1.1.crate .
+
+RUN set -eux \
+    && rustup target add x86_64-unknown-linux-musl
+
+# Use musl to create a static binary for the multi-staged container
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends clang && \
+    apt-get install -y --no-install-recommends musl-tools && \
+    rm -fr /var/lib/apt/lists/*
+    
+RUN set -eux && \
+    tar xzf bam-lengthfilter-0.1.1.crate && \
+    cargo install --path bam-lengthfilter-0.1.1 --root /usr/local --target x86_64-unknown-linux-musl && \
+    rm bam-lengthfilter-0.1.1.crate && \
+    rm -r bam-lengthfilter-0.1.1/
+
+FROM bash:5.2-rc1
+
+COPY --from=base "/usr/local/bin/bam-lengthfilter" "/usr/local/bin/"
+RUN ln -s /usr/local/bin/bash /bin/bash
+ENTRYPOINT ["/usr/local/bin/bam-lengthfilter"]
+CMD ["--help"]

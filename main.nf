@@ -214,7 +214,7 @@ filterbam_out.map{[add_to_dict(it[0],'splitcount',it[2].trim()), it[1]]}.set{fil
 
 process filterLength {
     conda (params.enable_conda ? "${baseDir}/envs/sediment.yaml" : null)    
-    container (workflow.containerEngine ? "merszym/bam-lengthfilter:v0.1.1" : null)
+    container (workflow.containerEngine ? "merszym/bam-lengthfilter:nextflow" : null)
     tag "$meta.id"
     label 'local'
 
@@ -440,7 +440,7 @@ gathertaxon_file
 
 process extractBam {
     conda (params.enable_conda ? "${baseDir}/envs/sediment.yaml" : null)    
-    container (workflow.containerEngine ? "merszym/bamfilter:v0.2.9" : null)
+    container (workflow.containerEngine ? "merszym/bamfilter:nextflow" : null)
     publishDir 'out', mode: 'copy', saveAs: {out_bam}
     tag "$meta.id:$meta.Taxon"
     label "process_low"
