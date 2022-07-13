@@ -698,7 +698,7 @@ damageanalysis_in = params.skip_analyze ? Channel.empty() : bedfiltercounts_out
 
 process analyzeDeamination{
     conda (params.enable_conda ? "${baseDir}/envs/analyzeDeamination.yaml" : null)    
-    container (workflow.containerEngine ? "merszym/quicksand:1.2" : null)
+    container (workflow.containerEngine ? "merszym/bam_deam:nextflow" : null)
     publishDir 'out', mode: 'copy', saveAs: { out_bam }, pattern:"*.bam"
     tag "${meta.id}:${meta.Taxon}:${meta.Species}"
     label 'process_medium'
@@ -715,7 +715,6 @@ process analyzeDeamination{
     out_bam = params.byrg ? "${meta.id}/${meta.Taxon}/deaminated/${meta.Family}.${meta.Species}_deduped_deaminated53.bam" : 
                             "${meta.Taxon}/deaminated/${meta.id}.${meta.Family}.${meta.Species}_deduped_deaminated53.bam"
     """
-    samtools view -H -b \"${meta.Species}.bam\" > output.deaminated.bam
     bam_deam_stats.py \"${meta.Species}.bam\" > ancient_stats.tsv
     """
 }
