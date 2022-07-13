@@ -627,8 +627,8 @@ dedupedstats_out.bed
 process runIntersectBed{
     conda (params.enable_conda ? "bioconda::bedtools=2.27.1" : null)
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bedtools:2.27.1--1' :
-        'quay.io/biocontainers/bedtools:2.27.1--1' }"
+        'https://depot.galaxyproject.org/singularity/bedtools:2.30.0--h468198e_3' :
+        'quay.io/biocontainers/bedtools:2.30.0--h468198e_3' }"
     label "process_low"
     label 'local'
     tag "${meta.id}:${meta.Family}:${meta.Species}"
