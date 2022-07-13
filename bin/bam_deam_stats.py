@@ -60,13 +60,16 @@ def print_header():
     ]), file=sys.stdout)
 
 
-def extract_reads(bamfile, df):
-    infile = pysam.AlignmentFile(bamfile, 'rb')
-    reads = set(df[(df['5deam1']==1) | (df['3deam1']==1)]['Name'])
+def extract_reads(bamfile, df, empty=False):
+    reads = set(df[(df['5deam1']==1) | (df['3deam1']==1)]['Name']) if not empty else []
     #make empty bam-file in case of 0 deaminated sequences 
     with open('output.deaminated.bam', 'wb') as header:
         header.write(pysam.view(bamfile,"-H","-b"))
+    
+    if empty:
+        return 0
 
+    infile = pysam.AlignmentFile(bamfile, 'rb')
     with pysam.AlignmentFile('output.deaminated.bam', 'wb', template=infile) as outfile:
         for read in infile:
             if read.query_name in reads:
@@ -84,6 +87,7 @@ def main(bamfile):
 
     df = import_data(bamfile)
     if(len(df)==0):
+        extract_reads(bamfile,df,empty=True)
         print_header()
         exit()
     df = convert_reverse(df)
