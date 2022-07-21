@@ -314,9 +314,6 @@ Profiles
   * - docker
     - Use Docker as container software
 
-  * - conda
-    - Use Conda environments for prcesses (WIP)
-
   * - test
     - Use testdata to run the pipeline :code:`nextflow run mpieva/quicksand -profile test,singularity`
 

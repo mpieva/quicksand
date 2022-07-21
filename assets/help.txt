@@ -45,6 +45,7 @@ A selection of built-in Nextflow flags that may be of use:
 PROFILES
 
 The following execution profiles are available (see '-profile' above):
-  * conda            run all processes in a conda environment
   * singularity      run all processes in a singularity container
   * docker           run all processes in a docker container
+  * test             run all processes using the included test data
+  * debug            dont remove intermediate files after run

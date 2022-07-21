@@ -121,7 +121,6 @@ if(!params.split && !(params.bam && params.rg)){
 //
 
 process splitBam {
-    conda (params.enable_conda ? "${baseDir}/envs/sediment.yaml" : null)    
     container (workflow.containerEngine ? "merszym/splitbam:v0.1.6" : null)
     publishDir 'split', mode: 'copy', pattern: '*.bam'
     publishDir 'stats', mode: 'copy', pattern: '*.tsv'
@@ -167,7 +166,6 @@ splitbam_out.fail
     .view{get_warn_msg("${it[1]} omitted. File has neither bam nor fastq-ending!")}
 
 process fastq2Bam{
-    conda (params.enable_conda ? "bioconda::samtools=1.15.1" : null)
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
         'https://depot.galaxyproject.org/singularity/samtools:1.15.1--h1170115_0' :
         'quay.io/biocontainers/samtools:1.15.1--h1170115_0' }"
@@ -189,7 +187,6 @@ process fastq2Bam{
 splitbam_out.bam.mix(fastq2bam_out).set{filterbam_in}
 
 process filterBam {
-    conda (params.enable_conda ? "bioconda::samtools=1.15.1" : null)
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
         'https://depot.galaxyproject.org/singularity/samtools:1.15.1--h1170115_0' :
         'quay.io/biocontainers/samtools:1.15.1--h1170115_0' }"
@@ -213,7 +210,6 @@ process filterBam {
 filterbam_out.map{[add_to_dict(it[0],'splitcount',it[2].trim()), it[1]]}.set{filterlength_in}
 
 process filterLength {
-    conda (params.enable_conda ? "${baseDir}/envs/sediment.yaml" : null)    
     container (workflow.containerEngine ? "merszym/bam-lengthfilter:nextflow" : null)
     tag "$meta.id"
     label 'local'
@@ -231,7 +227,6 @@ process filterLength {
 }
 
 process filterLengthCount {
-    conda (params.enable_conda ? "bioconda::samtools=1.15.1" : null)
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
         'https://depot.galaxyproject.org/singularity/samtools:1.15.1--h1170115_0' :
         'quay.io/biocontainers/samtools:1.15.1--h1170115_0' }"
@@ -262,7 +257,6 @@ splitcount_file.map{meta,bam -> ["$meta.id\t$meta.splitcount\t$meta.lengthfilter
                  seed: "readgroup\tsplit count\tfiltered count")
 
 process toFasta {
-    conda (params.enable_conda ? "bioconda::samtools=1.15.1" : null)
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
         'https://depot.galaxyproject.org/singularity/samtools:1.15.1--h1170115_0' :
         'quay.io/biocontainers/samtools:1.15.1--h1170115_0' }"
@@ -287,7 +281,6 @@ process toFasta {
 if (params.testrun){
     // If using test-data, extract the test-database
     process extractTestDatabase {
-        conda (params.enable_conda ? "conda-forge::tar=1.34" : null)    
         container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
         'https://depot.galaxyproject.org/singularity/ubuntu:20.04' :
         'ubuntu:20.04' }"
@@ -312,7 +305,6 @@ database_out = params.testrun ? database_extracted : database
 tofasta_out.combine(database_out).set{runkraken_in}
 
 process runKrakenUniq {
-    conda (params.enable_conda ? "bioconda::krakenuniq=0.7.3" : null)    
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
         'https://depot.galaxyproject.org/singularity/krakenuniq:0.7.3--pl5321h19e8d03_0' :
         'quay.io/biocontainers/krakenuniq:0.7.3--pl5321h19e8d03_0' }"
@@ -337,7 +329,6 @@ process runKrakenUniq {
 }
 
 process findBestNode{
-    conda (params.enable_conda ? "conda-forge::python=3.9.1" : null)    
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
         'https://depot.galaxyproject.org/singularity/python:3.9--1' :
         'quay.io/biocontainers/python:3.9--1' }"
@@ -409,9 +400,6 @@ gathertaxon_in.map{meta, bam -> [meta.id, meta, bam]}
     .set{gathertaxon_in}
 
 process gatherByTaxon {
-    container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/ubuntu:20.04' :
-        'ubuntu:20.04' }"
     label 'process_low'
     label 'local'
     tag "$meta.id:$meta.Taxon"
@@ -439,7 +427,6 @@ gathertaxon_file
         }
 
 process extractBam {
-    conda (params.enable_conda ? "${baseDir}/envs/sediment.yaml" : null)    
     container (workflow.containerEngine ? "merszym/bamfilter:nextflow" : null)
     publishDir 'out', mode: 'copy', saveAs: {out_bam}
     tag "$meta.id:$meta.Taxon"
@@ -469,7 +456,6 @@ extractbam_out
     .set{sortbam_in}
 
 process sortBam{
-    conda (params.enable_conda ? "bioconda::samtools=1.15.1" : null)
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
         'https://depot.galaxyproject.org/singularity/samtools:1.15.1--h1170115_0' :
         'quay.io/biocontainers/samtools:1.15.1--h1170115_0' }"
@@ -494,7 +480,6 @@ sortbam_out
     .set{mapbwa_in}
 
 process mapBwa {
-    conda (params.enable_conda ? "${baseDir}/envs/sediment.yaml" : null)    
     container (workflow.containerEngine ? "merszym/network-aware-bwa:v0.5.10" : null)
     publishDir 'out', mode: 'copy', saveAs: {out_bam}, pattern: '*.bam'
     tag "${meta.id}:${meta.Taxon}:${meta.Species}"
@@ -516,7 +501,6 @@ process mapBwa {
 }
 
 process filterMappedBam{
-    conda (params.enable_conda ? "bioconda::samtools=1.15.1" : null)
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
         'https://depot.galaxyproject.org/singularity/samtools:1.15.1--h1170115_0' :
         'quay.io/biocontainers/samtools:1.15.1--h1170115_0' }"
@@ -547,7 +531,6 @@ filtermappedbam_out
     .set{dedupbam_in}
 
 process dedupBam {
-    conda (params.enable_conda ? "${baseDir}/envs/sediment.yaml" : null)    
     container (workflow.containerEngine ? "merszym/biohazard_bamrmdup:v0.2.2" : null)
     publishDir 'out', mode: 'copy', pattern: "*.bam", saveAs: {out_bam}
     tag "${meta.id}:${meta.Family}:${meta.Species}"
@@ -568,7 +551,6 @@ process dedupBam {
 }
 
 process getDedupStats{
-    conda (params.enable_conda ? "bioconda::samtools=1.15.1" : null)
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
         'https://depot.galaxyproject.org/singularity/samtools:1.15.1--h1170115_0' :
         'quay.io/biocontainers/samtools:1.15.1--h1170115_0' }"
@@ -625,7 +607,6 @@ dedupedstats_out.bed
     .set{runbed_in} 
 
 process runIntersectBed{
-    conda (params.enable_conda ? "bioconda::bedtools=2.27.1" : null)
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
         'https://depot.galaxyproject.org/singularity/bedtools:2.30.0--h468198e_3' :
         'quay.io/biocontainers/bedtools:2.30.0--h468198e_3' }"
@@ -649,7 +630,6 @@ process runIntersectBed{
 }
 
 process getBedfilteredCounts{
-    conda (params.enable_conda ? "bioconda::samtools=1.15.1" : null)
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
         'https://depot.galaxyproject.org/singularity/samtools:1.15.1--h1170115_0' :
         'quay.io/biocontainers/samtools:1.15.1--h1170115_0' }"
@@ -697,7 +677,6 @@ bedfiltercounts_out.map{meta,bam,count -> [meta.id, meta, bam, count]}
 damageanalysis_in = params.skip_analyze ? Channel.empty() : bedfiltercounts_out
 
 process analyzeDeamination{
-    conda (params.enable_conda ? "${baseDir}/envs/analyzeDeamination.yaml" : null)    
     container (workflow.containerEngine ? "merszym/bam_deam:nextflow" : null)
     publishDir 'out', mode: 'copy', saveAs: { out_bam }, pattern:"*.bam"
     tag "${meta.id}:${meta.Taxon}:${meta.Species}"
