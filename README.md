@@ -17,6 +17,7 @@ See the [Github Pages](https://mpieva.github.io/quicksand) for a comprehensive d
     - [Requirements](#requirements)
     - [Create Datastructure](#create-datastructure)
     - [Run quicksand](#run-quicksand)
+- [References](#references)
 <!-- /TOC -->
 
 ## Description
@@ -99,5 +100,17 @@ Then run the pipeline:
 
 After running the pipeline, please see the `final_report.tsv` for a summary of the results. Please see the [docs](https://mpieva.github.io/quicksand/usage.html#output) for a comprehensive description of the output!
 
-In case of questions or bugs, \
-feel free to contact me or open an issue
+## References
+
+- *Slon,V. et al. (2017)*: Neandertal and Denisovan DNA from Pleistocene sediments. 10.1126/science.aam9695
+- *Li,H. et al. (2009)*: Fast and accurate short read alignment with Burrows-Wheeler transform. 10.1093/bioinformatics/btp324 
+- *Breitwieser, F.P. et al. (2018)*: KrakenUniq: confident and fast metagenomics classification using unique k-mer counts. 10.1186/s13059-018-1568-0 
+
+This pipeline uses code inspired by the [nf-core](https://nf-co.re) initative, reused here under the [MIT license](https://github.com/nf-core/tools/blob/master/LICENSE).
+
+> The nf-core framework for community-curated bioinformatics pipelines.
+>
+> Philip Ewels, Alexander Peltzer, Sven Fillinger, Harshil Patel, Johannes Alneberg, Andreas Wilm, Maxime Ulysse Garcia, Paolo Di Tommaso & Sven Nahnsen.
+>
+> Nat Biotechnol. 2020 Feb 13. doi: 10.1038/s41587-020-0439-x.
+
