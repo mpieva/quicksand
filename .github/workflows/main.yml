@@ -1,4 +1,4 @@
-name: Quicksand CI
+name: CI
 
 on:
   # Triggers the workflow on push or pull request events but only for the "master" branch
@@ -12,12 +12,13 @@ on:
 
 jobs:
   run_pipeline_with_testdata:
-    name: Quicksand Runtest
+    name: Test
     if: "${{ github.repository == 'mpieva/quicksand' }}"
     runs-on: ubuntu-latest
     strategy:
       matrix:
         profile: ['singularity', 'docker']
+        flags: ['--skip_bed Hominidae', '--skip_analysis', '--skip_report', '--byrg', '--taxlvl o']
 
     steps:
       - name: Checkout code
@@ -29,7 +30,6 @@ jobs:
       - name: Install Nextflow
         uses: MillironX/setup-nextflow@v1
 
-      - name: Test ${{matrix.profile}}
-        run:  nextflow run ${GITHUB_WORKSPACE} -profile test,${{matrix.profile}}
+      - name: CI test of ${{matrix.flags}} on ${{matrix.profile}}
+        run:  nextflow run ${GITHUB_WORKSPACE} ${{matrix.flags}} -profile test,${{matrix.profile}}
       
-
