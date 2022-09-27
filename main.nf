@@ -197,17 +197,21 @@ process filterBam {
     tuple meta, "${meta.id}.bam" from filterbam_in
 
     output:
-    tuple meta, "${meta.id}.filtered.bam", stdout into filterbam_out
+    tuple meta, "${meta.id}.filtered.bam", stdout, 'filtercount.txt' into filterbam_out
 
     script:
     """
-    samtools view -c \"${meta.id}.bam\"
+    samtools view -c -F 128 \"${meta.id}.bam\"
     samtools view -b -u -F ${params.bamfilterflag} -o \"${meta.id}.filtered.bam\" \"${meta.id}.bam\"
+    samtools view -c \"${meta.id}.filtered.bam\" > 'filtercount.txt'
     """
 }
 
 //add splitcounts to meta
-filterbam_out.map{[add_to_dict(it[0],'splitcount',it[2].trim()), it[1]]}.set{filterlength_in}
+filterbam_out
+    .map{[add_to_dict(it[0],'splitcount',it[2].trim()), it[1], it[3].text.trim()]}
+    .map{[add_to_dict(it[0],'filtercount',it[2]), it[1]]}
+    .set{filterlength_in}
 
 process filterLength {
     container (workflow.containerEngine ? "merszym/bam-lengthfilter:nextflow" : null)
@@ -249,12 +253,12 @@ process filterLengthCount {
 filterlengthcount_out.map{[add_to_dict(it[0],'lengthfiltercount',it[2].trim()), it[1]]}.into{ gathertaxon_in; splitcount_file; tofasta_in }
 
 // Include the old splitcounts file in the summary
-splitcount_file.map{meta,bam -> ["$meta.id\t$meta.splitcount\t$meta.lengthfiltercount"]}
+splitcount_file.map{meta,bam -> ["$meta.id\t$meta.splitcount\t$meta.filtercount\t$meta.lengthfiltercount"]}
     .concat(splitfile)
     .unique{it[0]}
     .map{it[0]}
     .collectFile(storeDir: 'stats', name: "splitcounts.tsv", newLine: true,
-                 seed: "readgroup\tsplit count\tfiltered count")
+                 seed: "RG\tReadsRaw\tReadsFiltered\tReadsLengthfiltered")
 
 process toFasta {
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
@@ -641,19 +645,22 @@ process getBedfilteredCounts{
     tuple meta, "${meta.Species}.masked.bam" from runbed_out
 
     output:
-    tuple meta, "${meta.Species}.masked.bam", stdout into bedfiltercounts_out
+    tuple meta, "${meta.Species}.masked.bam", stdout, 'coverage.txt' into bedfiltercounts_out
 
     """
     samtools view -c \"${meta.Species}.masked.bam\"
+    samtools coverage -H \"${meta.Species}.masked.bam\" | cut -f 5 > 'coverage.txt'
     """
 }
 
-bedfiltercounts_out.map{meta,bam,count -> [add_to_dict(meta, 'Bedfiltered', count.trim() as int), bam]}
+bedfiltercounts_out
+    .map{meta,bam,count,cov -> [add_to_dict(meta, 'Bedfiltered', count.trim() as int), bam, cov]}
+    .map{meta,bam,cov -> [add_to_dict(meta, 'PostBedCoverage', cov.text.trim() as int), bam]}
     .into{bedfiltercounts_file;bedfiltercounts_out}
 
 bedfiltercounts_file
-    .collectFile(storeDir: 'stats', newLine:true, seed:'Order\tFamily\tSpecies\tReadsBedfiltered') {meta, bam ->
-        [ "${meta.id}_mapped_deduped_bedfiltered.tsv", "${meta.Order}\t${meta.Family}\t${meta.Species}\t${meta.Bedfiltered}"]
+    .collectFile(storeDir: 'stats', newLine:true, seed:'Order\tFamily\tSpecies\tReadsBedfiltered\tPostBedCoveredBP') {meta, bam ->
+        [ "${meta.id}_mapped_deduped_bedfiltered.tsv", "${meta.Order}\t${meta.Family}\t${meta.Species}\t${meta.Bedfiltered}\t${meta.PostBedCoverage}"]
     }
 
 //calculate the percentage of a family here
@@ -719,36 +726,50 @@ if(! params.skip_report){
     report_in.map{ meta -> [
     	meta,
     	prop_mapped = (meta.Extracted==0 || meta.Mapped == 0) ? 0 : (meta.Mapped/meta.Extracted).trunc(4),
-    	dupl_rate = (meta.Deduped==0 || meta.Mapped==0) ? 0 : (meta.Deduped/meta.Mapped).trunc(4)
+    	dupl_rate = (meta.Deduped==0 || meta.Mapped==0) ? 0 : (meta.Mapped/meta.Deduped).trunc(4)
         ]
     }
-    .collectFile(seed:'RG\tFamilyKmers\tKmerCoverage\tKmerDupRate\tOrder\tFamily\tSpecies\tExtractLVL\tReadsExtracted\tReadsMapped\tProportionMapped\tReadsDeduped\tDuplicationRate\tCoveredBP\tReadsBedfiltered\tFamPercentage\tAncientness\tReadsDeaminated53\tDeam5\tDeam3\tDeam5Cond\tDeam3Cond', 
-        storeDir:'.', newLine:true, sort:true){ meta, pm, dup -> [
+    .collectFile(
+        seed:[
+                'RG','FamilyKmers','KmerCoverage',
+                'KmerDupRate','Order','Family',
+                'Species','ReadsRaw','ReadsFiltered','ReadsLengthfiltered','ExtractLVL','ReadsExtracted',
+                'ReadsMapped','ProportionMapped','ReadsDeduped',
+                'DuplicationRate','CoveredBP','ReadsBedfiltered','PostBedCoveredBP',
+                'FamPercentage','Ancientness','ReadsDeaminated53',
+                'Deam5','Deam3','Deam5Cond','Deam3Cond'
+        ].join('\t'),
+        storeDir:'.', newLine:true, sort:true
+    ){ meta, pm, dup -> [
             'final_report.tsv', [
-            meta.id,
-            meta.FamKmers,
-            meta.FamKmerCov,
-            meta.FamKmerDup,
-            meta.Order,
-            meta.Family,
-            meta.Species,
-            params.taxlvl,
-            meta.Extracted,
-            meta.Mapped,
-            pm,
-            meta.Deduped,
-            dup,
-            meta.CoveredBP,
-            meta.Bedfiltered ?: '-',
-            meta.FamPercentage,
-            meta.Ancient ?: 'N/A',
-            meta.ReadsDeaminated ?: '-',
-            meta.Deam5 ?: '-',
-            meta.Deam3 ?: '-',
-            meta.Deam5Cond ?: '-',
-            meta.Deam3Cond ?: '-'].join('\t') 
-        ]
-    }
+                meta.id,
+                meta.FamKmers,
+                meta.FamKmerCov,
+                meta.FamKmerDup,
+                meta.Order,
+                meta.Family,
+                meta.Species,
+                meta.splitcount,
+                meta.filtercount,
+                meta.lengthfiltercount,
+                params.taxlvl,
+                meta.Extracted,
+                meta.Mapped,
+                pm,
+                meta.Deduped,
+                dup,
+                meta.CoveredBP,
+                meta.Bedfiltered ?: '-',
+                meta.PostBedCoverage ?: '-',
+                meta.FamPercentage,
+                meta.Ancient ?: 'N/A',
+                meta.ReadsDeaminated ?: '-',
+                meta.Deam5 ?: '-',
+                meta.Deam3 ?: '-',
+                meta.Deam5Cond ?: '-',
+                meta.Deam3Cond ?: '-'
+            ].join('\t') 
+    ]}
 }
 
 
