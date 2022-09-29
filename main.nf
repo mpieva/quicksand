@@ -123,7 +123,7 @@ if(!params.split && !(params.bam && params.rg)){
 process splitBam {
     container (workflow.containerEngine ? "merszym/splitbam:v0.1.6" : null)
     publishDir 'split', mode: 'copy', pattern: '*.bam'
-    publishDir 'stats', mode: 'copy', pattern: '*.tsv'
+    publishDir 'split', mode: 'copy', pattern: '*.txt'
     label 'local'
 
     input:
@@ -131,15 +131,14 @@ process splitBam {
     path 'indices.tsv' from indexfile
 
     output:
-    path '*.bam' into splitbam_out mode flatten
-    path 'splitstats.tsv'
+    path '*' into splitbam_out mode flatten
 
     when:
     params.bam && params.rg   
 
     script:
     """
-    splitbam -s -c $params.compression_level -f indices.tsv --minscore 10 --maxnumber 0 input.bam > splitstats.tsv
+    splitbam -s -c $params.compression_level -f indices.tsv --minscore 10 --maxnumber 0 input.bam > splittingstats.txt
     """
 }
 
@@ -158,12 +157,33 @@ splitbam_out
     .branch{
         bam: it[1].getExtension() == "bam"
         fastq: has_ending(it[1], ["fastq","fastq.gz","fq","fq.gz"])
+        split: it[1] =~ "/split.*stats\.{txt|tsv}/"
         fail: true
     }
     .set{splitbam_out}
 
 splitbam_out.fail
     .view{get_warn_msg("${it[1]} omitted. File has neither bam nor fastq-ending!")}
+
+crosscont_in = splitbam_out.split?: null 
+
+process EstimateCrossContamination{
+    container (workflow.containerEngine ? "merszym/bam_deam:nextflow" : null)
+    publishDir '.', mode: 'copy', pattern:"*.txt"
+    label 'local'
+
+    input:
+    tuple meta, 'splittingstats.txt' from crosscont_in
+
+    output:
+    path 'crosscont_estimate.txt' 
+
+    script:
+    """
+    cross_cont.py splittingstats.txt > crosscont_estimate.txt
+    """
+}
+
 
 process fastq2Bam{
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
