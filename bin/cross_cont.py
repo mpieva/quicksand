@@ -96,9 +96,13 @@ def main(df):
 
 if __name__ == '__main__':
     #import the dataframe
-    df = pd.read_csv(sys.argv[1], sep='\t', low_memory=False)
-    df = df[df['#seqs'].astype(str).str.contains('^\d')]
-    
+    try:
+        df = pd.read_csv(sys.argv[1], sep='\t', low_memory=False)
+        df = df[df['#seqs'].astype(str).str.contains('^\d')]
+    except:
+        # in case the file has weird content
+        sys.exit(0)
+
     #filter phix-indices or missing indices
     df = df[(df['p5ind'].str.contains('^[0-9]+$'))&(df['p7ind'].str.contains('^[0-9]+$'))]
     df.convert_dtypes()

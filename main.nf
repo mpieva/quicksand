@@ -169,20 +169,26 @@ crosscont_in = splitbam_out.split?: null
 
 process EstimateCrossContamination{
     container (workflow.containerEngine ? "merszym/bam_deam:nextflow" : null)
-    publishDir '.', mode: 'copy', pattern:"*.txt"
     label 'local'
 
     input:
     tuple meta, 'splittingstats.txt' from crosscont_in
 
     output:
-    path 'crosscont_estimate.txt' 
+    tuple meta, "${meta.id}.CC.txt" into crosscont_out 
 
     script:
     """
-    cross_cont.py splittingstats.txt > crosscont_estimate.txt
+    cross_cont.py splittingstats.txt > \"${meta.id}.CC.txt\"
     """
 }
+
+
+crosscont_out
+    .filter{it[1].text != ''}
+    .collectFile(storeDir: '.') {meta, file ->
+        [ "${meta.id}_cc.txt", file.text]
+    }
 
 
 process fastq2Bam{
