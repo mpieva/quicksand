@@ -712,7 +712,8 @@ damageanalysis_in = params.skip_analyze ? Channel.empty() : bedfiltercounts_out
 
 process analyzeDeamination{
     container (workflow.containerEngine ? "merszym/bam_deam:nextflow" : null)
-    publishDir 'out', mode: 'copy', saveAs: { out_bam }, pattern:"*.bam"
+    publishDir 'out', mode: 'copy', saveAs: { out_bam1 }, pattern:"*1.bam"
+    publishDir 'out', mode: 'copy', saveAs: { out_bam2 }, pattern:"*3.bam"
     tag "${meta.id}:${meta.Taxon}:${meta.Species}"
     label 'process_medium'
     label 'local'
@@ -721,12 +722,14 @@ process analyzeDeamination{
     tuple meta, "${meta.Species}.bam" from damageanalysis_in
     
     output:
-    path 'output.deaminated.bam'
+    tuple 'output.deaminated1.bam', 'output.deaminated3.bam'
     tuple meta, 'ancient_stats.tsv' into damageanalysis_out
     
     script:
-    out_bam = params.byrg ? "${meta.id}/${meta.Taxon}/deaminated/${meta.Family}.${meta.Species}_deduped_deaminated53.bam" : 
-                            "${meta.Taxon}/deaminated/${meta.id}.${meta.Family}.${meta.Species}_deduped_deaminated53.bam"
+    out_bam1 = params.byrg ? "${meta.id}/${meta.Taxon}/deaminated/${meta.Family}.${meta.Species}_deduped_deaminated_1term.bam" : 
+                            "${meta.Taxon}/deaminated/${meta.id}.${meta.Family}.${meta.Species}_deduped_deaminated_1term.bam"
+    out_bam2 = params.byrg ? "${meta.id}/${meta.Taxon}/deaminated/${meta.Family}.${meta.Species}_deduped_deaminated_3term.bam" : 
+                            "${meta.Taxon}/deaminated/${meta.id}.${meta.Family}.${meta.Species}_deduped_deaminated_3term.bam"
     """
     bam_deam_stats.py \"${meta.Species}.bam\" > ancient_stats.tsv
     """
@@ -738,11 +741,25 @@ damageanalysis_out.map{meta,damage -> [meta,damage.splitCsv(sep:'\t', header:tru
     .into{damageanalysis_out;damageanalysis_file}
 
 damageanalysis_file
-    .collectFile(storeDir: 'stats', newLine:true, seed:'Order\tFamily\tSpecies\tAncient\tReadsDeaminated\tDeam5(95CI)\tDeam3(95CI)\tDeam5Cond(95CI)\tDeam3Cond(95CI)'){
-        meta -> ["${meta.id}_mapped_deduped_deaminated53.tsv",
-       "${meta.Order}\t${meta.Family}\t${meta.Species}\t${meta.Ancient}\t${meta.ReadsDeaminated}\t${meta.Deam5}\t${meta.Deam3}\t${meta.Deam5Cond}\t${meta.Deam3Cond}"]
-    }
-
+    .collectFile( storeDir: 'stats', newLine:true, seed:[
+       'Order','Family','Species','Ancientness','ReadsDeam(1term)',
+       'ReadsDeam(3term)','Deam5(95ci)','Deam3(95ci)','Deam5Cond(95ci)',
+       'Deam3Cond(95ci)'].join('\t')){ 
+       meta -> [
+                 "${meta.id}_mapped_deduped_deamination.tsv",
+                 [ meta.Order,
+                   meta.Family,
+                   meta.Species,
+                   meta.Ancientness,
+                   meta.ReadsDeam1,
+                   meta.ReadsDeam3,
+                   meta.Deam5P,
+                   meta.Deam3P,
+                   meta.Deam5Cond,
+                   meta.Deam3Cond
+                 ].join('\t')
+               ]
+   }
 
 //now the final report
 if(! params.skip_report){
@@ -763,8 +780,8 @@ if(! params.skip_report){
                 'Species','ReadsRaw','ReadsFiltered','ReadsLengthfiltered','ExtractLVL','ReadsExtracted',
                 'ReadsMapped','ProportionMapped','ReadsDeduped',
                 'DuplicationRate','CoveredBP','ReadsBedfiltered','PostBedCoveredBP',
-                'FamPercentage','Ancientness','ReadsDeaminated53',
-                'Deam5','Deam3','Deam5Cond','Deam3Cond'
+                'FamPercentage','Ancientness','ReadsDeam(1term)','ReadsDeam(3term)',
+                'Deam5(95ci)','Deam3(95ci)','Deam5Cond(95ci)','Deam3Cond(95ci)'
         ].join('\t'),
         storeDir:'.', newLine:true, sort:true
     ){ meta, pm, dup -> [
@@ -789,10 +806,11 @@ if(! params.skip_report){
                 meta.Bedfiltered ?: '-',
                 meta.PostBedCoverage ?: '-',
                 meta.FamPercentage,
-                meta.Ancient ?: 'N/A',
-                meta.ReadsDeaminated ?: '-',
-                meta.Deam5 ?: '-',
-                meta.Deam3 ?: '-',
+                meta.Ancientness ?: '-',
+                meta.ReadsDeam1 ?: '-',
+                meta.ReadsDeam3 ?: '-',
+                meta.Deam5P ?: '-',
+                meta.Deam3P ?: '-',
                 meta.Deam5Cond ?: '-',
                 meta.Deam3Cond ?: '-'
             ].join('\t') 
