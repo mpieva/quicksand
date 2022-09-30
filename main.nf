@@ -339,8 +339,8 @@ process runKrakenUniq {
         'https://depot.galaxyproject.org/singularity/krakenuniq:0.7.3--pl5321h19e8d03_0' :
         'quay.io/biocontainers/krakenuniq:0.7.3--pl5321h19e8d03_0' }"
 
-    publishDir 'kraken', mode: 'copy', pattern:"*translate", saveAs: {"${meta.id}.translate"}
-    publishDir 'kraken', mode: 'copy', pattern:"*report", saveAs: {"${meta.id}.report"}
+    publishDir 'stats', mode: 'copy', pattern:"*translate", saveAs: {"${meta.id}.kraken.translate"}
+    publishDir 'stats', mode: 'copy', pattern:"*report", saveAs: {"${meta.id}.kraken.report"}
     label 'process_high'
     label 'local'
     tag "$meta.id"
@@ -474,7 +474,7 @@ process extractBam {
     meta.Extracted >= params.krakenuniq_min_reads 
 
     script:
-    out_bam = params.byrg ? "${meta.id}/${meta.Taxon}/${meta.id}_extractedReads-${meta.Taxon}.bam" : "${meta.Taxon}/${meta.id}_extractedReads-${meta.Taxon}.bam"
+    out_bam = params.byrg ? "${meta.id}/${meta.Taxon}/unmapped/${meta.id}_extractedReads-${meta.Taxon}.bam" : "${meta.Taxon}/unmapped/${meta.id}_extractedReads-${meta.Taxon}.bam"
     
     """
     bamfilter -i ids.txt -l $params.compression_level -o \"${meta.id}.output.bam\" \"${meta.id}.bam\"
@@ -575,7 +575,7 @@ process dedupBam {
     tuple meta, "${meta.Species}.deduped.bam" into dedupedbam_out
 
     script:
-    out_bam = params.byrg ? "${meta.id}/${meta.Taxon}/aligned/${meta.Family}.${meta.Species}_deduped.bam" : "${meta.Taxon}/aligned/${meta.id}.${meta.Family}.${meta.Species}_deduped.bam"
+    out_bam = params.byrg ? "${meta.id}/${meta.Taxon}/deduped/${meta.Family}.${meta.Species}_deduped.bam" : "${meta.Taxon}/deduped/${meta.id}.${meta.Family}.${meta.Species}_deduped.bam"
     """
     bam-rmdup -r -o \"${meta.Species}.deduped.bam\" \"${meta.Species}.bam\" > rmdup.txt
     """
@@ -653,8 +653,8 @@ process runIntersectBed{
     tuple meta, "${meta.Species}.masked.bam" into runbed_out
     
     script:
-    out_bam = params.byrg ? "${meta.id}/${meta.Taxon}/bed/${meta.Family}.${meta.Species}_deduped_bedfiltered.bam" : 
-                            "${meta.Taxon}/bed/${meta.id}.${meta.Family}.${meta.Species}_deduped_bedfiltered.bam"
+    out_bam = params.byrg ? "${meta.id}/${meta.Taxon}/bedfiltered/${meta.Family}.${meta.Species}_deduped_bedfiltered.bam" : 
+                            "${meta.Taxon}/bedfiltered/${meta.id}.${meta.Family}.${meta.Species}_deduped_bedfiltered.bam"
     """
     bedtools intersect -a \"${meta.Species}.bam\" -b masked/\"${meta.Species}.masked.bed\" -v > \"${meta.Species}.masked.bam\"
     """
