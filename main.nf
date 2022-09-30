@@ -157,7 +157,7 @@ splitbam_out
     .branch{
         bam: it[1].getExtension() == "bam"
         fastq: has_ending(it[1], ["fastq","fastq.gz","fq","fq.gz"])
-        split: it[1] =~ "/split.*stats\.{txt|tsv}/"
+        split: it[1].name =~ /split.*stats/
         fail: true
     }
     .set{splitbam_out}
@@ -349,6 +349,7 @@ process runKrakenUniq {
     """
     krakenuniq --threads ${task.cpus} --db database --fasta-input \"${meta.id}.fa\" --report-file krakenUniq.report > output.krakenUniq
     krakenuniq-translate --db database --mpa-format output.krakenUniq > krakenUniq.translate
+    echo "\$(grep -E '^(#|%|[0-9]).*' krakenUniq.report)" > krakenUniq.report
     """
 }
 
