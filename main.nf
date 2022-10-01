@@ -91,8 +91,6 @@ if (! new File("${params.genomes}/taxid_map.tsv").exists()) {
     log.info get_warn_msg("The file 'taxid_map.tsv' is missing in your genomes dir! Using fallback ${baseDir}/assets/taxid_map_example.tsv")
 }    
 
-splitfile = new File("${params.splitfile}").exists() ? Channel.fromPath("${params.splitfile}", type: "file").splitCsv(skip:1) : Channel.empty()
-
 
 //
 //
@@ -186,8 +184,8 @@ process EstimateCrossContamination{
 
 crosscont_out
     .filter{it[1].text != ''}
-    .collectFile(storeDir: '.') {meta, file ->
-        [ "${meta.id}_cc.txt", file.text]
+    .collectFile(storeDir: '.', newLine:true) {meta, file ->
+        [ "cc_estimates.txt", ["# Cross contamination calculated from File: ${meta.id}.txt"  ,file.text].join('\n') ]
     }
 
 
@@ -278,9 +276,7 @@ process filterLengthCount {
 //add filterlength count to meta
 filterlengthcount_out.map{[add_to_dict(it[0],'lengthfiltercount',it[2].trim()), it[1]]}.into{ gathertaxon_in; splitcount_file; tofasta_in }
 
-// Include the old splitcounts file in the summary
 splitcount_file.map{meta,bam -> ["$meta.id\t$meta.splitcount\t$meta.filtercount\t$meta.lengthfiltercount"]}
-    .concat(splitfile)
     .unique{it[0]}
     .map{it[0]}
     .collectFile(storeDir: 'stats', name: "splitcounts.tsv", newLine: true,
