@@ -721,7 +721,7 @@ process analyzeDeamination{
     tuple meta, "${meta.Species}.bam" from damageanalysis_in
     
     output:
-    tuple 'output.deaminated1.bam', 'output.deaminated3.bam'
+    tuple meta, 'output.deaminated1.bam', 'output.deaminated3.bam', "${meta.Species}.bam" into masking_in
     tuple meta, 'ancient_stats.tsv' into damageanalysis_out
     
     script:
@@ -733,6 +733,63 @@ process analyzeDeamination{
     bam_deam_stats.py \"${meta.Species}.bam\" > ancient_stats.tsv
     """
 }
+
+
+// We want pileups of all-reads, 1term and 3term 
+// for mappings fixed on a certain species (saved in famList)
+
+masking_in
+    .filter{ it[0].Family in famList }
+    .set{masking_in}
+
+
+process maskDeamination{
+    container (workflow.containerEngine ? "merszym/bam_deam:nextflow" : null)
+    tag "${meta.id}:${meta.Taxon}:${meta.Species}"
+    label 'process_medium'
+    label 'local'
+    
+    input:
+    tuple meta, 'deaminated1.bam', 'deaminated3.bam', "all_reads.bam" from masking_in
+    
+    output:
+    tuple meta, 'deaminated1.masked.bam', 'deaminated3.masked.bam', "all_reads.bam" into mpileup_in
+    
+    script:
+    """
+    mask_qual_scores.py deaminated1.bam
+    mask_qual_scores.py deaminated3.bam
+    """
+}
+
+
+process createMpileups{
+    container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
+        'https://depot.galaxyproject.org/singularity/samtools:1.15.1--h1170115_0' :
+        'quay.io/biocontainers/samtools:1.15.1--h1170115_0' }"
+    publishDir {out}, mode: 'copy', pattern: '*.tsv'
+    tag "${meta.id}:${meta.Taxon}:${meta.Species}"
+    label 'process_medium'
+    label 'local'
+    
+    input:
+    tuple meta, 'in.deaminated1.bam', 'in.deaminated3.bam', "all_reads.bam" from mpileup_in
+    
+    output:
+    tuple "${meta.id}.${meta.Family}.${meta.Species}_all_mpiled.tsv",
+          "${meta.id}.${meta.Family}.${meta.Species}_term1_mpiled.tsv", 
+          "${meta.id}.${meta.Family}.${meta.Species}_term3_mpiled.tsv" 
+   
+    script:
+    out = params.byrg ? "out/${meta.id}/${meta.Taxon}/pileups/" : "out/${meta.Taxon}/pileups/"
+    args = "--output-BP-5 --no-output-ends --no-output-ins --no-output-del"
+    """
+    samtools mpileup all_reads.bam $args  > \"${meta.id}.${meta.Family}.${meta.Species}_all_mpiled.tsv\"
+    samtools mpileup in.deaminated1.bam $args  > \"${meta.id}.${meta.Family}.${meta.Species}_term1_mpiled.tsv\"
+    samtools mpileup in.deaminated3.bam $args > \"${meta.id}.${meta.Family}.${meta.Species}_term3_mpiled.tsv\" 
+    """
+}
+
 
 damageanalysis_out.map{meta,damage -> [meta,damage.splitCsv(sep:'\t', header:true)]}
     .transpose()
