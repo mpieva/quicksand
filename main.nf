@@ -777,8 +777,8 @@ process createMpileups{
     
     output:
     tuple "${meta.id}.${meta.Family}.${meta.Species}_all_mpiled.tsv",
-          "${meta.id}.${meta.Family}.${meta.Species}_1term_mpiled.tsv", 
-          "${meta.id}.${meta.Family}.${meta.Species}_3term_mpiled.tsv" 
+          "${meta.id}.${meta.Family}.${meta.Species}_term1_mpiled.tsv", 
+          "${meta.id}.${meta.Family}.${meta.Species}_term3_mpiled.tsv" 
    
     script:
     out = params.byrg ? "out/${meta.id}/${meta.Taxon}/pileups/" : "out/${meta.Taxon}/pileups/"
