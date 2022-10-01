@@ -554,6 +554,7 @@ process filterMappedBam{
 }
 
 filtermappedbam_file
+    .unique{it[0].id+it[0].Species}
     .collectFile(storeDir: 'stats', seed:'Order\tFamily\tSpecies\tReadsMapped', newLine:true) {meta,bam,count ->
         [ "${meta.id}_mapped.tsv", "${meta.Order}\t${meta.Family}\t${meta.Species}\t${count.trim()}"]
     }
@@ -609,11 +610,13 @@ dedupedstats_out
 
 //write stats to file
 dedupedstats_file
+    .unique{it[0].id+it[0].Species}
     .collectFile(storeDir: 'stats',newLine:true,seed:'Order\tFamily\tSpecies\tCoveredBP') {meta,bam ->
         [ "${meta.id}_mapped_coverage.tsv", "${meta.Order}\t${meta.Family}\t${meta.Species}\t${meta.CoveredBP}"]
     }
 
 dedupedstats_file_counts
+    .unique{it[0].id+it[0].Species}
     .collectFile(storeDir: 'stats', newLine:true,seed:'Order\tFamily\tSpecies\tReadsDeduped') {meta,bam ->
         [ "${meta.id}_mapped_deduped.tsv", "${meta.Order}\t${meta.Family}\t${meta.Species}\t${meta.Deduped}"]
     }
