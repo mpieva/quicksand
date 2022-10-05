@@ -46,14 +46,6 @@ def has_ending(file, extension){
 def exit_missing_required(flag){
     exit_with_error_msg("ArgumentError", "Missing required Argument ${flag}")
 }
-def add_to_dict(meta, key, val){
-    meta[key] = val
-    return meta
-}
-def get_taxon(meta){
-    taxon = params.taxlvl == 'f' ? meta.Family : meta.Order
-    return taxon
-}
 
 //
 //
@@ -89,6 +81,17 @@ if (! new File("${params.genomes}/taxid_map.tsv").exists()) {
     log.info get_warn_msg("The file 'taxid_map.tsv' is missing in your genomes dir! Using fallback ${baseDir}/assets/taxid_map_example.tsv")
 }    
 
+// for only-fixed runs
+report = new File('final_report.tsv').exists() && params.fixedonly ? Channel.fromPath('final_report.tsv', type:'file') : Channel.empty()
+report
+  .splitCsv(sep:'\t', header:true)
+  .map{row -> [row.RG, row.Family, row]}
+  .into{report;final_report}
+
+outdir = params.fixedonly ? Channel.fromPath('out/*/1-extracted/*.bam', type: 'file') : Channel.empty()
+outdir
+  .map{it -> [it.baseName.split('-')[-1], it, it.baseName.split('_')[0]]}
+  .set{outdir}
 
 //
 //
@@ -107,6 +110,10 @@ if(params.split && (params.bam || params.rg)){
 } 
 if(!params.split && !(params.bam && params.rg)){
     log.info get_info_msg("Use: nextflow run mpieva/quicksand {--rg FILE --bam FILE | --split DIR}")
+    exit_with_error_msg("ArgumentError", "Too few arguments")
+}
+if(params.fixedonly && !(params.references)){
+    log.info get_info_msg("Use --fixedonly together with --references")
     exit_with_error_msg("ArgumentError", "Too few arguments")
 }
 
@@ -130,7 +137,7 @@ process splitBam {
     path '*' into splitbam_out mode flatten
 
     when:
-    params.bam && params.rg   
+    params.fixedonly == false && params.bam && params.rg   
 
     script:
     """
@@ -145,7 +152,7 @@ if(params.split){
 
 //create the meta-map
 splitbam_out
-   .map{[['id': it.baseName, 'ref':'best', 'ref_path':null], it]}      
+   .map{[['RG': it.baseName, 'Reference':'best', 'ref_path':null, 'ExtractLVL':params.taxlvl], it]}      
    .set{splitbam_out}
 
 //convert fastq-input
@@ -171,11 +178,14 @@ process EstimateCrossContamination{
     tuple meta, 'splittingstats.txt' from crosscont_in
 
     output:
-    tuple meta, "${meta.id}.CC.txt" into crosscont_out 
+    tuple meta, "${meta.RG}.CC.txt" into crosscont_out 
+
+    when:
+    params.fixedonly == false   
 
     script:
     """
-    cross_cont.py splittingstats.txt > \"${meta.id}.CC.txt\"
+    cross_cont.py splittingstats.txt > \"${meta.RG}.CC.txt\"
     """
 }
 
@@ -183,7 +193,7 @@ process EstimateCrossContamination{
 crosscont_out
     .filter{it[1].text != ''}
     .collectFile(storeDir: '.', newLine:true) {meta, file ->
-        [ "cc_estimates.txt", ["# Cross contamination calculated from File: ${meta.id}.txt"  ,file.text].join('\n') ]
+        [ "cc_estimates.txt", ["# Cross contamination calculated from File: ${meta.RG}.txt"  ,file.text].join('\n') ]
     }
 
 
@@ -191,18 +201,21 @@ process fastq2Bam{
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
         'https://depot.galaxyproject.org/singularity/samtools:1.15.1--h1170115_0' :
         'quay.io/biocontainers/samtools:1.15.1--h1170115_0' }"
-    tag "$meta.id"
+    tag "$meta.RG"
     label 'local'
     
     input:
-    tuple meta, "${meta.id}.fq" from splitbam_out.fastq
+    tuple meta, "${meta.RG}.fq" from splitbam_out.fastq
     
     output:
-    tuple meta, "${meta.id}.bam" into fastq2bam_out
+    tuple meta, "${meta.RG}.bam" into fastq2bam_out
     
+    when:
+    params.fixedonly == false   
+
     script:
     """
-    samtools import -0 \"${meta.id}.fq\" -o \"${meta.id}.bam\"
+    samtools import -0 \"${meta.RG}.fq\" -o \"${meta.RG}.bam\"
     """
 }
 
@@ -213,42 +226,44 @@ process filterBam {
         'https://depot.galaxyproject.org/singularity/samtools:1.15.1--h1170115_0' :
         'quay.io/biocontainers/samtools:1.15.1--h1170115_0' }"
     label 'local'
-    tag "$meta.id:Flag:${params.bamfilterflag}"
+    tag "$meta.RG:Flag:${params.bamfilterflag}"
 
     input:
-    tuple meta, "${meta.id}.bam" from filterbam_in
+    tuple meta, "${meta.RG}.bam" from filterbam_in
 
     output:
-    tuple meta, "${meta.id}.filtered.bam", stdout, 'filtercount.txt' into filterbam_out
+    tuple meta, "${meta.RG}.filtered.bam", stdout, 'filtercount.txt' into filterbam_out
+
+    when:
+    params.fixedonly == false   
 
     script:
     """
-    samtools view -c -F 128 \"${meta.id}.bam\"
-    samtools view -b -u -F ${params.bamfilterflag} -o \"${meta.id}.filtered.bam\" \"${meta.id}.bam\"
-    samtools view -c \"${meta.id}.filtered.bam\" > 'filtercount.txt'
+    samtools view -c -F 128 \"${meta.RG}.bam\"
+    samtools view -b -u -F ${params.bamfilterflag} -o \"${meta.RG}.filtered.bam\" \"${meta.RG}.bam\"
+    samtools view -c \"${meta.RG}.filtered.bam\" > 'filtercount.txt'
     """
 }
 
 //add splitcounts to meta
 filterbam_out
-    .map{[add_to_dict(it[0],'splitcount',it[2].trim()), it[1], it[3].text.trim()]}
-    .map{[add_to_dict(it[0],'filtercount',it[2]), it[1]]}
+    .map{meta,bam,raw,filter -> [meta+['ReadsRaw':raw.trim(),'ReadsFiltered':filter.text.trim()], bam]}
     .set{filterlength_in}
 
 process filterLength {
     container (workflow.containerEngine ? "merszym/bam-lengthfilter:nextflow" : null)
-    tag "$meta.id"
+    tag "$meta.RG"
     label 'local'
 
     input:
-    tuple meta, "${meta.id}.bam" from filterlength_in
+    tuple meta, "${meta.RG}.bam" from filterlength_in
 
     output:
-    tuple meta, "${meta.id}.output.bam" into filterlength_out
+    tuple meta, "${meta.RG}.output.bam" into filterlength_out
 
     script:
     """
-    bam-lengthfilter -c $params.bamfilter_length_cutoff -l $params.compression_level -o \"${meta.id}.output.bam\" \"${meta.id}.bam\"
+    bam-lengthfilter -c $params.bamfilter_length_cutoff -l $params.compression_level -o \"${meta.RG}.output.bam\" \"${meta.RG}.bam\"
     """
 }
 
@@ -256,25 +271,28 @@ process filterLengthCount {
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
         'https://depot.galaxyproject.org/singularity/samtools:1.15.1--h1170115_0' :
         'quay.io/biocontainers/samtools:1.15.1--h1170115_0' }"
-    tag "$meta.id"
+    tag "$meta.RG"
     label 'local'
 
     input:
-    tuple meta, "${meta.id}.bam" from filterlength_out
+    tuple meta, "${meta.RG}.bam" from filterlength_out
 
     output:
-    tuple meta, "${meta.id}.bam", stdout into filterlengthcount_out
+    tuple meta, "${meta.RG}.bam", stdout into filterlengthcount_out
     
+    when:
+    params.fixedonly == false   
+
     script:
     """
-    samtools view -c \"${meta.id}.bam\"
+    samtools view -c \"${meta.RG}.bam\"
     """
 }
 
 //add filterlength count to meta
-filterlengthcount_out.map{[add_to_dict(it[0],'lengthfiltercount',it[2].trim()), it[1]]}.into{ gathertaxon_in; splitcount_file; tofasta_in }
+filterlengthcount_out.map{[it[0]+['ReadsLengthfiltered':it[2].trim()], it[1]]}.into{ gathertaxon_in; splitcount_file; tofasta_in }
 
-splitcount_file.map{meta,bam -> ["$meta.id\t$meta.splitcount\t$meta.filtercount\t$meta.lengthfiltercount"]}
+splitcount_file.map{meta,bam -> ["$meta.RG\t$meta.ReadsRaw\t$meta.ReadsFiltered\t$meta.ReadsLengthfiltered"]}
     .unique{it[0]}
     .map{it[0]}
     .collectFile(storeDir: 'stats', name: "splitcounts.tsv", newLine: true,
@@ -284,21 +302,21 @@ process toFasta {
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
         'https://depot.galaxyproject.org/singularity/samtools:1.15.1--h1170115_0' :
         'quay.io/biocontainers/samtools:1.15.1--h1170115_0' }"
-    tag "$meta.id"
+    tag "$meta.RG"
     label "local"
 
     input:
-    set meta, "${meta.id}.bam" from tofasta_in
+    set meta, "${meta.RG}.bam" from tofasta_in
 
     output:
-    set meta, "${meta.id}.fa" into tofasta_out
+    set meta, "${meta.RG}.fa" into tofasta_out
 
     when:
-    meta.lengthfiltercount.toInteger() > 0
+    meta.ReadsLengthfiltered.toInteger() > 0 && params.fixedonly == false   
 
     script:
     """
-    samtools fasta \"${meta.id}.bam\" > \"${meta.id}.fa\"
+    samtools fasta \"${meta.RG}.bam\" > \"${meta.RG}.fa\"
     """
 }
 
@@ -318,6 +336,9 @@ if (params.testrun){
         output:
         path 'TestDB' into database_extracted
 
+        when:
+        params.fixedonly == false   
+
         script:
         """
         tar -xvzf database/database.tar.gz
@@ -333,21 +354,24 @@ process runKrakenUniq {
         'https://depot.galaxyproject.org/singularity/krakenuniq:0.7.3--pl5321h19e8d03_0' :
         'quay.io/biocontainers/krakenuniq:0.7.3--pl5321h19e8d03_0' }"
 
-    publishDir 'stats', mode: 'copy', pattern:"*translate", saveAs: {"${meta.id}.kraken.translate"}
-    publishDir 'stats', mode: 'copy', pattern:"*report", saveAs: {"${meta.id}.kraken.report"}
+    publishDir 'stats', mode: 'copy', pattern:"*translate", saveAs: {"${meta.RG}.kraken.translate"}
+    publishDir 'stats', mode: 'copy', pattern:"*report", saveAs: {"${meta.RG}.kraken.report"}
     label 'process_high'
     label 'local'
-    tag "$meta.id"
+    tag "$meta.RG"
 
     input:
-    tuple meta, "${meta.id}.fa", "database" from runkraken_in
+    tuple meta, "${meta.RG}.fa", "database" from runkraken_in
 
     output:
     tuple meta, "krakenUniq.translate", "krakenUniq.report" into runkraken_out   
 
+    when:
+    params.fixedonly == false   
+
     script:
     """
-    krakenuniq --threads ${task.cpus} --db database --fasta-input \"${meta.id}.fa\" --report-file krakenUniq.report > output.krakenUniq
+    krakenuniq --threads ${task.cpus} --db database --fasta-input \"${meta.RG}.fa\" --report-file krakenUniq.report > output.krakenUniq
     krakenuniq-translate --db database --mpa-format output.krakenUniq > krakenUniq.translate
     echo "\$(grep -E '^(#|%|[0-9]).*' krakenUniq.report)" > krakenUniq.report
     """
@@ -359,13 +383,16 @@ process findBestNode{
         'quay.io/biocontainers/python:3.9--1' }"
     label 'process_low'
     label 'local'
-    tag "$meta.id"
+    tag "$meta.RG"
 
     input:
     tuple meta, "krakenUniq.translate", "krakenUniq.report" from runkraken_out
 
     output:
     tuple meta, "parsed_record.tsv", "krakenUniq.translate" into bestspecies_out
+
+    when:
+    params.fixedonly == false   
 
     script:
     """
@@ -387,7 +414,7 @@ bestspecies_out.map{meta, record, translate -> [meta, translate, record.splitCsv
     .set{bestspecies_out}
 
 // This block replaces the default mappings assigned by kraken by those
-// specified in the specmap file
+// specified in the references file
 
 def famList = []
 specmap = new File("${params.references}")
@@ -397,8 +424,21 @@ if(specmap.exists()){
     specmap.eachLine{famList << it.split("\t").flatten()[0]}
     specs.splitCsv(sep:'\t', header:['fam','sp_tag','path'], skip:1)
          .map{row -> [row.fam, row.sp_tag, file(row.path)]}
-         .set{specs}
-}     
+         .into{specs; fixedonly}
+} else {
+    fixedonly = Channel.empty()
+}    
+
+
+// if fixedonly --> get extracted bam files from each family + the report file to replace meta variable
+// this channel replaces the mapbwa_in channel downstream, so we need:
+// [meta, extracted, ref]
+
+fixedonly.combine(outdir, by:0)
+  .map{fam,sp,ref,bam,rg -> [rg,fam,sp,ref,bam]}
+  .combine(report, by:[0,1])
+  .map{rg,fam,sp,ref,bam,meta -> [meta+['Reference':'fixed','Species':sp,'ref_path':ref, 'Taxon':meta.ExtractLVL=='f' ? meta.Family : meta.Order], bam, ref]} 
+  .set{fixedonly}
 
 bestspecies_out
    .map{meta,translate,species -> [meta.Family,meta,translate,species]}
@@ -409,84 +449,80 @@ bestspecies_out
    .set{bestspecies_out}
 
 bestspecies_out.replace
-    .combine(specs, by:0) //[family, meta, translate, species, species_tag, path])]
-    .map{fam,meta,translate,species,sp_tag,path -> [fam, add_to_dict(meta,'ref','fixed'), translate, sp_tag, path]}
-    .map{fam,meta,translate,sp_tag,path -> [fam, add_to_dict(meta,'ref_path',path), translate, sp_tag]}
+    .combine(specs, by:0)
+    .map{fam,meta,translate,species,sp_tag,path -> [fam, meta+['Reference':'fixed', 'ref_path':path], translate, sp_tag]}
     .set{bestspecies_replaced}
 
 bestspecies_out.keep
     .mix(bestspecies_replaced)
-    .map{fam,meta,translate,specs -> [meta.id, meta, translate, specs]}
+    .map{fam,meta,translate,specs -> [meta.RG, meta, translate, specs]}
     .set{bestspecies_out} 
 
-gathertaxon_in.map{meta, bam -> [meta.id, meta, bam]}
+gathertaxon_in.map{meta, bam -> [meta.RG, meta, bam]}
     .cross(bestspecies_out)
     .map{a,b -> [b[1], a[2], b[2], b[3]]} // [meta, bam, translate, [species]]
-    .map{meta,bam,translate,species -> [add_to_dict(meta,'Taxon',get_taxon(meta)),bam,translate,species]}
+    .map{meta,bam,translate,species -> [meta+['Taxon': meta.ExtractLVL == 'f' ? meta.Family : meta.Order ],bam,translate,species]}
     .set{gathertaxon_in}
 
 process gatherByTaxon {
     label 'process_low'
     label 'local'
-    tag "$meta.id:$meta.Taxon"
+    tag "$meta.RG:$meta.Taxon"
 
     input:
-    tuple meta, "${meta.id}.bam", "${meta.id}.translate", references from gathertaxon_in
+    tuple meta, "${meta.RG}.bam", "${meta.RG}.translate", references from gathertaxon_in
 
     output:
-    tuple meta, "${meta.id}.bam", 'ids.txt', references, stdout into (gathertaxon_out, gathertaxon_file)
+    tuple meta, "${meta.RG}.bam", 'ids.txt', references, stdout into (gathertaxon_out, gathertaxon_file)
 
     script:
     """
-    grep "${params.taxlvl}__${meta.Taxon}" \"${meta.id}.translate\" | cut -f1 | tee ids.txt | wc -l
+    grep "${meta.ExtractLVL}__${meta.Taxon}" \"${meta.RG}.translate\" | cut -f1 | tee ids.txt | wc -l
     """
 }
 
 gathertaxon_out
-    .map{meta,bam,ids,ref,count -> [add_to_dict(meta,'Extracted',count.trim() as int), bam,ids,ref]}
+    .map{meta,bam,ids,ref,count -> [meta+['ReadsExtracted':count.trim() as int], bam,ids,ref]}
     .set{extractbam_in}
 
 gathertaxon_file
-        .unique{it[0].id+it[0].Taxon}
+        .unique{meta -> meta.RG+meta.Taxon}
         .collectFile(storeDir: 'stats', seed:'Taxon\tReadsExtracted', newLine:true) {meta, bam, ids, ref, count ->
-            [ "${meta.id}_extracted.tsv", "${meta.Taxon}\t${count.trim()}"]
+            [ "${meta.RG}_extracted.tsv", "${meta.Taxon}\t${count.trim()}"]
         }
 
 process extractBam {
     container (workflow.containerEngine ? "merszym/bamfilter:nextflow" : null)
-    publishDir 'out', mode: 'copy', saveAs: {out_bam}
-    tag "$meta.id:$meta.Taxon"
+    tag "$meta.RG:$meta.Taxon"
     label "process_low"
     label 'local'
 
     input:
-    set meta, "${meta.id}.bam", 'ids.txt', references from extractbam_in
+    set meta, "${meta.RG}.bam", 'ids.txt', references from extractbam_in
 
     output:
-    set meta, "${meta.id}.output.bam", references into extractbam_out
+    set meta, "${meta.RG}.output.bam", references into extractbam_out
 
     when:
-    meta.Extracted >= params.krakenuniq_min_reads 
+    meta.ReadsExtracted >= params.krakenuniq_min_reads 
 
     script:
-    out_bam = params.byrg ? "${meta.id}/${meta.Taxon}/1-extracted/${meta.id}_extractedReads-${meta.Taxon}.bam" : 
-                            "${meta.Taxon}/1-extracted/${meta.id}_extractedReads-${meta.Taxon}.bam"
-    
     """
-    bamfilter -i ids.txt -l $params.compression_level -o \"${meta.id}.output.bam\" \"${meta.id}.bam\"
+    bamfilter -i ids.txt -l $params.compression_level -o \"${meta.RG}.output.bam\" \"${meta.RG}.bam\"
     """
 }
 
 extractbam_out
     .transpose()
-    .map{meta,bam,ref -> [add_to_dict(meta,"Species",ref),bam]}
+    .map{meta,bam,ref -> [meta+["Species":ref],bam]}
     .set{sortbam_in}
 
 process sortBam{
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
         'https://depot.galaxyproject.org/singularity/samtools:1.15.1--h1170115_0' :
         'quay.io/biocontainers/samtools:1.15.1--h1170115_0' }"
-    tag "${meta.id}:${meta.Taxon}"
+    publishDir 'out', mode: 'copy', saveAs: {out_bam}
+    tag "${meta.RG}:${meta.Taxon}"
     label "process_low"
     label "local"
 
@@ -497,6 +533,8 @@ process sortBam{
     tuple meta, "${meta.Taxon}.sorted.bam" into sortbam_out
 
     script:
+    out_bam = params.byrg ? "${meta.RG}/${meta.Taxon}/1-extracted/${meta.RG}_extractedReads-${meta.Taxon}.bam" : 
+                            "${meta.Taxon}/1-extracted/${meta.RG}_extractedReads-${meta.Taxon}.bam"
     """
     samtools sort -n -l $params.compression_level -o \"${meta.Taxon}.sorted.bam\"  \"${meta.Taxon}.extracted.bam\" 
     """
@@ -505,12 +543,14 @@ process sortBam{
 sortbam_out
     .combine(genomesdir)
     .map{ meta,bam,genomes -> [meta, bam, meta.ref_path ?: genomes] }
-    .set{mapbwa_in}
+    .set{mapbwa_default}
+
+mapbwa_in = params.fixedonly ? fixedonly : mapbwa_default
 
 process mapBwa {
     container (workflow.containerEngine ? "merszym/network-aware-bwa:v0.5.10" : null)
     publishDir 'out', mode: 'copy', saveAs: {out_bam}, pattern: '*.bam'
-    tag "${meta.id}:${meta.Taxon}:${meta.Species}"
+    tag "${meta.RG}:${meta.Taxon}:${meta.Species}"
     label "process_low"
     label 'local'
 
@@ -521,10 +561,10 @@ process mapBwa {
     tuple meta, "${meta.Taxon}.mapped.bam" into mapbwa_out
 
     script:
-    index = meta.ref=='fixed' ? "bwa index reference" : ""
-    genome = meta.ref=='fixed' ? "reference" : "reference/${meta.Family}/${meta.Species}.fasta"
-    out_bam = params.byrg ? "${meta.id}/${meta.Taxon}/${meta.ref}/2-aligned/${meta.Family}.${meta.Species}.bam" : 
-                            "${meta.Taxon}/${meta.ref}/2-aligned/${meta.id}.${meta.Family}.${meta.Species}.bam"
+    index = meta.Reference=='fixed' ? "bwa index reference" : ""
+    genome = meta.Reference=='fixed' ? "reference" : "reference/${meta.Family}/${meta.Species}.fasta"
+    out_bam = params.byrg ? "${meta.RG}/${meta.Taxon}/${meta.Reference}/2-aligned/${meta.Family}.${meta.Species}.bam" : 
+                            "${meta.Taxon}/${meta.Reference}/2-aligned/${meta.RG}.${meta.Family}.${meta.Species}.bam"
 
     """
     $index
@@ -536,7 +576,7 @@ process filterMappedBam{
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
         'https://depot.galaxyproject.org/singularity/samtools:1.15.1--h1170115_0' :
         'quay.io/biocontainers/samtools:1.15.1--h1170115_0' }"
-    tag "${meta.id}:${meta.Taxon}:${meta.Species}"
+    tag "${meta.RG}:${meta.Taxon}:${meta.Species}"
     label "process_low"
     label "local"
 
@@ -555,18 +595,18 @@ process filterMappedBam{
 }
 
 filtermappedbam_file
-    .unique{it[0].id+it[0].Species}
+    .unique{meta -> meta.RG+meta.Species}
     .collectFile(storeDir: 'stats', seed:'Order\tFamily\tSpecies\tReadsMapped', newLine:true) {meta,bam,count ->
-        [ "${meta.id}_mapped.tsv", "${meta.Order}\t${meta.Family}\t${meta.Species}\t${count.trim()}"]
+        [ "${meta.RG}_mapped.tsv", "${meta.Order}\t${meta.Family}\t${meta.Species}\t${count.trim()}"]
     }
 filtermappedbam_out
-    .map{meta,bam,count -> [add_to_dict(meta,'Mapped',count.trim() as int), bam]}
+    .map{meta,bam,count -> [meta+['ReadsMapped':count.trim() as int], bam]}
     .set{dedupbam_in}
 
 process dedupBam {
     container (workflow.containerEngine ? "merszym/biohazard_bamrmdup:v0.2.2" : null)
     publishDir 'out', mode: 'copy', pattern: "*.bam", saveAs: {out_bam}
-    tag "${meta.id}:${meta.Family}:${meta.Species}"
+    tag "${meta.RG}:${meta.Family}:${meta.Species}"
     label "process_low"
     label 'local'
 
@@ -577,8 +617,8 @@ process dedupBam {
     tuple meta, "${meta.Species}.deduped.bam" into dedupedbam_out
 
     script:
-    out_bam = params.byrg ? "${meta.id}/${meta.Taxon}/${meta.ref}/3-deduped/${meta.Family}.${meta.Species}_deduped.bam" : 
-                            "${meta.Taxon}/${meta.ref}/3-deduped/${meta.id}.${meta.Family}.${meta.Species}_deduped.bam"
+    out_bam = params.byrg ? "${meta.RG}/${meta.Taxon}/${meta.Reference}/3-deduped/${meta.Family}.${meta.Species}_deduped.bam" : 
+                            "${meta.Taxon}/${meta.Reference}/3-deduped/${meta.RG}.${meta.Family}.${meta.Species}_deduped.bam"
     """
     bam-rmdup -r -o \"${meta.Species}.deduped.bam\" \"${meta.Species}.bam\" > rmdup.txt
     """
@@ -588,7 +628,7 @@ process getDedupStats{
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
         'https://depot.galaxyproject.org/singularity/samtools:1.15.1--h1170115_0' :
         'quay.io/biocontainers/samtools:1.15.1--h1170115_0' }"
-    tag "${meta.id}:${meta.Family}:${meta.Species}"
+    tag "${meta.RG}:${meta.Family}:${meta.Species}"
     label "process_low"
     label "local"
 
@@ -606,28 +646,28 @@ process getDedupStats{
 }
 
 dedupedstats_out
-    .map{meta,bam,coverage,count -> [add_to_dict(meta,'CoveredBP',coverage.trim() as int), bam, count]}
-    .map{meta,bam,count -> [add_to_dict(meta,'Deduped', count.text.strip() as int), bam]}
+    .map{meta,bam,coverage,count -> [meta+['CoveredBP':coverage.trim() as int], bam, count]}
+    .map{meta,bam,count -> [meta+['ReadsDeduped':count.text.strip() as int], bam]}
     .into{dedupedstats_out;dedupedstats_file;dedupedstats_file_counts}
 
 //write stats to file
 dedupedstats_file
-    .unique{it[0].id+it[0].Species}
+    .unique{meta -> meta.RG+meta.Species}
     .collectFile(storeDir: 'stats',newLine:true,seed:'Order\tFamily\tSpecies\tCoveredBP') {meta,bam ->
-        [ "${meta.id}_mapped_coverage.tsv", "${meta.Order}\t${meta.Family}\t${meta.Species}\t${meta.CoveredBP}"]
+        [ "${meta.RG}_mapped_coverage.tsv", "${meta.Order}\t${meta.Family}\t${meta.Species}\t${meta.CoveredBP}"]
     }
 
 dedupedstats_file_counts
-    .unique{it[0].id+it[0].Species}
+    .unique{meta -> meta.RG+meta.Species}
     .collectFile(storeDir: 'stats', newLine:true,seed:'Order\tFamily\tSpecies\tReadsDeduped') {meta,bam ->
-        [ "${meta.id}_mapped_deduped.tsv", "${meta.Order}\t${meta.Family}\t${meta.Species}\t${meta.Deduped}"]
+        [ "${meta.RG}_mapped_deduped.tsv", "${meta.Order}\t${meta.Family}\t${meta.Species}\t${meta.ReadsDeduped}"]
     }
 
 //continue with pipeline
 dedupedstats_out
     //sort by readgroup, family and if same (?:) by count. GroupTuple by readgroup and family
     //continue with the best species per family
-    .map{meta,bam -> [meta.id, meta.Family, meta.CoveredBP, meta, bam]}
+    .map{meta,bam -> [meta.RG, meta.Family, meta.CoveredBP, meta, bam]}
     .toSortedList({ a,b -> a[0]+a[1] <=> b[0]+b[1] ?: a[2] <=> b[2]})
     .flatMap{n -> n[0..-1]}
     .groupTuple(by:[0,1])   //[[rg, fam, [covered_bp < .. < covered_bp][meta,meta,meta],[bam,bam,bam]]
@@ -648,7 +688,7 @@ process runIntersectBed{
         'quay.io/biocontainers/bedtools:2.30.0--h468198e_3' }"
     label "process_low"
     label 'local'
-    tag "${meta.id}:${meta.Family}:${meta.Species}"
+    tag "${meta.RG}:${meta.Family}:${meta.Species}"
     publishDir 'out', mode: 'copy', saveAs: {out_bam}
 
     input:
@@ -658,8 +698,8 @@ process runIntersectBed{
     tuple meta, "${meta.Species}.masked.bam" into runbed_out
     
     script:
-    out_bam = params.byrg ? "${meta.id}/${meta.Taxon}/${meta.ref}/4-bedfiltered/${meta.Family}.${meta.Species}_deduped_bedfiltered.bam" : 
-                            "${meta.Taxon}/${meta.ref}/4-bedfiltered/${meta.id}.${meta.Family}.${meta.Species}_deduped_bedfiltered.bam"
+    out_bam = params.byrg ? "${meta.RG}/${meta.Taxon}/${meta.Reference}/4-bedfiltered/${meta.Family}.${meta.Species}_deduped_bedfiltered.bam" : 
+                            "${meta.Taxon}/${meta.Reference}/4-bedfiltered/${meta.RG}.${meta.Family}.${meta.Species}_deduped_bedfiltered.bam"
     """
     bedtools intersect -a \"${meta.Species}.bam\" -b masked/\"${meta.Species}.masked.bed\" -v > \"${meta.Species}.masked.bam\"
     """
@@ -669,7 +709,7 @@ process getBedfilteredCounts{
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
         'https://depot.galaxyproject.org/singularity/samtools:1.15.1--h1170115_0' :
         'quay.io/biocontainers/samtools:1.15.1--h1170115_0' }"
-    tag "${meta.id}:${meta.Family}:${meta.Species}"
+    tag "${meta.RG}:${meta.Family}:${meta.Species}"
     label "process_low"
     label "local"
 
@@ -686,42 +726,42 @@ process getBedfilteredCounts{
 }
 
 bedfiltercounts_out
-    .map{meta,bam,count,cov -> [add_to_dict(meta, 'Bedfiltered', count.trim() as int), bam, cov]}
-    .map{meta,bam,cov -> [add_to_dict(meta, 'PostBedCoverage', cov.text.trim() as int), bam]}
+    .map{meta,bam,count,cov -> [meta+['ReadsBedfiltered':count.trim() as int], bam, cov]}
+    .map{meta,bam,cov -> [meta+['PostBedCoverage':cov.text.trim() as int], bam]}
     .into{bedfiltercounts_file;bedfiltercounts_out}
 
 bedfiltercounts_file
     .collectFile(storeDir: 'stats', newLine:true, seed:'Order\tFamily\tSpecies\tReadsBedfiltered\tPostBedCoveredBP') {meta, bam ->
-        [ "${meta.id}_mapped_deduped_bedfiltered.tsv", "${meta.Order}\t${meta.Family}\t${meta.Species}\t${meta.Bedfiltered}\t${meta.PostBedCoverage}"]
+        [ "${meta.RG}_mapped_deduped_bedfiltered.tsv", "${meta.Order}\t${meta.Family}\t${meta.Species}\t${meta.ReadsBedfiltered}\t${meta.PostBedCoverage}"]
     }
 
 //calculate the percentage of a family here
-bedfiltercounts_out.map{meta, bam -> [meta, bam, meta.Bedfiltered]}.set{bedfiltercounts_out}
+bedfiltercounts_out.map{meta, bam -> [meta, bam, meta.ReadsBedfiltered]}.set{bedfiltercounts_out}
 
 dedupedstats_out.no_bed
-    .map{meta,bam -> [meta, bam, meta.Deduped]}
+    .map{meta,bam -> [meta, bam, meta.ReadsDeduped]}
     .mix(bedfiltercounts_out)
     .into{bedfiltercounts_out;total_rg}
 
-total_rg.map{meta,bam,count -> [meta.id, count]}
+total_rg.map{meta,bam,count -> [meta.RG, count]}
     .groupTuple()    // [RG, [count, count, count, ...]]
     .map{rg,count -> [rg, count.sum()]}
     .set{total_rg}
 
-bedfiltercounts_out.map{meta,bam,count -> [meta.id, meta, bam, count]}
+bedfiltercounts_out.map{meta,bam,count -> [meta.RG, meta, bam, count]}
     .combine(total_rg, by:0)
-    .map{rg,meta,bam,count,total_rg -> [add_to_dict(meta,'FamPercentage',total_rg==0?0:(count*100/total_rg).trunc(2)), bam]}
-    .into{bedfiltercounts_out; analysis_skip}
+    .map{rg,meta,bam,count,total_rg -> [meta+['FamPercentage':total_rg==0 ? 0: (count*100/total_rg).trunc(2) ], bam]}
+    .map{meta,bam -> [meta+['FamPercentage': params.fixedonly ? '-' : meta.FamPercentage], bam]} // the calculation doesnt work in fixedonly-context
+    .set{bedfiltercounts_out}
 
-damageanalysis_in = params.skip_analyze ? Channel.empty() : bedfiltercounts_out
-damageanalysis_in.branch{
+bedfiltercounts_out.branch{
     extract: it[0].Family in famList
     only_stats: true
 }.set{damageanalysis_in}
 
 process getDeaminationStats{
     container (workflow.containerEngine ? "merszym/bam_deam:nextflow" : null)
-    tag "${meta.id}:${meta.Taxon}:${meta.Species}"
+    tag "${meta.RG}:${meta.Taxon}:${meta.Species}"
     label 'process_medium'
     label 'local'
     
@@ -741,7 +781,7 @@ process extractDeaminatedReads{
     container (workflow.containerEngine ? "merszym/bam_deam:nextflow" : null)
     publishDir 'out', mode: 'copy', saveAs: { out_bam1 }, pattern:"*1.bam"
     publishDir 'out', mode: 'copy', saveAs: { out_bam2 }, pattern:"*3.bam"
-    tag "${meta.id}:${meta.Taxon}:${meta.Species}"
+    tag "${meta.RG}:${meta.Taxon}:${meta.Species}"
     label 'process_medium'
     label 'local'
     
@@ -753,23 +793,18 @@ process extractDeaminatedReads{
     tuple meta, 'ancient_stats.tsv' into damageanalysis_out
     
     script:
-    out_bam1 = params.byrg ? "${meta.id}/${meta.Taxon}/${meta.ref}/5-deaminated/${meta.Family}.${meta.Species}_deduped_deaminated_1term.bam" : 
-                            "${meta.Taxon}/${meta.ref}/5-deaminated/${meta.id}.${meta.Family}.${meta.Species}_deduped_deaminated_1term.bam"
-    out_bam2 = params.byrg ? "${meta.id}/${meta.Taxon}/${meta.ref}/5-deaminated/${meta.Family}.${meta.Species}_deduped_deaminated_3term.bam" : 
-                            "${meta.Taxon}/${meta.ref}/5-deaminated/${meta.id}.${meta.Family}.${meta.Species}_deduped_deaminated_3term.bam"
+    out_bam1 = params.byrg ? "${meta.RG}/${meta.Taxon}/${meta.Reference}/5-deaminated/${meta.Family}.${meta.Species}_deduped_deaminated_1term.bam" : 
+                            "${meta.Taxon}/${meta.Reference}/5-deaminated/${meta.RG}.${meta.Family}.${meta.Species}_deduped_deaminated_1term.bam"
+    out_bam2 = params.byrg ? "${meta.RG}/${meta.Taxon}/${meta.Reference}/5-deaminated/${meta.Family}.${meta.Species}_deduped_deaminated_3term.bam" : 
+                            "${meta.Taxon}/${meta.Reference}/5-deaminated/${meta.RG}.${meta.Family}.${meta.Species}_deduped_deaminated_3term.bam"
     """
     bam_deam_stats.py \"${meta.Species}.bam\" > ancient_stats.tsv
     """
 }
 
-
-// We want pileups of all-reads, 1term and 3term 
-// for mappings fixed on a certain species (saved in famList)
-
-
 process maskDeamination{
     container (workflow.containerEngine ? "merszym/bam_deam:nextflow" : null)
-    tag "${meta.id}:${meta.Taxon}:${meta.Species}"
+    tag "${meta.RG}:${meta.Taxon}:${meta.Species}"
     label 'process_medium'
     label 'local'
     
@@ -792,7 +827,7 @@ process createMpileups{
         'https://depot.galaxyproject.org/singularity/samtools:1.15.1--h1170115_0' :
         'quay.io/biocontainers/samtools:1.15.1--h1170115_0' }"
     publishDir {out}, mode: 'copy', pattern: '*.tsv'
-    tag "${meta.id}:${meta.Taxon}:${meta.Species}"
+    tag "${meta.RG}:${meta.Taxon}:${meta.Species}"
     label 'process_medium'
     label 'local'
     
@@ -800,17 +835,17 @@ process createMpileups{
     tuple meta, 'in.deaminated1.bam', 'in.deaminated3.bam', "all_reads.bam" from mpileup_in
     
     output:
-    tuple "${meta.id}.${meta.Family}.${meta.Species}_all_mpiled.tsv",
-          "${meta.id}.${meta.Family}.${meta.Species}_term1_mpiled.tsv", 
-          "${meta.id}.${meta.Family}.${meta.Species}_term3_mpiled.tsv" 
+    tuple "${meta.RG}.${meta.Family}.${meta.Species}_all_mpiled.tsv",
+          "${meta.RG}.${meta.Family}.${meta.Species}_term1_mpiled.tsv", 
+          "${meta.RG}.${meta.Family}.${meta.Species}_term3_mpiled.tsv" 
    
     script:
-    out = params.byrg ? "out/${meta.id}/${meta.Taxon}/${meta.ref}/6-mpileups/" : "out/${meta.Taxon}/${meta.ref}/6-mpileups/"
+    out = params.byrg ? "out/${meta.RG}/${meta.Taxon}/${meta.Reference}/6-mpileups/" : "out/${meta.Taxon}/${meta.Reference}/6-mpileups/"
     args = "--output-BP-5 --no-output-ends --no-output-ins --no-output-del"
     """
-    samtools mpileup all_reads.bam $args  > \"${meta.id}.${meta.Family}.${meta.Species}_all_mpiled.tsv\"
-    samtools mpileup in.deaminated1.bam $args  > \"${meta.id}.${meta.Family}.${meta.Species}_term1_mpiled.tsv\"
-    samtools mpileup in.deaminated3.bam $args > \"${meta.id}.${meta.Family}.${meta.Species}_term3_mpiled.tsv\" 
+    samtools mpileup all_reads.bam $args  > \"${meta.RG}.${meta.Family}.${meta.Species}_all_mpiled.tsv\"
+    samtools mpileup in.deaminated1.bam $args  > \"${meta.RG}.${meta.Family}.${meta.Species}_term1_mpiled.tsv\"
+    samtools mpileup in.deaminated3.bam $args > \"${meta.RG}.${meta.Family}.${meta.Species}_term3_mpiled.tsv\" 
     """
 }
 
@@ -818,7 +853,7 @@ damageanalysis_out.mix(damagestats_out)
     .map{meta,damage -> [meta,damage.splitCsv(sep:'\t', header:true)]}
     .transpose()
     .map{meta,dmg -> meta+dmg}
-    .into{damageanalysis_out;damageanalysis_file}
+    .into{report_in;damageanalysis_file}
 
 damageanalysis_file
     .collectFile( storeDir: 'stats', newLine:true, seed:[
@@ -826,7 +861,7 @@ damageanalysis_file
        'ReadsDeam(3term)','Deam5(95ci)','Deam3(95ci)','Deam5Cond(95ci)',
        'Deam3Cond(95ci)'].join('\t')){ 
        meta -> [
-                 "${meta.id}_mapped_deduped_deamination.tsv",
+                 "${meta.RG}_mapped_deduped_deamination.tsv",
                  [ meta.Order,
                    meta.Family,
                    meta.Species,
@@ -839,65 +874,58 @@ damageanalysis_file
                    meta.Deam3Cond
                  ].join('\t')
                ]
-   }
+  }
 
-//now the final report
-if(! params.skip_report){
-    analysis_skip.map{meta, bam -> meta}.set{analysis_skip}
+final_report = params.fixedonly ? final_report : Channel.empty()
+final_report.map{it[2]}.set{final_report}
 
-    report_in = params.skip_analyze ? analysis_skip : damageanalysis_out
-    //add vals that are not in meta
-    report_in.map{ meta -> [
-    	meta,
-    	prop_mapped = (meta.Extracted==0 || meta.Mapped == 0) ? 0 : (meta.Mapped/meta.Extracted).trunc(4),
-    	dupl_rate = (meta.Deduped==0 || meta.Mapped==0) ? 0 : (meta.Mapped/meta.Deduped).trunc(4)
+//write report to file 
+report_in
+  .map{ meta -> meta+[
+          'ProportionMapped': ((meta.ReadsExtracted as int)==0 || meta.ReadsMapped == 0) ? 0 : (meta.ReadsMapped/(meta.ReadsExtracted as int)).trunc(4),
+          'DuplicationRate': (meta.ReadsDeduped==0 || meta.ReadsMapped==0) ? 0 : (meta.ReadsMapped/meta.ReadsDeduped).trunc(4)
         ]
-    }
-    .collectFile(
-        seed:[
-                'RG','ReadsRaw','ReadsFiltered','ReadsLengthfiltered','FamilyKmers','KmerCoverage','KmerDupRate',
-                'ExtractLVL','ReadsExtracted','Order','Family','Species','Reference',
-                'ReadsMapped','ProportionMapped','ReadsDeduped',
-                'DuplicationRate','CoveredBP','ReadsBedfiltered','PostBedCoveredBP',
-                'FamPercentage','Ancientness','ReadsDeam(1term)','ReadsDeam(3term)',
-                'Deam5(95ci)','Deam3(95ci)','Deam5Cond(95ci)','Deam3Cond(95ci)'
-        ].join('\t'),
-        storeDir:'.', newLine:true, sort:true
-    ){ meta, pm, dup -> [
-            'final_report.tsv', [
-                meta.id,
-                meta.splitcount,
-                meta.filtercount,
-                meta.lengthfiltercount,
-                meta.FamKmers,
-                meta.FamKmerCov,
-                meta.FamKmerDup,
-                params.taxlvl,
-                meta.Extracted,
-                meta.Order,
-                meta.Family,
-                meta.Species,
-                meta.ref,
-                meta.Mapped,
-                pm,
-                meta.Deduped,
-                dup,
-                meta.CoveredBP,
-                meta.Bedfiltered ?: '-',
-                meta.PostBedCoverage ?: '-',
-                meta.FamPercentage,
-                meta.Ancientness ?: '-',
-                meta.ReadsDeam1 ?: '-',
-                meta.ReadsDeam3 ?: '-',
-                meta.Deam5P ?: '-',
-                meta.Deam3P ?: '-',
-                meta.Deam5Cond ?: '-',
-                meta.Deam3Cond ?: '-'
-            ].join('\t') 
-    ]}
-}
-
-
-
-
+      }
+  .mix(final_report)
+  .unique{meta -> meta.RG+meta.Family+meta.Species}
+  .view()
+  .collectFile( name:'final_report.tsv', 
+    seed:[
+      'RG','ReadsRaw','ReadsFiltered','ReadsLengthfiltered','FamilyKmers','KmerCoverage','KmerDupRate',
+      'ExtractLVL','ReadsExtracted','Order','Family','Species','Reference',
+      'ReadsMapped','ProportionMapped','ReadsDeduped',
+      'DuplicationRate','CoveredBP','ReadsBedfiltered','PostBedCoveredBP',
+      'FamPercentage','Ancientness','ReadsDeam(1term)','ReadsDeam(3term)',
+      'Deam5(95ci)','Deam3(95ci)','Deam5Cond(95ci)','Deam3Cond(95ci)'
+    ].join('\t'), storeDir:'.', newLine:true, sort:true){ it -> [
+        it.RG,
+        it.ReadsRaw,
+        it.ReadsFiltered,
+        it.ReadsLengthfiltered,
+        it.FamilyKmers,
+        it.KmerCoverage,
+        it.KmerDupRate,
+        it.ExtractLVL,
+        it.ReadsExtracted,
+        it.Order,
+        it.Family,
+        it.Species,
+        it.Reference,
+        it.ReadsMapped,
+        it.ProportionMapped,
+        it.ReadsDeduped,
+        it.DuplicationRate,
+        it.CoveredBP,
+        it.Bedfiltered ?: '-',
+        it.PostBedCoverage ?: '-',
+        it.FamPercentage,
+        it.Ancientness ?: '-',
+        it.ReadsDeam1 ?: '-',
+        it.ReadsDeam3 ?: '-',
+        it.Deam5P ?: '-',
+        it.Deam3P ?: '-',
+        it.Deam5Cond ?: '-',
+        it.Deam3Cond ?: '-'
+    ].join('\t') 
+  }
 

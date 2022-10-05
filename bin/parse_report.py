@@ -79,7 +79,7 @@ for row in open(report,'r'):
 
 
 with open('parsed_record.tsv', 'w') as outfile:
-    print('Family','Order','BestTaxID','FamReads','FamKmers','FamKmerCov','FamKmerDup', sep='\t', file=outfile)
+    print('Family','Order','BestTaxID','FamReads','FamilyKmers','KmerCoverage','KmerDupRate', sep='\t', file=outfile)
     for node in family_nodes:
         best = node.best_child
         order = node.order
