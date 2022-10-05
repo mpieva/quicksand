@@ -1,1 +1,2 @@
-Hominidae	Homo_sapiens
+Family	Species(tag)	Genome
+Hominidae	rCRS	./tests/genomes/Hominidae/Homo_sapiens.fasta

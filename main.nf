@@ -83,7 +83,6 @@ bedfiledir = params.bedfiles       ? Channel.fromPath("${params.bedfiles}",type:
 
 
 // Additional File Channels
-nobed_families = params.skip_bed.split(',')
 taxid = new File("${params.genomes}/taxid_map.tsv").exists() ? Channel.fromPath("${params.genomes}/taxid_map.tsv", type:'file') : Channel.fromPath("${baseDir}/assets/taxid_map_example.tsv", type:'file') 
 
 if (! new File("${params.genomes}/taxid_map.tsv").exists()) {
@@ -394,7 +393,7 @@ def famList = []
 specmap = new File("${params.references}")
 specs = specmap.exists() ? Channel.fromPath("${params.references}") : Channel.empty()
 
-if(specmap){
+if(specmap.exists()){
     specmap.eachLine{famList << it.split("\t").flatten()[0]}
     specs.splitCsv(sep:'\t', header:['fam','sp_tag','path'], skip:1)
          .map{row -> [row.fam, row.sp_tag, file(row.path)]}
@@ -634,7 +633,7 @@ dedupedstats_out
     .groupTuple(by:[0,1])   //[[rg, fam, [covered_bp < .. < covered_bp][meta,meta,meta],[bam,bam,bam]]
     .map{n -> [n[3][-1], n[4][-1]]} // [meta, bam]
     .branch{
-        no_bed: it[0].Family in nobed_families
+        no_bed: it[0].Family in famList
         bed: true
     }
     .set{dedupedstats_out}
