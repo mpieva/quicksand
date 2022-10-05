@@ -74,13 +74,12 @@ if (params.help){
 
 
 // Main File Input Channels 
-inbam      = params.bam      ? Channel.fromPath("${params.bam}",                 checkIfExists:true)  : Channel.empty()
-indexfile  = params.rg       ? Channel.fromPath("${params.rg}",                  checkIfExists:true)  : Channel.empty()
-splitdir   = params.split    ? Channel.fromPath("${params.split}/*",             checkIfExists:true)  : Channel.empty()
-genomesdir = params.genomes  ? Channel.fromPath("${params.genomes}", type:'dir', checkIfExists:true)  : exit_missing_required("--genomes")
-database   = params.db       ? Channel.fromPath("${params.db}", type:'dir',      checkIfExists:true)  : exit_missing_required("--db")
-bedfiledir = params.bedfiles ? Channel.fromPath("${params.bedfiles}",type:'dir', checkIfExists:true)  : exit_missing_required("--bedfiles") 
-specmap    = params.specmap  ? Channel.fromPath("${params.specmap}",             checkIfExists:true)  : Channel.empty()
+inbam      = params.bam            ? Channel.fromPath("${params.bam}",                   checkIfExists:true)  : Channel.empty()
+indexfile  = params.rg             ? Channel.fromPath("${params.rg}",                    checkIfExists:true)  : Channel.empty()
+splitdir   = params.split          ? Channel.fromPath("${params.split}/*",               checkIfExists:true)  : Channel.empty()
+genomesdir = params.genomes        ? Channel.fromPath("${params.genomes}", type:'dir',   checkIfExists:true)  : exit_missing_required("--genomes")
+database   = params.db             ? Channel.fromPath("${params.db}", type:'dir',        checkIfExists:true)  : exit_missing_required("--db")
+bedfiledir = params.bedfiles       ? Channel.fromPath("${params.bedfiles}",type:'dir',   checkIfExists:true)  : exit_missing_required("--bedfiles") 
 
 
 // Additional File Channels
@@ -147,7 +146,7 @@ if(params.split){
 
 //create the meta-map
 splitbam_out
-   .map{[['id': it.baseName], it]}      
+   .map{[['id': it.baseName, 'ref':'best', 'ref_path':null], it]}      
    .set{splitbam_out}
 
 //convert fastq-input
@@ -392,13 +391,13 @@ bestspecies_out.map{meta, record, translate -> [meta, translate, record.splitCsv
 // specified in the specmap file
 
 def famList = []
-specmap = new File("${params.specmap}")
-specs = specmap.exists() ? Channel.fromPath("${params.specmap}") : Channel.empty()
+specmap = new File("${params.references}")
+specs = specmap.exists() ? Channel.fromPath("${params.references}") : Channel.empty()
 
-if(specmap.exists()){
+if(specmap){
     specmap.eachLine{famList << it.split("\t").flatten()[0]}
-    specs.splitCsv(sep:'\t')
-         .map{fam, sp -> [fam, sp.split(',').flatten()]}
+    specs.splitCsv(sep:'\t', header:['fam','sp_tag','path'], skip:1)
+         .map{row -> [row.fam, row.sp_tag, file(row.path)]}
          .set{specs}
 }     
 
@@ -411,8 +410,9 @@ bestspecies_out
    .set{bestspecies_out}
 
 bestspecies_out.replace
-    .combine(specs, by:0) //[family, meta, translate, species, [new_species,...])]
-    .map{fam,meta,translate,species,new_species -> [fam, meta, translate, new_species]}
+    .combine(specs, by:0) //[family, meta, translate, species, species_tag, path])]
+    .map{fam,meta,translate,species,sp_tag,path -> [fam, add_to_dict(meta,'ref','fixed'), translate, sp_tag, path]}
+    .map{fam,meta,translate,sp_tag,path -> [fam, add_to_dict(meta,'ref_path',path), translate, sp_tag]}
     .set{bestspecies_replaced}
 
 bestspecies_out.keep
@@ -470,7 +470,8 @@ process extractBam {
     meta.Extracted >= params.krakenuniq_min_reads 
 
     script:
-    out_bam = params.byrg ? "${meta.id}/${meta.Taxon}/unmapped/${meta.id}_extractedReads-${meta.Taxon}.bam" : "${meta.Taxon}/unmapped/${meta.id}_extractedReads-${meta.Taxon}.bam"
+    out_bam = params.byrg ? "${meta.id}/${meta.Taxon}/1-extracted/${meta.id}_extractedReads-${meta.Taxon}.bam" : 
+                            "${meta.Taxon}/1-extracted/${meta.id}_extractedReads-${meta.Taxon}.bam"
     
     """
     bamfilter -i ids.txt -l $params.compression_level -o \"${meta.id}.output.bam\" \"${meta.id}.bam\"
@@ -504,6 +505,7 @@ process sortBam{
 
 sortbam_out
     .combine(genomesdir)
+    .map{ meta,bam,genomes -> [meta, bam, meta.ref_path ?: genomes] }
     .set{mapbwa_in}
 
 process mapBwa {
@@ -514,16 +516,20 @@ process mapBwa {
     label 'local'
 
     input:
-    tuple meta, "${meta.Taxon}.sorted.bam", "genomes" from mapbwa_in
+    tuple meta, "${meta.Taxon}.sorted.bam", "reference" from mapbwa_in
 
     output:
     tuple meta, "${meta.Taxon}.mapped.bam" into mapbwa_out
 
     script:
-    out_bam = params.byrg ? "${meta.id}/${meta.Taxon}/aligned/${meta.Family}.${meta.Species}.bam" : "${meta.Taxon}/aligned/${meta.id}.${meta.Family}.${meta.Species}.bam"
+    index = meta.ref=='fixed' ? "bwa index reference" : ""
+    genome = meta.ref=='fixed' ? "reference" : "reference/${meta.Family}/${meta.Species}.fasta"
+    out_bam = params.byrg ? "${meta.id}/${meta.Taxon}/${meta.ref}/2-aligned/${meta.Family}.${meta.Species}.bam" : 
+                            "${meta.Taxon}/${meta.ref}/2-aligned/${meta.id}.${meta.Family}.${meta.Species}.bam"
 
     """
-    bwa bam2bam -g genomes/\"${meta.Family}\"/\"${meta.Species}.fasta\" -n 0.01 -o 2 -l 16500 --only-aligned \"${meta.Taxon}.sorted.bam\" > \"${meta.Taxon}.mapped.bam\"
+    $index
+    bwa bam2bam -g \"${genome}\" -n 0.01 -o 2 -l 16500 --only-aligned \"${meta.Taxon}.sorted.bam\" > \"${meta.Taxon}.mapped.bam\"
     """
 }
 
@@ -572,7 +578,8 @@ process dedupBam {
     tuple meta, "${meta.Species}.deduped.bam" into dedupedbam_out
 
     script:
-    out_bam = params.byrg ? "${meta.id}/${meta.Taxon}/deduped/${meta.Family}.${meta.Species}_deduped.bam" : "${meta.Taxon}/deduped/${meta.id}.${meta.Family}.${meta.Species}_deduped.bam"
+    out_bam = params.byrg ? "${meta.id}/${meta.Taxon}/${meta.ref}/3-deduped/${meta.Family}.${meta.Species}_deduped.bam" : 
+                            "${meta.Taxon}/${meta.ref}/3-deduped/${meta.id}.${meta.Family}.${meta.Species}_deduped.bam"
     """
     bam-rmdup -r -o \"${meta.Species}.deduped.bam\" \"${meta.Species}.bam\" > rmdup.txt
     """
@@ -652,8 +659,8 @@ process runIntersectBed{
     tuple meta, "${meta.Species}.masked.bam" into runbed_out
     
     script:
-    out_bam = params.byrg ? "${meta.id}/${meta.Taxon}/bedfiltered/${meta.Family}.${meta.Species}_deduped_bedfiltered.bam" : 
-                            "${meta.Taxon}/bedfiltered/${meta.id}.${meta.Family}.${meta.Species}_deduped_bedfiltered.bam"
+    out_bam = params.byrg ? "${meta.id}/${meta.Taxon}/${meta.ref}/4-bedfiltered/${meta.Family}.${meta.Species}_deduped_bedfiltered.bam" : 
+                            "${meta.Taxon}/${meta.ref}/4-bedfiltered/${meta.id}.${meta.Family}.${meta.Species}_deduped_bedfiltered.bam"
     """
     bedtools intersect -a \"${meta.Species}.bam\" -b masked/\"${meta.Species}.masked.bed\" -v > \"${meta.Species}.masked.bam\"
     """
@@ -708,8 +715,30 @@ bedfiltercounts_out.map{meta,bam,count -> [meta.id, meta, bam, count]}
     .into{bedfiltercounts_out; analysis_skip}
 
 damageanalysis_in = params.skip_analyze ? Channel.empty() : bedfiltercounts_out
+damageanalysis_in.branch{
+    extract: it[0].Family in famList
+    only_stats: true
+}.set{damageanalysis_in}
 
-process analyzeDeamination{
+process getDeaminationStats{
+    container (workflow.containerEngine ? "merszym/bam_deam:nextflow" : null)
+    tag "${meta.id}:${meta.Taxon}:${meta.Species}"
+    label 'process_medium'
+    label 'local'
+    
+    input:
+    tuple meta, "${meta.Species}.bam" from damageanalysis_in.only_stats
+    
+    output:
+    tuple meta, 'ancient_stats.tsv' into damagestats_out
+    
+    script:
+    """
+    bam_deam_stats.py \"${meta.Species}.bam\" only_stats > ancient_stats.tsv
+    """
+}
+
+process extractDeaminatedReads{
     container (workflow.containerEngine ? "merszym/bam_deam:nextflow" : null)
     publishDir 'out', mode: 'copy', saveAs: { out_bam1 }, pattern:"*1.bam"
     publishDir 'out', mode: 'copy', saveAs: { out_bam2 }, pattern:"*3.bam"
@@ -718,17 +747,17 @@ process analyzeDeamination{
     label 'local'
     
     input:
-    tuple meta, "${meta.Species}.bam" from damageanalysis_in
+    tuple meta, "${meta.Species}.bam" from damageanalysis_in.extract
     
     output:
     tuple meta, 'output.deaminated1.bam', 'output.deaminated3.bam', "${meta.Species}.bam" into masking_in
     tuple meta, 'ancient_stats.tsv' into damageanalysis_out
     
     script:
-    out_bam1 = params.byrg ? "${meta.id}/${meta.Taxon}/deaminated/${meta.Family}.${meta.Species}_deduped_deaminated_1term.bam" : 
-                            "${meta.Taxon}/deaminated/${meta.id}.${meta.Family}.${meta.Species}_deduped_deaminated_1term.bam"
-    out_bam2 = params.byrg ? "${meta.id}/${meta.Taxon}/deaminated/${meta.Family}.${meta.Species}_deduped_deaminated_3term.bam" : 
-                            "${meta.Taxon}/deaminated/${meta.id}.${meta.Family}.${meta.Species}_deduped_deaminated_3term.bam"
+    out_bam1 = params.byrg ? "${meta.id}/${meta.Taxon}/${meta.ref}/5-deaminated/${meta.Family}.${meta.Species}_deduped_deaminated_1term.bam" : 
+                            "${meta.Taxon}/${meta.ref}/5-deaminated/${meta.id}.${meta.Family}.${meta.Species}_deduped_deaminated_1term.bam"
+    out_bam2 = params.byrg ? "${meta.id}/${meta.Taxon}/${meta.ref}/5-deaminated/${meta.Family}.${meta.Species}_deduped_deaminated_3term.bam" : 
+                            "${meta.Taxon}/${meta.ref}/5-deaminated/${meta.id}.${meta.Family}.${meta.Species}_deduped_deaminated_3term.bam"
     """
     bam_deam_stats.py \"${meta.Species}.bam\" > ancient_stats.tsv
     """
@@ -737,10 +766,6 @@ process analyzeDeamination{
 
 // We want pileups of all-reads, 1term and 3term 
 // for mappings fixed on a certain species (saved in famList)
-
-masking_in
-    .filter{ it[0].Family in famList }
-    .set{masking_in}
 
 
 process maskDeamination{
@@ -781,7 +806,7 @@ process createMpileups{
           "${meta.id}.${meta.Family}.${meta.Species}_term3_mpiled.tsv" 
    
     script:
-    out = params.byrg ? "out/${meta.id}/${meta.Taxon}/pileups/" : "out/${meta.Taxon}/pileups/"
+    out = params.byrg ? "out/${meta.id}/${meta.Taxon}/${meta.ref}/6-mpileups/" : "out/${meta.Taxon}/${meta.ref}/6-mpileups/"
     args = "--output-BP-5 --no-output-ends --no-output-ins --no-output-del"
     """
     samtools mpileup all_reads.bam $args  > \"${meta.id}.${meta.Family}.${meta.Species}_all_mpiled.tsv\"
@@ -790,8 +815,8 @@ process createMpileups{
     """
 }
 
-
-damageanalysis_out.map{meta,damage -> [meta,damage.splitCsv(sep:'\t', header:true)]}
+damageanalysis_out.mix(damagestats_out)
+    .map{meta,damage -> [meta,damage.splitCsv(sep:'\t', header:true)]}
     .transpose()
     .map{meta,dmg -> meta+dmg}
     .into{damageanalysis_out;damageanalysis_file}
@@ -831,9 +856,8 @@ if(! params.skip_report){
     }
     .collectFile(
         seed:[
-                'RG','FamilyKmers','KmerCoverage',
-                'KmerDupRate','Order','Family',
-                'Species','ReadsRaw','ReadsFiltered','ReadsLengthfiltered','ExtractLVL','ReadsExtracted',
+                'RG','ReadsRaw','ReadsFiltered','ReadsLengthfiltered','FamilyKmers','KmerCoverage','KmerDupRate',
+                'ExtractLVL','ReadsExtracted','Order','Family','Species','Reference',
                 'ReadsMapped','ProportionMapped','ReadsDeduped',
                 'DuplicationRate','CoveredBP','ReadsBedfiltered','PostBedCoveredBP',
                 'FamPercentage','Ancientness','ReadsDeam(1term)','ReadsDeam(3term)',
@@ -843,17 +867,18 @@ if(! params.skip_report){
     ){ meta, pm, dup -> [
             'final_report.tsv', [
                 meta.id,
-                meta.FamKmers,
-                meta.FamKmerCov,
-                meta.FamKmerDup,
-                meta.Order,
-                meta.Family,
-                meta.Species,
                 meta.splitcount,
                 meta.filtercount,
                 meta.lengthfiltercount,
+                meta.FamKmers,
+                meta.FamKmerCov,
+                meta.FamKmerDup,
                 params.taxlvl,
                 meta.Extracted,
+                meta.Order,
+                meta.Family,
+                meta.Species,
+                meta.ref,
                 meta.Mapped,
                 pm,
                 meta.Deduped,

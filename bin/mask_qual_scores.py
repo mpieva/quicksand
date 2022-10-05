@@ -13,9 +13,16 @@ def main(bamfile):
     for read in infile:
         #alter quality scores
         qual = read.query_qualities
+        seq = read.query_sequence
         for n in [0,1,2,-3,-2,-1]:
-            #set to 15 as mpileup by default ignores anything below 13
-            qual[n] = 15
+            #check if that position is deaminated
+            if (read.is_reverse == False and seq[n]=='T'):
+                #set to 15 as mpileup by default ignores anything below 13
+                qual[n] = 15
+            elif(read.is_reverse and seq[n]=='A'):
+                qual[n] = 15
+            else:
+                pass
         read.query_qualities = qual
         outfile.write(read)
 

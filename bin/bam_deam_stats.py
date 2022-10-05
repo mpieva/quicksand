@@ -14,7 +14,7 @@ def binomial_ci(x, n, alpha=0.05):
     return round(lower*100,2), round(upper*100,2)
 
 
-def main(bamfile):
+def main(bamfile, stats_only=False):
     #store all reference bases
     all_first = []
     all_last = []
@@ -37,8 +37,10 @@ def main(bamfile):
 
     #open the files
     infile = pysam.AlignmentFile(bamfile, 'rb')
-    out1term = pysam.AlignmentFile('output.deaminated1.bam', 'wb', template=infile)
-    out3term = pysam.AlignmentFile('output.deaminated3.bam', 'wb', template=infile)
+    
+    if not only_stats:
+        out1term = pysam.AlignmentFile('output.deaminated1.bam', 'wb', template=infile)
+        out3term = pysam.AlignmentFile('output.deaminated3.bam', 'wb', template=infile)
     
     #main loop
     for read in infile:
@@ -87,14 +89,17 @@ def main(bamfile):
         #write read to the file(s)
         if deam51 or deam31:
             n_deam_1 += 1
-            out1term.write(read)
+            if not only_stats:
+                out1term.write(read)
         if deam53 or deam33:
             n_deam_3 += 1
-            out3term.write(read)
+            if not only_stats:
+                out3term.write(read)
 
     infile.close()
-    out1term.close()
-    out3term.close()
+    if not only_stats:
+        out1term.close()
+        out3term.close()
 
     ## Calculate the stats
 
@@ -147,6 +152,12 @@ def main(bamfile):
 
 if __name__ == "__main__":
     bamfile = sys.argv[1]
-    main(bamfile)
+    only_stats = False
+    try:
+        if sys.argv[2]=='only_stats':
+            only_stats = True
+    except IndexError:
+        pass
+    main(bamfile, only_stats)
 
 
