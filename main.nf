@@ -47,6 +47,14 @@ def exit_missing_required(flag){
     exit_with_error_msg("ArgumentError", "Missing required Argument ${flag}")
 }
 
+def get_values(header, meta){
+   vals = []
+   header.split('\t').each{
+      vals << meta[it]
+   }
+   return vals.join('\t')
+}
+
 //
 //
 // Help
@@ -189,13 +197,11 @@ process EstimateCrossContamination{
     """
 }
 
-
 crosscont_out
     .filter{it[1].text != ''}
     .collectFile(storeDir: '.', newLine:true) {meta, file ->
         [ "cc_estimates.txt", ["# Cross contamination calculated from File: ${meta.RG}.txt"  ,file.text].join('\n') ]
     }
-
 
 process fastq2Bam{
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
@@ -290,13 +296,7 @@ process filterLengthCount {
 }
 
 //add filterlength count to meta
-filterlengthcount_out.map{[it[0]+['ReadsLengthfiltered':it[2].trim()], it[1]]}.into{ gathertaxon_in; splitcount_file; tofasta_in }
-
-splitcount_file.map{meta,bam -> ["$meta.RG\t$meta.ReadsRaw\t$meta.ReadsFiltered\t$meta.ReadsLengthfiltered"]}
-    .unique{it[0]}
-    .map{it[0]}
-    .collectFile(storeDir: 'stats', name: "splitcounts.tsv", newLine: true,
-                 seed: "RG\tReadsRaw\tReadsFiltered\tReadsLengthfiltered")
+filterlengthcount_out.map{[it[0]+['ReadsLengthfiltered':it[2].trim()], it[1]]}.into{ gathertaxon_in; tofasta_in }
 
 process toFasta {
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
@@ -473,7 +473,7 @@ process gatherByTaxon {
     tuple meta, "${meta.RG}.bam", "${meta.RG}.translate", references from gathertaxon_in
 
     output:
-    tuple meta, "${meta.RG}.bam", 'ids.txt', references, stdout into (gathertaxon_out, gathertaxon_file)
+    tuple meta, "${meta.RG}.bam", 'ids.txt', references, stdout into gathertaxon_out
 
     script:
     """
@@ -484,12 +484,6 @@ process gatherByTaxon {
 gathertaxon_out
     .map{meta,bam,ids,ref,count -> [meta+['ReadsExtracted':count.trim() as int], bam,ids,ref]}
     .set{extractbam_in}
-
-gathertaxon_file
-        .unique{meta -> meta.RG+meta.Taxon}
-        .collectFile(storeDir: 'stats', seed:'Taxon\tReadsExtracted', newLine:true) {meta, bam, ids, ref, count ->
-            [ "${meta.RG}_extracted.tsv", "${meta.Taxon}\t${count.trim()}"]
-        }
 
 process extractBam {
     container (workflow.containerEngine ? "merszym/bamfilter:nextflow" : null)
@@ -584,7 +578,7 @@ process filterMappedBam{
     tuple meta, "${meta.Taxon}.mapped.bam" from mapbwa_out
 
     output:
-    tuple meta, "${meta.Taxon}.mapped_filtered.bam", stdout into (filtermappedbam_out, filtermappedbam_file)
+    tuple meta, "${meta.Taxon}.mapped_filtered.bam", stdout into filtermappedbam_out
 
     script:
     """
@@ -594,11 +588,6 @@ process filterMappedBam{
     """
 }
 
-filtermappedbam_file
-    .unique{meta -> meta.RG+meta.Species}
-    .collectFile(storeDir: 'stats', seed:'Order\tFamily\tSpecies\tReadsMapped', newLine:true) {meta,bam,count ->
-        [ "${meta.RG}_mapped.tsv", "${meta.Order}\t${meta.Family}\t${meta.Species}\t${count.trim()}"]
-    }
 filtermappedbam_out
     .map{meta,bam,count -> [meta+['ReadsMapped':count.trim() as int], bam]}
     .set{dedupbam_in}
@@ -645,28 +634,10 @@ process getDedupStats{
     """
 }
 
+//sort by readgroup, family and if same (?:) by count. GroupTuple by readgroup and family
+//continue with the best species per family
 dedupedstats_out
-    .map{meta,bam,coverage,count -> [meta+['CoveredBP':coverage.trim() as int], bam, count]}
-    .map{meta,bam,count -> [meta+['ReadsDeduped':count.text.strip() as int], bam]}
-    .into{dedupedstats_out;dedupedstats_file;dedupedstats_file_counts}
-
-//write stats to file
-dedupedstats_file
-    .unique{meta -> meta.RG+meta.Species}
-    .collectFile(storeDir: 'stats',newLine:true,seed:'Order\tFamily\tSpecies\tCoveredBP') {meta,bam ->
-        [ "${meta.RG}_mapped_coverage.tsv", "${meta.Order}\t${meta.Family}\t${meta.Species}\t${meta.CoveredBP}"]
-    }
-
-dedupedstats_file_counts
-    .unique{meta -> meta.RG+meta.Species}
-    .collectFile(storeDir: 'stats', newLine:true,seed:'Order\tFamily\tSpecies\tReadsDeduped') {meta,bam ->
-        [ "${meta.RG}_mapped_deduped.tsv", "${meta.Order}\t${meta.Family}\t${meta.Species}\t${meta.ReadsDeduped}"]
-    }
-
-//continue with pipeline
-dedupedstats_out
-    //sort by readgroup, family and if same (?:) by count. GroupTuple by readgroup and family
-    //continue with the best species per family
+    .map{meta,bam,coverage,count -> [meta+['CoveredBP':coverage.trim() as int, 'ReadsDeduped':count.text.strip() as int], bam]}
     .map{meta,bam -> [meta.RG, meta.Family, meta.CoveredBP, meta, bam]}
     .toSortedList({ a,b -> a[0]+a[1] <=> b[0]+b[1] ?: a[2] <=> b[2]})
     .flatMap{n -> n[0..-1]}
@@ -726,14 +697,8 @@ process getBedfilteredCounts{
 }
 
 bedfiltercounts_out
-    .map{meta,bam,count,cov -> [meta+['ReadsBedfiltered':count.trim() as int], bam, cov]}
-    .map{meta,bam,cov -> [meta+['PostBedCoverage':cov.text.trim() as int], bam]}
-    .into{bedfiltercounts_file;bedfiltercounts_out}
-
-bedfiltercounts_file
-    .collectFile(storeDir: 'stats', newLine:true, seed:'Order\tFamily\tSpecies\tReadsBedfiltered\tPostBedCoveredBP') {meta, bam ->
-        [ "${meta.RG}_mapped_deduped_bedfiltered.tsv", "${meta.Order}\t${meta.Family}\t${meta.Species}\t${meta.ReadsBedfiltered}\t${meta.PostBedCoverage}"]
-    }
+    .map{meta,bam,count,cov -> [meta+['ReadsBedfiltered':count.trim() as int, 'PostBedCoverage':cov.text.trim() as int], bam]}
+    .set{bedfiltercounts_out}
 
 //calculate the percentage of a family here
 bedfiltercounts_out.map{meta, bam -> [meta, bam, meta.ReadsBedfiltered]}.set{bedfiltercounts_out}
@@ -853,79 +818,171 @@ damageanalysis_out.mix(damagestats_out)
     .map{meta,damage -> [meta,damage.splitCsv(sep:'\t', header:true)]}
     .transpose()
     .map{meta,dmg -> meta+dmg}
-    .into{report_in;damageanalysis_file}
-
-damageanalysis_file
-    .collectFile( storeDir: 'stats', newLine:true, seed:[
-       'Order','Family','Species','Ancientness','ReadsDeam(1term)',
-       'ReadsDeam(3term)','Deam5(95ci)','Deam3(95ci)','Deam5Cond(95ci)',
-       'Deam3Cond(95ci)'].join('\t')){ 
-       meta -> [
-                 "${meta.RG}_mapped_deduped_deamination.tsv",
-                 [ meta.Order,
-                   meta.Family,
-                   meta.Species,
-                   meta.Ancientness,
-                   meta.ReadsDeam1,
-                   meta.ReadsDeam3,
-                   meta.Deam5P,
-                   meta.Deam3P,
-                   meta.Deam5Cond,
-                   meta.Deam3Cond
-                 ].join('\t')
-               ]
-  }
+    .into{combine_meta}
 
 final_report = params.fixedonly ? final_report : Channel.empty()
 final_report.map{it[2]}.set{final_report}
 
-//write report to file 
-report_in
+//
+//
+// Write Reports
+//
+//
+
+combine_meta
   .map{ meta -> meta+[
           'ProportionMapped': ((meta.ReadsExtracted as int)==0 || meta.ReadsMapped == 0) ? 0 : (meta.ReadsMapped/(meta.ReadsExtracted as int)).trunc(4),
           'DuplicationRate': (meta.ReadsDeduped==0 || meta.ReadsMapped==0) ? 0 : (meta.ReadsMapped/meta.ReadsDeduped).trunc(4)
         ]
       }
   .mix(final_report)
-  .unique{meta -> meta.RG+meta.Family+meta.Species}
-  .view()
+  .unique{meta -> meta.RG+meta.Species}
+  .
+  .into{
+      summary_file;
+      damageanalysis_file;
+      bedfiltercounts_file;
+      dedupedstats_file;
+      filtermappedbam_file;
+      gathertaxon_file;
+      splitcount_file
+  }
+
+header_map = [
+ 'tax'    : 'Order\tFamily\tSpecies\tReference',
+ 'split'  : 'ReadsRaw\tReadsFiltered\tReadsLengthfiltered',
+ 'kraken' : 'FamilyKmers\tKmerCoverage\tKmerDupRate',
+ 'deam'   : 'Ancientness\tReadsDeam(1term)\tReadsDeam(3term)\tDeam5(95ci)\tDeam3(95ci)\tDeam5Cond(95ci)\tDeam3Cond(95ci)',
+ 'extract': 'ExtractLVL\tReadsExtracted',
+ 'map'    : 'ReadsMapped\tProportionMapped',
+ 'dedup'  : 'ReadsDeduped\tDuplicationRate\tCoveredBP', 
+ 'bed'    : 'ReadsBedfiltered\tPostBedCoveredBP',  
+]
+
+summary_file
   .collectFile( name:'final_report.tsv', 
     seed:[
-      'RG','ReadsRaw','ReadsFiltered','ReadsLengthfiltered','FamilyKmers','KmerCoverage','KmerDupRate',
-      'ExtractLVL','ReadsExtracted','Order','Family','Species','Reference',
-      'ReadsMapped','ProportionMapped','ReadsDeduped',
-      'DuplicationRate','CoveredBP','ReadsBedfiltered','PostBedCoveredBP',
-      'FamPercentage','Ancientness','ReadsDeam(1term)','ReadsDeam(3term)',
-      'Deam5(95ci)','Deam3(95ci)','Deam5Cond(95ci)','Deam3Cond(95ci)'
-    ].join('\t'), storeDir:'.', newLine:true, sort:true){ it -> [
-        it.RG,
-        it.ReadsRaw,
-        it.ReadsFiltered,
-        it.ReadsLengthfiltered,
-        it.FamilyKmers,
-        it.KmerCoverage,
-        it.KmerDupRate,
-        it.ExtractLVL,
-        it.ReadsExtracted,
-        it.Order,
-        it.Family,
-        it.Species,
-        it.Reference,
-        it.ReadsMapped,
-        it.ProportionMapped,
-        it.ReadsDeduped,
-        it.DuplicationRate,
-        it.CoveredBP,
-        it.Bedfiltered ?: '-',
-        it.PostBedCoverage ?: '-',
-        it.FamPercentage,
-        it.Ancientness ?: '-',
-        it.ReadsDeam1 ?: '-',
-        it.ReadsDeam3 ?: '-',
-        it.Deam5P ?: '-',
-        it.Deam3P ?: '-',
-        it.Deam5Cond ?: '-',
-        it.Deam3Cond ?: '-'
+      'RG',
+      header_map['split'],
+      header_map['kraken'], 
+      header_map['extract'],
+      header_map['tax'], 
+      header_map['map'],
+      header_map['dedup'], 
+      header_map['bed'],
+      'FamPercentage', 
+      header_map['deam']
+    ].join('\t'), storeDir:'.', newLine:true, sort:true
+  ){[
+      it.RG,
+      get_values(header_map['split'], it),
+      get_values(header_map['kraken'], it),
+      get_values(header_map['extract'], it),
+      get_values(header_map['tax'], it),
+      get_values(header_map['map'], it),
+      get_values(header_map['dedup'], it),
+      get_values(header_map['bed'], it),
+      it.FamPercentage,
+      get_values(header_map['deam'], it),
     ].join('\t') 
+  }
+  .subscribe {
+    println get_info_msg("Summary report saved")
+  }
+
+damageanalysis_file
+  .collectFile( 
+     storeDir: 'stats', newLine:true, 
+     seed:[
+       header_map['tax'], 
+       header_map['deam']
+     ].join('\t')
+  ){[
+      "${meta.RG}_04_deamination.tsv", [
+         get_values(header_map['tax'], it),
+         get_values(header_map['deam'], it)
+      ].join('\t')
+    ]
+  }
+  .subscribe {
+    println get_info_msg("Deamination reports saved")
+  }
+
+bedfiltercounts_file
+  .collectFile(
+    storeDir: 'stats', newLine:true, 
+    seed: [
+      header_map['tax'],
+      header_map['bed']
+    ].join('\t') 
+  ){[ 
+      "${meta.RG}_03_bedfiltered.tsv", [ 
+         get_values(header_map['tax'], it),
+         get_values(header_map['bed'], it)
+    ].join('\t')
+  }
+  .subscribe {
+    println get_info_msg("Bedfilter reports saved")
+  }
+
+dedupedstats_file
+  .collectFile(
+    storeDir: 'stats', newLine:true,
+    seed: [
+      header_map['tax'],
+      header_map['dedup']
+    ].join('\t')        
+  ){[ 
+      "${meta.RG}_02_deduped.tsv", [
+        get_values(header_map['tax'], it),
+        get_values(header_map['dedup'], it)
+    ].join('\t')
+  }
+  .subscribe {
+    println get_info_msg("Deduplication reports saved")
+  }
+
+filtermappedbam_file
+  .collectFile(
+    storeDir: 'stats', newLine:true,
+    seed: [
+      header_map['tax'],
+      header_map['map']
+    ].join('\t')        
+  ){[ 
+      "${meta.RG}_01_mapped.tsv", [
+        get_values(header_map['tax'], it),
+        get_values(header_map['map'], it)
+    ].join('\t')
+  }
+  .subscribe {
+    println get_info_msg("Mapping reports saved")
+  }
+
+gathertaxon_file
+  .unique{meta -> meta.RG+meta.Taxon}
+  .collectFile(storeDir: 'stats', seed:'Taxon\tReadsExtracted', newLine:true) {meta ->
+    [ "${meta.RG}_00_extracted.tsv", "${meta.Taxon}\t${meta.ReadsExtracted}"]
+  }
+  .subscribe {
+    println get_info_msg("Extraction reports saved")
+  }
+
+splitcount_file
+  .unique{it.RG}
+  .collectFile(
+    storeDir: 'stats', newLine:true,
+    seed: [
+      'RG',
+      header_map['split'],
+    ].join('\t')        
+  ){[ 
+      "splitcounts.tsv", [
+        meta.RG,
+        get_values(header_map['split'], it),
+    ].join('\t')
+  }
+  .subscribe {
+    println get_info_msg("Splitcounts saved")
   }
 

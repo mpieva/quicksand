@@ -135,8 +135,9 @@ def main(bamfile, stats_only=False):
     #And the report
     #print header
     print(
-        "Ancientness", "ReadsDeam1","ReadsDeam3", "Deam5P", "Deam3P", "Deam5Cond","Deam3Cond",
-        sep='\t',file=sys.stdout
+        "Ancientness", "ReadsDeam(1term)","ReadsDeam(3term)", 
+        "Deam5(95ci)", "Deam3(95ci)", "Deam5Cond(95ci)",
+        "Deam3Cond(95ci)", sep='\t',file=sys.stdout
         )
 
     #and row
