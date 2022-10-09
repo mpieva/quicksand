@@ -13,14 +13,12 @@ required arguments:
   --db 		DIR   		 Path to Kraken database dir
   --genomes 	DIR    		 Path to directory with reference genomes for alignment
   --bedfiles 	DIR 		 Path to directory with bedfiles masking the genomes for alignment
+  --fixedonly                    Works together with --references, only process the ... 
       
 optional arguments:
   --references 	PATH     	Path to a config-file. Specify for a family one or more species. Reads assigned to this family (kraken) are mapped to these species
                     		- format of file: 'Family<tab>Species_name,Species_name'
                      		- Species_name must correspond to the filename in the genomes diretory
-  --skip_analyze     		Skip the DNA-deamination-analysis at the end of the run
-  --skip_report      		Skip the creation of the comprehensive summary file "final_report.tsv" at the end of the run
-  --byrg             		Structure the content of the "out" directory by readgroup instead of taxonomy 
   --taxlvl           		'f' or 'o'. The taxonomic level used for extracting and mapping assignments by kraken against the reference genomes (default: f).
                      		- e.g. if 'o' is picked, reads assigned to 'Primates' will be mapped to 'Homo_sapiens' reference genomes instead of only the 'Hominidae' reads
                      		- the reference genomes are still picked by the best guess per family 

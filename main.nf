@@ -519,8 +519,7 @@ process sortBam{
     tuple meta, "${meta.Taxon}.sorted.bam" into sortbam_out
 
     script:
-    out_bam = params.byrg ? "${meta.RG}/${meta.Taxon}/1-extracted/${meta.RG}_extractedReads-${meta.Taxon}.bam" : 
-                            "${meta.Taxon}/1-extracted/${meta.RG}_extractedReads-${meta.Taxon}.bam"
+    out_bam = "${meta.Taxon}/1-extracted/${meta.RG}_extractedReads-${meta.Taxon}.bam"
     """
     samtools sort -n -l $params.compression_level -o \"${meta.Taxon}.sorted.bam\"  \"${meta.Taxon}.extracted.bam\" 
     """
@@ -549,8 +548,7 @@ process mapBwa {
     script:
     index = meta.Reference=='fixed' ? "bwa index reference" : ""
     genome = meta.Reference=='fixed' ? "reference" : "reference/${meta.Family}/${meta.Species}.fasta"
-    out_bam = params.byrg ? "${meta.RG}/${meta.Taxon}/${meta.Reference}/2-aligned/${meta.Family}.${meta.Species}.bam" : 
-                            "${meta.Taxon}/${meta.Reference}/2-aligned/${meta.RG}.${meta.Family}.${meta.Species}.bam"
+    out_bam = "${meta.Taxon}/${meta.Reference}/2-aligned/${meta.RG}.${meta.Family}.${meta.Species}.bam"
 
     """
     $index
@@ -598,8 +596,7 @@ process dedupBam {
     tuple meta, "${meta.Species}.deduped.bam" into dedupedbam_out
 
     script:
-    out_bam = params.byrg ? "${meta.RG}/${meta.Taxon}/${meta.Reference}/3-deduped/${meta.Family}.${meta.Species}_deduped.bam" : 
-                            "${meta.Taxon}/${meta.Reference}/3-deduped/${meta.RG}.${meta.Family}.${meta.Species}_deduped.bam"
+    out_bam = "${meta.Taxon}/${meta.Reference}/3-deduped/${meta.RG}.${meta.Family}.${meta.Species}_deduped.bam"
     """
     bam-rmdup -r -o \"${meta.Species}.deduped.bam\" \"${meta.Species}.bam\" > rmdup.txt
     """
@@ -661,8 +658,7 @@ process runIntersectBed{
     tuple meta, "${meta.Species}.masked.bam" into runbed_out
     
     script:
-    out_bam = params.byrg ? "${meta.RG}/${meta.Taxon}/${meta.Reference}/4-bedfiltered/${meta.Family}.${meta.Species}_deduped_bedfiltered.bam" : 
-                            "${meta.Taxon}/${meta.Reference}/4-bedfiltered/${meta.RG}.${meta.Family}.${meta.Species}_deduped_bedfiltered.bam"
+    out_bam = "${meta.Taxon}/${meta.Reference}/4-bedfiltered/${meta.RG}.${meta.Family}.${meta.Species}_deduped_bedfiltered.bam"
     """
     bedtools intersect -a \"${meta.Species}.bam\" -b masked/\"${meta.Species}.masked.bed\" -v > \"${meta.Species}.masked.bam\"
     """
@@ -750,10 +746,8 @@ process extractDeaminatedReads{
     tuple meta, 'ancient_stats.tsv' into damageanalysis_out
     
     script:
-    out_bam1 = params.byrg ? "${meta.RG}/${meta.Taxon}/${meta.Reference}/5-deaminated/${meta.Family}.${meta.Species}_deduped_deaminated_1term.bam" : 
-                            "${meta.Taxon}/${meta.Reference}/5-deaminated/${meta.RG}.${meta.Family}.${meta.Species}_deduped_deaminated_1term.bam"
-    out_bam2 = params.byrg ? "${meta.RG}/${meta.Taxon}/${meta.Reference}/5-deaminated/${meta.Family}.${meta.Species}_deduped_deaminated_3term.bam" : 
-                            "${meta.Taxon}/${meta.Reference}/5-deaminated/${meta.RG}.${meta.Family}.${meta.Species}_deduped_deaminated_3term.bam"
+    out_bam1 = "${meta.Taxon}/${meta.Reference}/5-deaminated/${meta.RG}.${meta.Family}.${meta.Species}_deduped_deaminated_1term.bam"
+    out_bam2 = "${meta.Taxon}/${meta.Reference}/5-deaminated/${meta.RG}.${meta.Family}.${meta.Species}_deduped_deaminated_3term.bam"
     """
     bam_deam_stats.py \"${meta.Species}.bam\" > ancient_stats.tsv
     """
@@ -797,7 +791,7 @@ process createMpileups{
           "${meta.RG}.${meta.Family}.${meta.Species}_term3_mpiled.tsv" 
    
     script:
-    out = params.byrg ? "out/${meta.RG}/${meta.Taxon}/${meta.Reference}/6-mpileups/" : "out/${meta.Taxon}/${meta.Reference}/6-mpileups/"
+    out = "out/${meta.Taxon}/${meta.Reference}/6-mpileups/"
     args = "--output-BP-5 --no-output-ends --no-output-ins --no-output-del"
     """
     samtools mpileup all_reads.bam $args  > \"${meta.RG}.${meta.Family}.${meta.Species}_all_mpiled.tsv\"
