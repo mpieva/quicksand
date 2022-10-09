@@ -6,6 +6,7 @@ red = "\033[0;31m"
 white = "\033[0m"
 cyan = "\033[0;36m"
 yellow = "\033[0;33m"
+standard_run = true
 
 log.info """
 [quicksand]: Execution started: ${workflow.start.format('dd.MM.yyyy HH:mm')} ${cyan}
@@ -69,15 +70,15 @@ if (params.help){
 inbam      = params.bam            ? Channel.fromPath("${params.bam}",                   checkIfExists:true)  : Channel.empty()
 indexfile  = params.rg             ? Channel.fromPath("${params.rg}",                    checkIfExists:true)  : Channel.empty()
 splitdir   = params.split          ? Channel.fromPath("${params.split}/*",               checkIfExists:true)  : Channel.empty()
-genomesdir = params.genomes        ? Channel.fromPath("${params.genomes}", type:'dir',   checkIfExists:true)  : exit_missing_required("--genomes")
-database   = params.db             ? Channel.fromPath("${params.db}", type:'dir',        checkIfExists:true)  : exit_missing_required("--db")
-bedfiledir = params.bedfiles       ? Channel.fromPath("${params.bedfiles}",type:'dir',   checkIfExists:true)  : exit_missing_required("--bedfiles") 
+genomesdir = params.genomes        ? Channel.fromPath("${params.genomes}", type:'dir',   checkIfExists:true)  : Channel.empty()
+database   = params.db             ? Channel.fromPath("${params.db}", type:'dir',        checkIfExists:true)  : Channel.empty()
+bedfiledir = params.bedfiles       ? Channel.fromPath("${params.bedfiles}",type:'dir',   checkIfExists:true)  : Channel.empty()
 
 
 // Additional File Channels
 taxid = new File("${params.genomes}/taxid_map.tsv").exists() ? Channel.fromPath("${params.genomes}/taxid_map.tsv", type:'file') : Channel.fromPath("${baseDir}/assets/taxid_map_example.tsv", type:'file') 
 
-if (! new File("${params.genomes}/taxid_map.tsv").exists()) {
+if ( !new File("${params.genomes}/taxid_map.tsv").exists() && params.genomes) {
     log.info get_warn_msg("The file 'taxid_map.tsv' is missing in your genomes dir! Using fallback ${baseDir}/assets/taxid_map_example.tsv")
 }    
 
@@ -99,16 +100,17 @@ outdir
 //
 //
 
-// Validate user input
 if(params.taxlvl !in ['f','o']){
     exit_with_error_msg("ArgumentError","taxlvl must be one of [o, f] not ${params.taxlvl}")
 }
 
-if(params.split && (params.bam || params.rg)){
+if( params.fixedonly && params.references ){ standard_run = false }
+
+if(params.split && (params.bam || params.rg) && standard_run){
     log.info get_info_msg("Use: nextflow run mpieva/quicksand {--rg FILE --bam FILE | --split DIR}")
     exit_with_error_msg("ArgumentError", "Too many arguments")
 } 
-if(!params.split && !(params.bam && params.rg)){
+if(!params.split && !(params.bam && params.rg) && standard_run){
     log.info get_info_msg("Use: nextflow run mpieva/quicksand {--rg FILE --bam FILE | --split DIR}")
     exit_with_error_msg("ArgumentError", "Too few arguments")
 }
@@ -116,6 +118,10 @@ if(params.fixedonly && !(params.references)){
     log.info get_info_msg("Use --fixedonly together with --references")
     exit_with_error_msg("ArgumentError", "Too few arguments")
 }
+if(standard_run && !params.genomes){ exit_missing_required('--genomes') }
+if(standard_run && !params.db){   exit_missing_required('--db')      }
+if(standard_run && !params.bedfiles){ exit_missing_required('--bedfiles')}
+
 
 //
 //
@@ -430,6 +436,7 @@ fixedonly.combine(outdir, by:0)
   .map{fam,sp,ref,bam,rg -> [rg,fam,sp,ref,bam]}
   .combine(report, by:[0,1])
   .map{rg,fam,sp,ref,bam,meta -> [meta+['Reference':'fixed','Species':sp,'ref_path':ref, 'Taxon':meta.ExtractLVL=='f' ? meta.Family : meta.Order], bam, ref]} 
+  .unique{it[0].RG+it[0].Family}
   .set{fixedonly}
 
 bestspecies_out
@@ -822,7 +829,7 @@ combine_meta
         ]
       }
   .mix(final_report)
-  .unique{meta -> meta.RG+meta.Species}
+  .unique{meta -> meta.RG+meta.Species+meta.Reference}
   .into{
     summary_file ;
     damageanalysis_file;
