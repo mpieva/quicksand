@@ -83,13 +83,13 @@ if ( !new File("${params.genomes}/taxid_map.tsv").exists() && params.genomes) {
 }    
 
 // for only-fixed runs
-report = new File('final_report.tsv').exists() && params.fixedonly ? Channel.fromPath('final_report.tsv', type:'file') : Channel.empty()
+report = new File('final_report.tsv').exists() && params.rerun ? Channel.fromPath('final_report.tsv', type:'file') : Channel.empty()
 report
   .splitCsv(sep:'\t', header:true)
   .map{row -> [row.RG, row.Family, row]}
   .into{report;final_report}
 
-outdir = params.fixedonly ? Channel.fromPath('out/*/1-extracted/*.bam', type: 'file') : Channel.empty()
+outdir = params.rerun ? Channel.fromPath('out/*/1-extracted/*.bam', type: 'file') : Channel.empty()
 outdir
   .map{it -> [it.baseName.split('-')[-1], it, it.baseName.split('_')[0]]}
   .set{outdir}
@@ -104,7 +104,7 @@ if(params.taxlvl !in ['f','o']){
     exit_with_error_msg("ArgumentError","taxlvl must be one of [o, f] not ${params.taxlvl}")
 }
 
-if( params.fixedonly && params.references ){ standard_run = false }
+if( params.rerun && params.fixed ){ standard_run = false }
 
 if(params.split && (params.bam || params.rg) && standard_run){
     log.info get_info_msg("Use: nextflow run mpieva/quicksand {--rg FILE --bam FILE | --split DIR}")
@@ -114,8 +114,8 @@ if(!params.split && !(params.bam && params.rg) && standard_run){
     log.info get_info_msg("Use: nextflow run mpieva/quicksand {--rg FILE --bam FILE | --split DIR}")
     exit_with_error_msg("ArgumentError", "Too few arguments")
 }
-if(params.fixedonly && !(params.references)){
-    log.info get_info_msg("Use --fixedonly together with --references")
+if(params.rerun && !(params.fixed)){
+    log.info get_info_msg("Use --rerun together with --fixed")
     exit_with_error_msg("ArgumentError", "Too few arguments")
 }
 if(standard_run && !params.genomes){ exit_missing_required('--genomes') }
@@ -143,7 +143,7 @@ process splitBam {
     path '*' into splitbam_out mode flatten
 
     when:
-    params.fixedonly == false && params.bam && params.rg   
+    params.rerun == false && params.bam && params.rg   
 
     script:
     """
@@ -187,7 +187,7 @@ process EstimateCrossContamination{
     tuple meta, "${meta.RG}.CC.txt" into crosscont_out 
 
     when:
-    params.fixedonly == false   
+    params.rerun == false   
 
     script:
     """
@@ -215,7 +215,7 @@ process fastq2Bam{
     tuple meta, "${meta.RG}.bam" into fastq2bam_out
     
     when:
-    params.fixedonly == false   
+    params.rerun == false   
 
     script:
     """
@@ -239,7 +239,7 @@ process filterBam {
     tuple meta, "${meta.RG}.filtered.bam", stdout, 'filtercount.txt' into filterbam_out
 
     when:
-    params.fixedonly == false   
+    params.rerun == false   
 
     script:
     """
@@ -285,7 +285,7 @@ process filterLengthCount {
     tuple meta, "${meta.RG}.bam", stdout into filterlengthcount_out
     
     when:
-    params.fixedonly == false   
+    params.rerun == false   
 
     script:
     """
@@ -310,7 +310,7 @@ process toFasta {
     set meta, "${meta.RG}.fa" into tofasta_out
 
     when:
-    meta.ReadsLengthfiltered.toInteger() > 0 && params.fixedonly == false   
+    meta.ReadsLengthfiltered.toInteger() > 0 && params.rerun == false   
 
     script:
     """
@@ -335,7 +335,7 @@ if (params.testrun){
         path 'TestDB' into database_extracted
 
         when:
-        params.fixedonly == false   
+        params.rerun == false   
 
         script:
         """
@@ -365,7 +365,7 @@ process runKrakenUniq {
     tuple meta, "krakenUniq.translate", "krakenUniq.report" into runkraken_out   
 
     when:
-    params.fixedonly == false   
+    params.rerun == false   
 
     script:
     """
@@ -390,7 +390,7 @@ process findBestNode{
     tuple meta, "parsed_record.tsv", "krakenUniq.translate" into bestspecies_out
 
     when:
-    params.fixedonly == false   
+    params.rerun == false   
 
     script:
     """
@@ -412,32 +412,32 @@ bestspecies_out.map{meta, record, translate -> [meta, translate, record.splitCsv
     .set{bestspecies_out}
 
 // This block replaces the default mappings assigned by kraken by those
-// specified in the references file
+// specified in the fixed file
 
 def famList = []
-specmap = new File("${params.references}")
-specs = specmap.exists() ? Channel.fromPath("${params.references}") : Channel.empty()
+specmap = new File("${params.fixed}")
+specs = specmap.exists() ? Channel.fromPath("${params.fixed}") : Channel.empty()
 
 if(specmap.exists()){
     specmap.eachLine{famList << it.split("\t").flatten()[0]}
     specs.splitCsv(sep:'\t', header:['fam','sp_tag','path'], skip:1)
          .map{row -> [row.fam, row.sp_tag, file(row.path)]}
-         .into{specs; fixedonly}
+         .into{specs; rerun}
 } else {
-    fixedonly = Channel.empty()
+    rerun = Channel.empty()
 }    
 
 
-// if fixedonly --> get extracted bam files from each family + the report file to replace meta variable
+// if rerun --> get extracted bam files from each family + the report file to replace meta variable
 // this channel replaces the mapbwa_in channel downstream, so we need:
 // [meta, extracted, ref]
 
-fixedonly.combine(outdir, by:0)
+rerun.combine(outdir, by:0)
   .map{fam,sp,ref,bam,rg -> [rg,fam,sp,ref,bam]}
   .combine(report, by:[0,1])
   .map{rg,fam,sp,ref,bam,meta -> [meta+['Reference':'fixed','Species':sp,'ref_path':ref, 'Taxon':meta.ExtractLVL=='f' ? meta.Family : meta.Order], bam, ref]} 
   .unique{it[0].RG+it[0].Family}
-  .set{fixedonly}
+  .set{rerun}
 
 bestspecies_out
    .map{meta,translate,species -> [meta.Family,meta,translate,species]}
@@ -537,7 +537,7 @@ sortbam_out
     .map{ meta,bam,genomes -> [meta, bam, meta.ref_path ?: genomes] }
     .set{mapbwa_default}
 
-mapbwa_in = params.fixedonly ? fixedonly : mapbwa_default
+mapbwa_in = params.rerun ? rerun : mapbwa_default
 
 process mapBwa {
     container (workflow.containerEngine ? "merszym/network-aware-bwa:v0.5.10" : null)
@@ -711,7 +711,7 @@ total_rg.map{meta,bam,count -> [meta.RG, count]}
 bedfiltercounts_out.map{meta,bam,count -> [meta.RG, meta, bam, count]}
     .combine(total_rg, by:0)
     .map{rg,meta,bam,count,total_rg -> [meta+['FamPercentage':total_rg==0 ? 0: (count*100/total_rg).trunc(2) ], bam]}
-    .map{meta,bam -> [meta+['FamPercentage': params.fixedonly ? '-' : meta.FamPercentage], bam]} // the calculation doesnt work in fixedonly-context
+    .map{meta,bam -> [meta+['FamPercentage': params.rerun ? '-' : meta.FamPercentage], bam]} // the calculation doesnt work in rerun-context
     .set{bedfiltercounts_out}
 
 bedfiltercounts_out.branch{
@@ -813,7 +813,7 @@ damageanalysis_out.mix(damagestats_out)
     .map{meta,dmg -> meta+dmg}
     .set{combine_meta}
 
-final_report = params.fixedonly ? final_report : Channel.empty()
+final_report = params.rerun ? final_report : Channel.empty()
 final_report.map{it[2]}.set{final_report}
 
 //

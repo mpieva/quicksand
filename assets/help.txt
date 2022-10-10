@@ -1,46 +1,45 @@
-Usage: nextflow run mpieva/quicksand -r v1.5 {--bam PATH --rg PATH | --split DIR} --db PATH --genome PATH --bedfiles PATH [options] -profile singularity 
-    
+Usage: nextflow run mpieva/quicksand -r v1.6 {--bam PATH --rg PATH | --split DIR} --db PATH --genome PATH --bedfiles PATH [options] -profile singularity
+
 required arguments:
   Either:
-  --bam 	PATH   		Multiplexed input BAM file (merged)
-  --rg  	PATH  		tab-separated file containing index combinations
-                     		- format of file: 'LibID<tab>P7<tab>P5'
+  --bam        FILE   Multiplexed input BAM file (merged)
+  --rg         FILE   Tab-separated file containing index combinations
+                        - format of file: 'LibID<tab>P7<tab>P5'
   Or:
-  --split 	DIR		directory with already split files
-                     		- format of files within: 'Readgroup.{bam, fastq, fastq.gz, fq.gz, fq}'
-                     		- Note: Files will be interpreted as merged, PR reads are filtered out by default, PR fastq files are imported to bam as SE 
+  --split      DIR    Directory with already split files
+                        - Filenames should be: 'RG.{bam, fastq, fastq.gz, fq.gz, fq}'
+                        - Note: Files will be interpreted as SR (merged), PE reads get filtered out by default, PE fastq files are imported to bam as SR
   And:
-  --db 		DIR   		 Path to Kraken database dir
-  --genomes 	DIR    		 Path to directory with reference genomes for alignment
-  --bedfiles 	DIR 		 Path to directory with bedfiles masking the genomes for alignment
-  --fixedonly                    Works together with --references, only process the ... 
-      
+  --db         DIR    Path to kraken database directory
+  --genomes    DIR    Path to directory containing the reference genomes for alignment
+  --bedfiles   DIR    Path to directory containing the bedfiles masking the genomes for alignment
+
 optional arguments:
-  --references 	PATH     	Path to a config-file. Specify for a family one or more species. Reads assigned to this family (kraken) are mapped to these species
-                    		- format of file: 'Family<tab>Species_name,Species_name'
-                     		- Species_name must correspond to the filename in the genomes diretory
-  --taxlvl           		'f' or 'o'. The taxonomic level used for extracting and mapping assignments by kraken against the reference genomes (default: f).
-                     		- e.g. if 'o' is picked, reads assigned to 'Primates' will be mapped to 'Homo_sapiens' reference genomes instead of only the 'Hominidae' reads
-                     		- the reference genomes are still picked by the best guess per family 
-  
-  --bamfilter_length_cutoff 	N	length cutoff for extracted bam (default: 35)
-  --bamfilter_quality_cutoff 	N       quality filter for extracted bam (default: 25)
-  --krakenuniq_min_kmers	N      	Filter: minimal required unique kmers (krakenuniq) assigned to a family (default: 129)
-  --krakenuniq_min_reads 	N      	Filter: minimal required number of reads assigend to a family by krakenuniq (default: 3)     
-  --bamfilterflag 		N  	The filter used for filter the input bam files (default: 1)
-                     			- The flags are the official bitwise flags specified by the BAM format
-                     			- 0: no filter, 1: filter paired, 4: filter unmapped, 5: filter both
-  
-  --compression_level 		N       set BGZF compression level (default: 0)
-        
+  --rerun             Works together with --fixed flag,
+                      Start with the extracted reads, map the extracted reads against all fixed reference genomes
 
-A selection of built-in Nextflow flags that may be of use:
-  -resume            resume processing; do not re-run completed processes
-  -profile NAME      use named execution profile
-  -c PATH            path to addtional nextflow.config file
-    
-PROFILES
+  --fixed      FILE   A file to fix a reference genome for a family. Reads assigned by kraken to the given family are only mapped to the fixed reference
+                        - Format: 'Family<tab>Species(tag)<tab>Genome'
+                        - Genome must be an absolute path to a fasta file
+                        - Families fixed on a reference genome have a special processing pipeline that includes
+                            - Skipped bedfiltering
+                            - Extraction of deaminated reads
+                            - Creation of mpileup files for lineage analysis
+  --taxlvl     VAL    ['f' or 'o'] The taxonomic level of kraken assignments used for extracting reads (default: f).
+                        - e.g. if 'o' is picked, reads assigned to 'Primates' will be mapped to 'Homo_sapiens' reference genomes instead of only the 'Hominidae' reads
+                        - the 'best' reference genomes are still picked by the best guess per family
 
+process arguments:
+  --bamfilterflag               N    The bitwise filterflag used by samtools to filter the input bam files (default: 1)
+                                       - 0: no filter, 1: filter paired, 4: filter unmapped, 5: filter both
+  --bamfilter_length_cutoff     N    Length cutoff for extracted bam (default: 35)
+  --bamfilter_quality_cutoff    N    Quality filter for extracted bam (default: 25)
+  --krakenuniq_min_kmers        N    Filter: minimal required unique kmers (krakenuniq) assigned to a family (default: 129)
+  --krakenuniq_min_reads        N    Filter: minimal required number of reads assigend to a family by krakenuniq (default: 3)
+  --compression_level           N    Set BGZF compression level (default: 0)
+
+
+PROFILES:
 The following execution profiles are available (see '-profile' above):
   * singularity      run all processes in a singularity container
   * docker           run all processes in a docker container
