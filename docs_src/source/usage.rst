@@ -16,13 +16,14 @@ Required Flags
 .. list-table::
   :widths: 10 10 60
   :header-rows: 1
-   
+
   * - Flag
     - Input type
     - Description
+
   * - :mono:`--db`
     - PATH
-    - The :bold:`directory` containing the preindexed :file:`Kraken` or :file:`KrakenUniq` database (see: :ref:`quicksand_build-page`):: 
+    - The :bold:`directory` containing the preindexed :file:`Kraken` or :file:`KrakenUniq` database (see: :ref:`quicksand_build-page`)::
 
         Input:
 
@@ -31,12 +32,12 @@ Required Flags
           │    └── Mito_db_kmer22
           │           ├── taxonomy
           │           ├── ...
-          │           └── database.kdb  
+          │           └── database.kdb
 
 
         Example:
 
-        --db Path/to/refseq/kraken/Mito_db_kmer22 
+        --db Path/to/refseq/kraken/Mito_db_kmer22
 
   * - :mono:`--genomes`
     - PATH
@@ -80,24 +81,25 @@ Required Flags
 | **Input flags**
 
 .. note::
-    
-  The pipeline contains an optional initial demultiplexing process. However, that demultiplexer works only on bam-files 
+
+  The pipeline contains an optional initial demultiplexing process. However, that demultiplexer works only on bam-files
   provided by the `MPI EVA Core Unit <https://www.eva.mpg.de/de/genetics/index/>`_ as the result of library preparation and sequencing.
-  For the processing of data coming from the MPI EVA run quicksand with the :code:`--bam PATH` and :code:`--rg PATH` flags as alternative 
-  to the :code:`--split PATH` parameter. 
+  For the processing of data coming from the MPI EVA run quicksand with the :code:`--bam PATH` and :code:`--rg PATH` flags as alternative
+  to the :code:`--split PATH` parameter.
 
 
 .. list-table::
   :widths: 10 10 60
   :header-rows: 1
-   
+
   * - Flag
     - Input type
     - Description
+
   * - :mono:`--split`
     - PATH
     - | Standard input
-      | A **directory** containing the demultiplexed, adapter trimmed (and overlap-merged) input files 
+      | A **directory** containing the demultiplexed, adapter trimmed (and overlap-merged) input files
       ::
 
           Input:
@@ -116,7 +118,7 @@ Required Flags
   * - :mono:`--bam`
     - PATH
     - | Use together with the :code:`--rg` flag
-      | The multiplexed BAM-FILE, as provided by the `MPI EVA Core Unit <https://www.eva.mpg.de/de/genetics/index/>`_ containing 
+      | The multiplexed BAM-FILE, as provided by the `MPI EVA Core Unit <https://www.eva.mpg.de/de/genetics/index/>`_ containing
       | adapter-trimmed and overlap-merged sequencing reads
       ::
 
@@ -132,7 +134,7 @@ Required Flags
       ::
 
           Input (index.tsv):
-          
+
           #Index library ID	primer_P7	primer_P5
           RG1	1113	1137
           RG2	1114	1138
@@ -148,85 +150,59 @@ Optional Flags
 .. list-table::
   :widths: 10 10 60
   :header-rows: 1
-  
+
   * - Flag
     - Input type
     - Description
 
-  * - :mono:`--specmap`
+  * - :mono:`--fixed`
     - PATH
-    - | Provide a config TSV file (No header)
-      | Map Kraken-assigned family reads (:file:`extractedReads`) to the specified species instead of the 'best taxa' found by the pipeline.
-      | Species name must correspond to a filename in :file:`genomes`.
-      | Separate multiple species by comma       
+    - | Provide a config TSV file
+      | Map Kraken-assigned family reads (:file:`extractedReads`) to the specified genome instead of the 'best taxa' found by the pipeline.
+      | The species tag is used for the 'Species' column in the reports and the filenames.
       ::
-        
-          Input (specmap.tsv):
-          
-          Hominidae Homo_sapiens
+
+          Input (fixed.tsv):
+
+          Family    Species(tag)  Genome
+          Hominidae Homo_sapiens  /absolute/path/to/genome.fasta
 
           Example:
 
-          --specmap Path/to/specmap.tsv
+          --fixed Path/to/fixed.tsv
 
-  * - :mono:`--byrg`
-    - 
-    - | If provided, change the ordering of the output-files in the :file:`out` directory from a taxonomy-based structure 
-      | to a readgroup-based structure. 
-      | See the :ref:`output` section for a comparison      
+  * - :mono:`--rerun`
+    - -
+    - | Run the pipeline in an already processed folder
+      | Works together with the :code:`--fixed` flag
+      | Map already extracted reads of assigned families to all (but only) respective species assigned in the
+      | :code:`--fixed` references file
       ::
 
           Example:
 
-          --byrg
+          nextflow run mpieva/quicksand --fixed Path/to/fixed.tsv --rerun
 
   * - :mono:`--taxlvl`
     - [o,f]
     - | Default: f
       | Bin assigned reads by the specified taxon level (family or order level): e.g. Homindae or Primates.
       | These binned reads (:file:`extractedReads`) are mapped against the genome(s) of each families 'best taxa'.
-      | or :code:`--specmap` taxa. e.g. Map all reads assigned to Primates to the Homo_sapiens genome 
-      | **Note:** For the order-level bins, :file:`extractedReads` are mapped several times to different (family) genomes.    
+      | or :code:`--specmap` taxa. e.g. Map all reads assigned to Primates to the Homo_sapiens genome
+      | **Note:** For the order-level bins, :file:`extractedReads` are mapped several times to different (family) genomes.
       ::
 
           Example:
 
           --taxlvl o
 
-  * - :mono:`--skip_analyze`
-    - 
-    - | Skip the analyzeDeamination process during the pipeline run
-      ::
-
-          Example:
-
-          --skip_analyze
-
-  * - :mono:`--skip_report`
-    - 
-    - | Skip the creation of the :file:`final_report.tsv` during the pipeline run
-      ::
-
-          Example:
-
-          --skip_report
-
-  * - :mono:`--skip_bed`
-    - STRING
-    - | Provide a string of comma-separated families
-      | Skip the runIntersectBed process during the pipeline run for the specified families
-      ::
-
-          Example:
-
-          --skip_bed Hominidae,Hyaenidae
 
 **Process parameters**
 
 .. list-table::
   :widths: 10 10 60
   :header-rows: 1
-  
+
   * - Flag
     - Input type
     - Description
@@ -241,7 +217,7 @@ Optional Flags
           Example:
 
           --bamfilterflag 5
-  
+
   * - :mono:`--bamfilter_length_cutoff`
     - N
     - | For process filterLength
@@ -304,7 +280,7 @@ Profiles
 .. list-table::
   :widths: 20 60
   :header-rows: 1
-  
+
   * - Profile
     - Description
 
@@ -328,7 +304,7 @@ Input
 The pipeline uses as input :file:`.fastq` or :file:`.bam` files that contain demultiplexed, merged, and adapter trimmed reads.
 Use the :code:`--split` flag to point to the directory that contains these files. The pipeline refers to the name of the files
 as readgroups. The reads within the files are assigned, processed and structured by readgroups.
-:file:`.bam` and :file:`.fastq` files can be mixed:: 
+:file:`.bam` and :file:`.fastq` files can be mixed::
 
     splitdir/
         readgroup1.fastq
@@ -343,13 +319,13 @@ as readgroups. The reads within the files are assigned, processed and structured
 Run the pipeline
 ----------------
 
-There are several ways to run the pipeline. 
-Please see to the :ref:`installation <install-page>` to set up the required underying databases and 
+There are several ways to run the pipeline.
+Please see to the :ref:`installation <install-page>` to set up the required underying databases and
 the :ref:`input section <input>` to know about the required input.
 
 .. attention::
 
-    The pipeline writes its output into the current working directory! 
+    The pipeline writes its output into the current working directory!
 
 
 Run from local repository
@@ -382,11 +358,11 @@ Instead of cloning the repository, run the pipeline directly from github::
         -profile     singularity
 
 
-Specify a version (or branch) by providing the :code:`-r <branch/tag>` flag. By default the :code:`master` branch is pulled 
-and stored locally in the hidden :file:`~/.nextflow/assets/mpieva/quicksand` directory. If the remote pipeline is updated, make sure to pull the updates by 
+Specify a version (or branch) by providing the :code:`-r <branch/tag>` flag. By default the :code:`master` branch is pulled
+and stored locally in the hidden :file:`~/.nextflow/assets/mpieva/quicksand` directory. If the remote pipeline is updated, make sure to pull the updates by
 running::
 
-    nextflow pull mpieva/quicksand 
+    nextflow pull mpieva/quicksand
 
 To reduce the number of flags manually handed over to the pipeline, see the :ref:`configuration section <configuration-page>` on how to set up an individual configuration of the pipeline.
 
@@ -406,50 +382,45 @@ Several directories and files should appear after the run. The 'taxon' correspon
     RunDir
     ├── out
     │    └── {taxon}
-    │         ├── {readgroup}_extractedReads-{taxon}.bam
-    │         ├── aligned
-    │         │    ├── {family}.{taxon}.{species}.bam
-    │         │    └── {family}.{taxon}.{species}_deduped.bam
-    │         ├── bed
-    │         │    └── {family}.{taxon}.{species}_deduped_bedfiltered.bam
-    │         └── deaminated
-    │              └── {family}.{taxon}.{species}_deduped_deaminated53.bam
-    ├── kraken
-    │    ├── {readgroup}.report
-    │    └── {readgroup}.translate
+    │         ├── 1-extracted
+    │         │    {RG}_extractedReads-{taxon}.bam
+    │         ├── best // (for families not in --fixed)
+    │         │    ├── 2-aligned
+    │         │    │     └── {RG}.{family}.{species}.bam
+    │         │    ├── 3-deduped
+    │         │    │     └── {RG}.{family}.{species}_deduped.bam
+    │         │    └── 4-bedfiltered
+    │         │          └── {RG}.{family}.{species}_deduped_bedfiltered.bam
+    │         └── fixed // (for families in --fixed)
+    │              ├── 2-aligned
+    │              │     └── {RG}.{family}.{species}.bam
+    │              ├── 3-deduped
+    │              │     └── {RG}.{family}.{species}_deduped.bam
+    │              ├── 5-deaminated
+    │              │     ├── {RG}.{family}.{species}_deduped_deaminated_1term.bam
+    │              │     └── {RG}.{family}.{species}_deduped_deaminated_3term.bam
+    │              └── 6-mpileups
+    │                    ├── {RG}.{family}.{species}_term1_mpiled.tsv
+    │                    ├── {RG}.{family}.{species}_term3_mpiled.tsv
+    │                    └── {RG}.{family}.{species}_all_mpiled.tsv
     ├── stats
     │    ├── splitcounts.tsv
-    │    ├── {readgroup}_extracted.tsv
-    │    ├── {readgroup}_mapped.tsv
-    │    ├── {readgroup}_mapped_coverage.tsv
-    │    ├── {readgroup}_mapped_deduped.tsv
-    │    ├── {readgroup}_mapped_deduped_bedfiltered.tsv
-    │    └── {readgroup}_mapped_deduped_deamination53.tsv
-    ├── reports
+    │    ├── {RG}.kraken.report
+    │    ├── {RG}.kraken.translate
+    │    ├── {RG}_00_extracted.tsv
+    │    ├── {RG}_01_mapped.tsv
+    │    ├── {RG}_02_deduped.tsv
+    │    ├── {RG}_03_bedfiltered.tsv
+    │    └── {RG}_04_deamination.tsv
+    ├── nextflow
     │    ├── report.html
     │    ├── timeline.html
     │    └── trace.tsv
     ├── work
     │    └── ...
-    └── final_report.tsv 
+    ├── cc_estimates.tsv
+    └── final_report.tsv
 
-Structured by Readgroup
-"""""""""""""""""""""""
-
-This overview of the :file:`out/` dir corresponds to a :code:`--byrg` run::
-
-    RunDir
-    ├── out
-    │    └── {readgroup}
-    │         ├── {readgroup}_extractedReads-{taxon}.bam
-    │         ├── aligned
-    │         │    ├── {readgroup}.{family}.{species}.bam
-    │         │    └── {readgroup}.{family}.{species}_deduped.bam
-    │         ├── bed
-    │         │    └── {readgroup}.{family}.{species}_deduped_bedfiltered.bam
-    │         └── deaminated
-    │              └── {readgroup}.{family}.{species}_deduped_deaminated53.bam
-    ...
 
 .. _files:
 
@@ -463,7 +434,7 @@ The content of the files is explained here:
 .. list-table::
    :widths: 20 80
    :header-rows: 1
-   
+
    * - File
      - Description
    * - :file:`$\\{RG\\}.extractedReads-$\\{taxon\\}.bam`
@@ -474,121 +445,124 @@ The content of the files is explained here:
      - The same alignment file, but depleted of PCR duplicates - reads with the same start and end coordinates in the alignment
    * - :file:`bed/$\\{RG\\}.$\\{family\\}.$\\{species\\}_deduped_bedfiltered.bam`
      - The same aligned and deduped bamfile, but additionally depleted of reads overlapping the low-complexity regions specified in the :code:`--bedfiles` for the given species
-   * - :file:`deaminated/$\\{RG\\}.$\\{family\\}.$\\{species\\}_deduped_deaminated53.bam`
-     - | The same aligned, deduped and bedfiltered bamfile, filtered for reads that show a C to T 
+   * - :file:`deaminated/$\\{RG\\}.$\\{family\\}.$\\{species\\}_deduped_deaminated_1term.bam`
+     - | The aligned and deduped bamfile, filtered for reads that show a C to T
        | substitution at one of the terminal basepair positions in respect to the reference genome
- 
+   * - :file:`deaminated/$\\{RG\\}.$\\{family\\}.$\\{species\\}_deduped_deaminated_3term.bam`
+     - | The aligned and deduped bamfile, filtered for reads that show a C to T
+       | substitution at one of the terminal three basepair positions in respect to the reference genome
+   * - :file:`deaminated/$\\{RG\\}.$\\{family\\}.$\\{species\\}_all_mpiled.tsv`
+     - The aligned and deduped bamfile, but in mpileup format
+   * - :file:`deaminated/$\\{RG\\}.$\\{family\\}.$\\{species\\}_1term_mpiled.tsv`
+     - The deaminated 1term bamfile, with masked terminal T bases - in mpileup format
+   * - :file:`deaminated/$\\{RG\\}.$\\{family\\}.$\\{species\\}_3term_mpiled.tsv`
+     - The deaminated 3term bamfile, with masked terminal T bases - in mpileup format
 
-
-**kraken/**
-
-.. list-table::
-   :widths: 20 80
-   :header-rows: 1
-   
-   * - File
-     - Description
-   * - :file:`$\\{RG\\}.report`
-     - The standard krakenuniq report
-   * - :file:`$\\{RG\\}.translate`
-     - The read-wise human readable kraken report in mpa-format
 
 **stats/**
 
 .. list-table::
    :widths: 20 80
    :header-rows: 1
-   
-   * - File
-     - Description
-   * - :file:`stats/splitcounts.tsv`
-     - For each readgroup (RG), show the number of reads before and after the filterBam process::
 
-        readgroup   split count   filtered count
-        test1       235           235
-        test2       235           235
-        test3       235           235
+  * - File
+    - Description
+  * - :file:`$\\{RG\\}.report`
+    - The standard krakenuniq report
+  * - :file:`$\\{RG\\}.translate`
+    - The read-wise human readable kraken report in mpa-format
+  * - :file:`stats/splitcounts.tsv`
+    - | For each readgroup (RG), show the number of reads before (raw) and after the filterBam process, as
+      | well as the number of reads after the bam-lengthfilter process
+      ::
 
-   * - :file:`$\\{RG\\}_extracted.tsv`
-     - For each readgroup (RG) show the number of reads extracted for each assigned taxon::
+          RG          ReadsRaw      ReadsFiltered ReadsLengthfiltered
+          test1       235           235           230
+          test2       235           235           230
+          test3       235           235           230
+  * - :file:`$\\{RG\\}_00_extracted.tsv`
+    - Shows the number of reads extracted for each assigned taxon based on the kraken assignments
+      ::
 
-        Taxon       ReadsExtracted
-        Hominidae   235
+          Taxon       ReadsExtracted
+          Hominidae   235
+  * - :file:`$\\{RG\\}_01_mapped.tsv`
+    - | For each readgroup (RG) show the number of reads mapped against the reference genome, if the reference genome was fixed
+      | (see :code:`--fixed` flag) and the proportion of mapped reads (from the number of extracted reads for this family)
+      ::
 
-   * - :file:`$\\{RG\\}_mapped.tsv`
-     - For each readgroup (RG) show the number of reads mapped against the reference genome::
+          Order     Family      Species       Reference    ReadsMapped   ProportionMapped
+          Primates  Hominidae   Homo_sapiens  fixed        235           0.913
+  * - :file:`$\\{RG\\}_02_deduped.tsv`
+    - | For each readgroup (RG) report the number of unique (deduplicated) reads mapped against the reference genome, the duplication rate
+      | and the number of basepairs covered in the reference genome by the reads
+      ::
 
-        Order     Family      Species       ReadsMapped
-        Primates  Hominidae   Homo_sapiens  235
-      
-   * - :file:`$\\{RG\\}_mapped_coverage.tsv`
-     - For each readgroup (RG) show the number of covered basepairs in the reference for each mapping::
+          Order     Family      Species       Reference  ReadsDeduped  DuplicationRate  CoveredBP
+          Primates  Hominidae   Homo_sapiens  fixed      98            2.31             4216
+  * - :file:`$\\{RG\\}_03_bedfiltered.tsv`
+    - | For each readgroup (RG) show the number of reads remaining in the bam-file after bedfiltering as well as the number of covered basepairs
+      | in the reference genome
+      ::
 
-        Order     Family      Species       CoveredBP
-        Primates  Hominidae   Homo_sapiens  4616        
+          Order     Family      Species       Reference  ReadsBedfiltered PostBedCoveredBP
+          Primates  Hominidae   Homo_sapiens  fixed      97               4177
+  * - :file:`$\\{RG\\}_04_deamination.tsv`
+    - For each readgroup (RG) show the deamination stats for the mapped bam-file after bedfiltering
+      ::
 
-   * - :file:`$\\{RG\\}_mapped_deduped.tsv`
-     - For each readgroup (RG) report the number of unique (deduplicated) reads mapped against the reference genome::
+          Ancientness:  ++  = more than 9.5% of the reads that show a terminal C in both the 5' and 3' position in the reference genome, carry a T
+                        +   = more than 9.5% of the reads that show a terminal C in either the 5' or 3' position in the reference genome, carry a T
+                        -   = no signs for DNA deamination patterns
 
-        Order     Family      Species       ReadsDeduped
-        Primates  Hominidae   Homo_sapiens  98  
-
-   * - :file:`$\\{RG\\}_mapped_deduped_bedfiltered.tsv`
-     - For each readgroup (RG) show the number of reads remaining in the bam-file after bedfiltering::
-
-        Order     Family      Species       ReadsBedfiltered
-        Primates  Hominidae   Homo_sapiens  97
-
-   * - :file:`$\\{RG\\}_mapped_deduped_deaminated53.tsv`
-     - For each readgroup (RG) show the deamination stats for the mapped bam-file after bedfiltering::
-
-        Ancient:  ++  = more than 9.5% of the reads that show a terminal C in both the 5' and 3' position in the reference genome, carry a T
-                  +   = more than 9.5% of the reads that show a terminal C in either the 5' or 3' position in the reference genome, carry a T
-                  -   = no signs for DNA deamination patterns
-        
-        Deam5(95CI): For the terminal 5' end, the percentage of C to T substitutions (and the 95% confidence interval) 
-        Deam3(95CI): For the terminal 3' end, the percentage of C to T substitutions (and the 95% confidence interval) 
-        Deam5Cond(95CI): Taken only 3' deaminated sequences, report the percentage of C to T substitutions (and the 95% confidence interval) at the 5' terminal base
-        Deam3Cond(95CI): Taken only 5' deaminated sequences, report the percentage of C to T substitutions (and the 95% confidence interval) at the 3' terminal base
-
-        Order       Family      Species         Ancient   ReadsDeaminated   Deam5(95CI)           Deam3(95CI)         Deam5Cond(95CI)     Deam3Cond(95CI)
-        Primates    Hominidae   Homo_sapiens    ++        13                28.57(13.22,48.67)    27.27(10.73,50.22)  50.0(1.26,98.74)    50.0(1.26,98.74)
+          ReadsDeam(1term): The number of reads (after deduplication and bedfiltering) that show a deamination in the terminal base positions
+          ReadsDeam(3term): The number of reads (after deduplication and bedfiltering) that show a deamination in the three terminal base positions
+          Deam5(95ci):      For the terminal 5' end, the percentage of C to T substitutions (and the 95% confidence interval)
+          Deam3(95ci):      For the terminal 3' end, the percentage of C to T substitutions (and the 95% confidence interval)
+          Deam5Cond(95ci):  Taken only 3' deaminated sequences, report the percentage of C to T substitutions (and the 95% confidence interval) at the 5' terminal base
+          Deam3Cond(95ic):  Taken only 5' deaminated sequences, report the percentage of C to T substitutions (and the 95% confidence interval) at the 3' terminal base
 
 **final report:**
 
 .. list-table::
    :widths: 20 80
    :header-rows: 1
-   
+
    * - File
      - Description
 
    * - :file:`final_report.tsv`
      - A summary of all the files in the :file:`stats` dir plus additional information gathered from processes during the pipeline run::
 
-        RG                  The analyzed readgroup 
+        RG                  The analyzed readgroup
+        ReadsRaw            The total number of reads in the split' file (by RG)
+        ReadsFiltered       The total number of reads in the split' file after the bamfilter process - removing paired reads. (by RG)
+        ReadsLengthfiltered The total number of reads in the split' file after the filterLength process - removing reads <35bp length (by RG)
         FamilyKmers         The total number of kmers assigned to the family node by krakenuniq
         KmerCoverage        The proportion of family kmers assigned by the number of kmers present in the database for that family
-        KmerDupRate         The average duplication rate of kmers used for the assignment of the given family  
-        Order               The name of the Order assigned
-        Family              The name of the Family assigned
-        Species             The name of the reference species used for mapping assigned taxon reads against 
+        KmerDupRate         The average duplication rate of kmers used for the assignment of the given family
         ExtractLVL          The taxon level used for extraction of reads (f or o)
         ReadsExtracted      The number of reads extracted/assigned to the taxon by krakenuniq
-        ReadsMapped         The number of reads mapped against the Species genome  
+        Order               The name of the Order assigned
+        Family              The name of the Family assigned
+        Species             The name of the reference species used for mapping assigned taxon reads against
+        Reference           'fixed' if reference genome is set for that family, 'best' if inferred from the kraken assignments
+        ReadsMapped         The number of reads mapped against the Species genome
         ProportionMapped    The proportion of mapped/extracted reads
-        ReadsDeduped        The number of deduplicated(unique) reads in the alignment file 
+        ReadsDeduped        The number of deduplicated(unique) reads in the alignment file
         DuplicationRate     The duplication rate of mapped reads --> mapped/deduped reads
         CoveredBP           The number of basepairs in the reference genome covered by the aligned reads
         ReadsBedfiltered    The number of reads not overlapping low-complexity regions
+        PostBedCoveredBP    The number of basepairs in the reference genome covered by the aligned reads - after bedfiltering
         FamPercentage       Taken all bedfiltered reads of the RG, report the percentage of bedfiltered reads for the given family
         Ancientness         One of ++,+ or - --> See above for an explanation of the symbols
-        ReadsDeaminated53   The number of reads showing a C to T substitution on either of the 5' or 3' ends in respect to the reference
-        Deam5               For the given family, the percentage of C to T substitutions (and the 95% confidence interval) on the terminal 5' end
-        Deam3               For the given family, the percentage of C to T substitutions (and the 95% confidence interval) on the terminal 3' end
-        Deam5Cond           Taken only 3' deaminated sequences, report the percentage of C to T substitutions (and the 95% confidence interval) at the 5' terminal base
-        Deam3Cond           Taken only 5' deaminated sequences, report the percentage of C to T substitutions (and the 95% confidence interval) at the 3' terminal base
+        ReadsDeam(1term)    The number of reads showing a C to T substitution on either of the 5' or 3' ends in respect to the reference
+        ReadsDeam(3term)    The number of reads showing a C to T substitution in the terminal 3 basepairs in respect to the reference
+        Deam5(95ci)         For the given family, the percentage of C to T substitutions (and the 95% confidence interval) on the terminal 5' end
+        Deam3(95ci)         For the given family, the percentage of C to T substitutions (and the 95% confidence interval) on the terminal 3' end
+        Deam5Cond(95ci)     Taken only 3' deaminated sequences, report the percentage of C to T substitutions (and the 95% confidence interval) at the 5' terminal base
+        Deam3Cond(95ci)     Taken only 5' deaminated sequences, report the percentage of C to T substitutions (and the 95% confidence interval) at the 3' terminal base
 
-
-| The :file:`report` directory contains nextflow specific information about the run
-| the :file:`work` directory can be deleted after the run - it contains nextflow specific intermediate files 
+| The :file:`cc_estimates.tsv` files contains information about index-hopping and cross contamintaion
+| The :file:`nextflow` directory contains nextflow specific information about the run
+| the :file:`work` directory can be deleted after the run - it contains nextflow specific intermediate files

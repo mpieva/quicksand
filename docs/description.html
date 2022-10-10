@@ -44,6 +44,7 @@
               <ul class="current">
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Description</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#workflow">Workflow</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#estimatecrosscontamination">EstimateCrossContamination</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#fastq2bam">fastq2bam</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#fiterbam">fiterBam</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#filterlength">filterLength</a></li>
@@ -52,9 +53,13 @@
 <li class="toctree-l3"><a class="reference internal" href="#findbestnode">findBestNode</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#extractbam">extractBam</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#mapbwa">mapBWA</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#filtermappedbam">filterMappedBam</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#dedupbam">dedupBam</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#runintersectbed">runIntersectBed</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#analyzedeamination">analyzeDeamination</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#extractdeaminatedreads">extractDeaminatedReads</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#maskdeamination">maskDeamination</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#creatempileups">createMpileups</a></li>
 </ul>
 </li>
 </ul>
@@ -102,6 +107,10 @@ the quicksand-build pipeline</p>
 <p>The basic workflow of the quicksand pipline consists of a <strong>metagenomic classification</strong>, a <strong>mapping</strong> and a basic <strong>analysis</strong> of the alignment. The pipeline
 produces taxonomic profiles for the analyzed input files, as well as the binned <code class="file docutils literal notranslate"><span class="pre">bam</span></code> files, grouped by redgroup and taxonomy for all levels of the
 pipeline - as shown in the figure above. Each process is in detail described in the following chapters</p>
+<section id="estimatecrosscontamination">
+<h3>EstimateCrossContamination<a class="headerlink" href="#estimatecrosscontamination" title="Permalink to this headline"></a></h3>
+<p>WIP</p>
+</section>
 <section id="fastq2bam">
 <h3>fastq2bam<a class="headerlink" href="#fastq2bam" title="Permalink to this headline"></a></h3>
 <p>All <code class="file docutils literal notranslate"><span class="pre">fastq</span></code> files entering the pipeline are converted to unpaired and unmapped <code class="file docutils literal notranslate"><span class="pre">bam</span></code> files using <code class="code docutils literal notranslate"><span class="pre">samtools</span> <span class="pre">import</span> <span class="pre">-0</span></code>.
@@ -144,6 +153,10 @@ file. Extraction happens either on the family or order-level, as specified with 
 using the <code class="code docutils literal notranslate"><span class="pre">bwa</span> <span class="pre">bam2bam</span></code> command of the <a class="reference external" href="https://github.com/mpieva/network-aware-bwa">network-aware fork</a> of BWA with
 ancient parameters (<code class="code docutils literal notranslate"><span class="pre">n</span> <span class="pre">0.01</span> <span class="pre">-o</span> <span class="pre">2</span> <span class="pre">-l</span> <span class="pre">16500</span></code>). Unmapped sequences or sequences with a mapping quality of less than 25 are removed from the alignment</p>
 </section>
+<section id="filtermappedbam">
+<h3>filterMappedBam<a class="headerlink" href="#filtermappedbam" title="Permalink to this headline"></a></h3>
+<p>Mapped bam files are filtered for the set alignment quality score</p>
+</section>
 <section id="dedupbam">
 <h3>dedupBam<a class="headerlink" href="#dedupbam" title="Permalink to this headline"></a></h3>
 <p>Exact PCR-duplicates are collapsed into unique sequences using <a class="reference external" href="https://github.com/mpieva/biohazard-tools">bam-rmdup</a> based on the sharing of identical
@@ -152,15 +165,28 @@ representative species for the subsequent steps.</p>
 </section>
 <section id="runintersectbed">
 <h3>runIntersectBed<a class="headerlink" href="#runintersectbed" title="Permalink to this headline"></a></h3>
-<p>The deduped alignments are then depleted of reads that overlap sites marked as non-informative by <code class="code docutils literal notranslate"><span class="pre">dustmasker</span></code>. That step can be skipped
-for target families using the <code class="code docutils literal notranslate"><span class="pre">--skip_bed</span></code> flag.</p>
+<p>The deduped alignments are then depleted of reads that overlap sites marked as non-informative by <code class="code docutils literal notranslate"><span class="pre">dustmasker</span></code>. That step is skipped
+for families with a fixed reference genome (see <code class="code docutils literal notranslate"><span class="pre">--fixed</span></code> flag)</p>
 </section>
 <section id="analyzedeamination">
 <h3>analyzeDeamination<a class="headerlink" href="#analyzedeamination" title="Permalink to this headline"></a></h3>
-<p>The final step in the pipeline looks for C to T substitutions in the query sequences in respect to the aligned reference genome and extracts these
-sequences into a separate <code class="file docutils literal notranslate"><span class="pre">bam</span></code> file using a custom python script. Ancient DNA shows characteristic C to T substitutions at the 3’ and 5’ ends
-of DNA fragments - a degradation pattern used to identify ancient DNA. Assigned families which sequences show more than 10% of terminal C bases in the
-reference genome replaced by a T are reported as being ancient (++). This step can be skipped using the <code class="code docutils literal notranslate"><span class="pre">--skip_analyze</span></code> flag.</p>
+<p>The final step(s) in the pipeline look for C to T substitutions in the query sequences in respect to the aligned reference genome.
+Ancient DNA shows characteristic C to T substitutions at the 3’ and 5’ ends
+of DNA fragments - a degradation pattern used to identify ancient DNA. Families which sequences show more than 10% of terminal C bases in the
+reference genome replaced by a T are reported as being ancient (++).</p>
+</section>
+<section id="extractdeaminatedreads">
+<h3>extractDeaminatedReads<a class="headerlink" href="#extractdeaminatedreads" title="Permalink to this headline"></a></h3>
+<p>For families with a fixed reference genome (see <code class="code docutils literal notranslate"><span class="pre">--fixed</span></code> flag), extract deaminated reads into two different <code class="code docutils literal notranslate"><span class="pre">.bam</span></code> files. One file with sequences that
+show C to T substitutions on one of the terminal base pairs and one file that looks at the first and last 3 terminal base positions.</p>
+</section>
+<section id="maskdeamination">
+<h3>maskDeamination<a class="headerlink" href="#maskdeamination" title="Permalink to this headline"></a></h3>
+<p>For families with a fixed reference genome (see <code class="code docutils literal notranslate"><span class="pre">--fixed</span></code> flag), take the extracted deaminated reads and set the alignment quality score of the last
+three terminal T bases to 15.</p>
+</section>
+<section id="creatempileups">
+<h3>createMpileups<a class="headerlink" href="#creatempileups" title="Permalink to this headline"></a></h3>
 </section>
 </section>
 </section>
