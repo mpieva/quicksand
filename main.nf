@@ -104,6 +104,10 @@ if(params.taxlvl !in ['f','o']){
     exit_with_error_msg("ArgumentError","taxlvl must be one of [o, f] not ${params.taxlvl}")
 }
 
+if( params.rerun && new File('final_report.tsv').exists()==false){
+    log.info get_info_msg("Use --rerun only for additional runs together with --fixed flag")
+    exit_with_error_msg("ArgumentError", "Wrong use of arguments")
+}
 if( params.rerun && params.fixed ){ standard_run = false }
 
 if(params.split && (params.bam || params.rg) && standard_run){
