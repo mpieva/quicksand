@@ -350,7 +350,7 @@ Run from remote repository
 
 Instead of cloning the repository, run the pipeline directly from github::
 
-    nextflow run quicksand/main.nf [-r v1.5] \
+    nextflow run quicksand/main.nf [-r v1.6] \
         --split      /path/to/split/ \
         --genomes    /path/to/refseq/genomes \
         --db         /path/to/refseq/kraken/Mito_db_kmer22 \
