@@ -19,7 +19,7 @@ log.info """
   ==    ==  =  ==  ==  =====    =====  ====    ==  =  ==  =  =
   ====  ==  =  ==  ==  =  ==  =  ==  =  ==  =  ==  =  ==  =  =
   ====  ===    ==  ===   ===  =  ===   ====    ==  =  ===    =
-  ============================================================                  
+  ============================================================
   ${white}${workflow.manifest.description} ${cyan}~ Version ${workflow.manifest.version} ${white}
 
  --------------------------------------------------------------
@@ -65,8 +65,9 @@ if (params.help){
 //
 //
 
+versions = Channel.empty()
 
-// Main File Input Channels 
+// Main File Input Channels
 inbam      = params.bam            ? Channel.fromPath("${params.bam}",                   checkIfExists:true)  : Channel.empty()
 indexfile  = params.rg             ? Channel.fromPath("${params.rg}",                    checkIfExists:true)  : Channel.empty()
 splitdir   = params.split          ? Channel.fromPath("${params.split}/*",               checkIfExists:true)  : Channel.empty()
@@ -74,13 +75,12 @@ genomesdir = params.genomes        ? Channel.fromPath("${params.genomes}", type:
 database   = params.db             ? Channel.fromPath("${params.db}", type:'dir',        checkIfExists:true)  : Channel.empty()
 bedfiledir = params.bedfiles       ? Channel.fromPath("${params.bedfiles}",type:'dir',   checkIfExists:true)  : Channel.empty()
 
-
 // Additional File Channels
-taxid = new File("${params.genomes}/taxid_map.tsv").exists() ? Channel.fromPath("${params.genomes}/taxid_map.tsv", type:'file') : Channel.fromPath("${baseDir}/assets/taxid_map_example.tsv", type:'file') 
+taxid = new File("${params.genomes}/taxid_map.tsv").exists() ? Channel.fromPath("${params.genomes}/taxid_map.tsv", type:'file') : Channel.fromPath("${baseDir}/assets/taxid_map_example.tsv", type:'file')
 
 if ( !new File("${params.genomes}/taxid_map.tsv").exists() && params.genomes) {
     log.info get_warn_msg("The file 'taxid_map.tsv' is missing in your genomes dir! Using fallback ${baseDir}/assets/taxid_map_example.tsv")
-}    
+}
 
 // for only-fixed runs
 report = new File('final_report.tsv').exists() && params.rerun ? Channel.fromPath('final_report.tsv', type:'file') : Channel.empty()
@@ -113,7 +113,7 @@ if( params.rerun && params.fixed ){ standard_run = false }
 if(params.split && (params.bam || params.rg) && standard_run){
     log.info get_info_msg("Use: nextflow run mpieva/quicksand {--rg FILE --bam FILE | --split DIR}")
     exit_with_error_msg("ArgumentError", "Too many arguments")
-} 
+}
 if(!params.split && !(params.bam && params.rg) && standard_run){
     log.info get_info_msg("Use: nextflow run mpieva/quicksand {--rg FILE --bam FILE | --split DIR}")
     exit_with_error_msg("ArgumentError", "Too few arguments")
@@ -145,24 +145,30 @@ process splitBam {
 
     output:
     path '*' into splitbam_out mode flatten
+    stdout into splitbam_v
 
     when:
-    params.rerun == false && params.bam && params.rg   
+    params.rerun == false && params.bam && params.rg
 
     script:
     """
     splitbam -s -c $params.compression_level -f indices.tsv --minscore 10 --maxnumber 0 input.bam > splittingstats.txt
+    splitbam --version
     """
 }
+
+splitbam_v.map{'splitbam:'+it}
+  .concat(versions)
+  .set{versions}
 
 // If split is defined, start the pipeline here
 if(params.split){
     splitbam_out = splitdir
-} 
+}
 
 //create the meta-map
 splitbam_out
-   .map{[['RG': it.baseName, 'Reference':'best', 'ref_path':null, 'ExtractLVL':params.taxlvl], it]}      
+   .map{[['RG': it.baseName, 'Reference':'best', 'ref_path':null, 'ExtractLVL':params.taxlvl], it]}
    .set{splitbam_out}
 
 //convert fastq-input
@@ -178,7 +184,7 @@ splitbam_out
 splitbam_out.fail
     .view{get_warn_msg("${it[1]} omitted. File has neither bam nor fastq-ending!")}
 
-crosscont_in = splitbam_out.split?: null 
+crosscont_in = splitbam_out.split?: null
 
 process EstimateCrossContamination{
     container (workflow.containerEngine ? "merszym/bam_deam:nextflow" : null)
@@ -188,10 +194,10 @@ process EstimateCrossContamination{
     tuple meta, 'splittingstats.txt' from crosscont_in
 
     output:
-    tuple meta, "${meta.RG}.CC.txt" into crosscont_out 
+    tuple meta, "${meta.RG}.CC.txt" into crosscont_out
 
     when:
-    params.rerun == false   
+    params.rerun == false
 
     script:
     """
@@ -211,15 +217,15 @@ process fastq2Bam{
         'quay.io/biocontainers/samtools:1.15.1--h1170115_0' }"
     tag "$meta.RG"
     label 'local'
-    
+
     input:
     tuple meta, "${meta.RG}.fq" from splitbam_out.fastq
-    
+
     output:
     tuple meta, "${meta.RG}.bam" into fastq2bam_out
-    
+
     when:
-    params.rerun == false   
+    params.rerun == false
 
     script:
     """
@@ -243,7 +249,7 @@ process filterBam {
     tuple meta, "${meta.RG}.filtered.bam", stdout, 'filtercount.txt' into filterbam_out
 
     when:
-    params.rerun == false   
+    params.rerun == false
 
     script:
     """
@@ -268,12 +274,18 @@ process filterLength {
 
     output:
     tuple meta, "${meta.RG}.output.bam" into filterlength_out
+    stdout into filterlength_v
 
     script:
     """
     bam-lengthfilter -c $params.bamfilter_length_cutoff -l $params.compression_level -o \"${meta.RG}.output.bam\" \"${meta.RG}.bam\"
+    bam-lengthfilter --version | cut -d' ' -f2
     """
 }
+
+filterlength_v.unique().map{'bam-lengthfilter:'+it.trim()}
+  .concat(versions)
+  .set{versions}
 
 process filterLengthCount {
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
@@ -286,19 +298,25 @@ process filterLengthCount {
     tuple meta, "${meta.RG}.bam" from filterlength_out
 
     output:
-    tuple meta, "${meta.RG}.bam", stdout into filterlengthcount_out
-    
+    tuple meta, "${meta.RG}.bam", 'count.txt' into filterlengthcount_out
+    stdout into samtools_v
+
+
     when:
-    params.rerun == false   
+    params.rerun == false
 
     script:
     """
-    samtools view -c \"${meta.RG}.bam\"
+    samtools view -c \"${meta.RG}.bam\" > count.txt
+    samtools version | head -1 | cut -d' ' -f2
     """
 }
 
+samtools_v.unique().map{'samtools:'+it.trim()}
+  .concat(versions).set{versions}
+
 //add filterlength count to meta
-filterlengthcount_out.map{[it[0]+['ReadsLengthfiltered':it[2].trim()], it[1]]}.into{ gathertaxon_in; tofasta_in }
+filterlengthcount_out.map{[it[0]+['ReadsLengthfiltered':it[2].text.trim()], it[1]]}.into{ gathertaxon_in; tofasta_in }
 
 process toFasta {
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
@@ -314,7 +332,7 @@ process toFasta {
     set meta, "${meta.RG}.fa" into tofasta_out
 
     when:
-    meta.ReadsLengthfiltered.toInteger() > 0 && params.rerun == false   
+    meta.ReadsLengthfiltered.toInteger() > 0 && params.rerun == false
 
     script:
     """
@@ -339,7 +357,7 @@ if (params.testrun){
         path 'TestDB' into database_extracted
 
         when:
-        params.rerun == false   
+        params.rerun == false
 
         script:
         """
@@ -348,7 +366,7 @@ if (params.testrun){
     }
 }
 
-database_out = params.testrun ? database_extracted : database 
+database_out = params.testrun ? database_extracted : database
 tofasta_out.combine(database_out).set{runkraken_in}
 
 process runKrakenUniq {
@@ -366,23 +384,27 @@ process runKrakenUniq {
     tuple meta, "${meta.RG}.fa", "database" from runkraken_in
 
     output:
-    tuple meta, "krakenUniq.translate", "krakenUniq.report" into runkraken_out   
+    tuple meta, "krakenUniq.translate", "krakenUniq.report" into runkraken_out
+    stdout into krakenuniq_v
 
     when:
-    params.rerun == false   
+    params.rerun == false
 
     script:
     """
     krakenuniq --threads ${task.cpus} --db database --fasta-input \"${meta.RG}.fa\" --report-file krakenUniq.report > output.krakenUniq
     krakenuniq-translate --db database --mpa-format output.krakenUniq > krakenUniq.translate
     echo "\$(grep -E '^(#|%|[0-9]).*' krakenUniq.report)" > krakenUniq.report
+    krakenuniq --version | head -1 | cut -f3 -d ' '
     """
 }
 
+krakenuniq_v.unique().map{'krakenuniq:'+it.trim()}
+  .concat(versions).set{versions}
+
 process findBestNode{
-    container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/python:3.9--1' :
-        'quay.io/biocontainers/python:3.9--1' }"
+    container (workflow.containerEngine ? "merszym/bam_deam:nextflow" : null)
+    label 'local'
     label 'process_low'
     label 'local'
     tag "$meta.RG"
@@ -392,22 +414,31 @@ process findBestNode{
 
     output:
     tuple meta, "parsed_record.tsv", "krakenUniq.translate" into bestspecies_out
+    stdout into python_v
+    path 'pip.txt' into pip_v
 
     when:
-    params.rerun == false   
+    params.rerun == false
 
     script:
     """
     parse_report.py krakenUniq.report ${params.krakenuniq_min_kmers} ${params.krakenuniq_min_reads}
+    python3 --version | cut -f2 -d ' '
+    pip freeze | grep -E 'num|pan|pys' > pip.txt
     """
 }
+
+python_v.unique().map{'python:'+it.trim()}
+  .concat(versions).set{versions}
+pip_v.map{it.text.trim().replace("==",":")}
+  .unique().concat(versions).set{versions}
 
 taxid.splitCsv(sep:'\t')
     .map{[it[0], it[2]]} //[tax_id, species_file]}
     .unique()
     .groupTuple()
     .set{taxid}
-    
+
 bestspecies_out.map{meta, record, translate -> [meta, translate, record.splitCsv(sep:'\t', header:true)]}
     .transpose()
     .map{meta, translate, record -> [record.BestTaxID, meta+record, translate]}
@@ -429,8 +460,7 @@ if(specmap.exists()){
          .into{specs; rerun}
 } else {
     rerun = Channel.empty()
-}    
-
+}
 
 // if rerun --> get extracted bam files from each family + the report file to replace meta variable
 // this channel replaces the mapbwa_in channel downstream, so we need:
@@ -439,7 +469,7 @@ if(specmap.exists()){
 rerun.combine(outdir, by:0)
   .map{fam,sp,ref,bam,rg -> [rg,fam,sp,ref,bam]}
   .combine(report, by:[0,1])
-  .map{rg,fam,sp,ref,bam,meta -> [meta+['Reference':'fixed','Species':sp,'ref_path':ref, 'Taxon':meta.ExtractLVL=='f' ? meta.Family : meta.Order], bam, ref]} 
+  .map{rg,fam,sp,ref,bam,meta -> [meta+['Reference':'fixed','Species':sp,'ref_path':ref, 'Taxon':meta.ExtractLVL=='f' ? meta.Family : meta.Order], bam, ref]}
   .unique{it[0].RG+it[0].Family}
   .set{rerun}
 
@@ -459,7 +489,7 @@ bestspecies_out.replace
 bestspecies_out.keep
     .mix(bestspecies_replaced)
     .map{fam,meta,translate,specs -> [meta.RG, meta, translate, specs]}
-    .set{bestspecies_out} 
+    .set{bestspecies_out}
 
 gathertaxon_in.map{meta, bam -> [meta.RG, meta, bam]}
     .cross(bestspecies_out)
@@ -499,15 +529,20 @@ process extractBam {
 
     output:
     set meta, "${meta.RG}.output.bam", references into extractbam_out
+    stdout into bamfilter_v
 
     when:
-    meta.ReadsExtracted >= params.krakenuniq_min_reads 
+    meta.ReadsExtracted >= params.krakenuniq_min_reads
 
     script:
     """
     bamfilter -i ids.txt -l $params.compression_level -o \"${meta.RG}.output.bam\" \"${meta.RG}.bam\"
+    bamfilter --version | cut -f2 -d ' '
     """
 }
+
+bamfilter_v.unique().map{'bamfilter:'+it.trim()}
+  .concat(versions).set{versions}
 
 extractbam_out
     .transpose()
@@ -532,7 +567,7 @@ process sortBam{
     script:
     out_bam = "${meta.Taxon}/1-extracted/${meta.RG}_extractedReads-${meta.Taxon}.bam"
     """
-    samtools sort -n -l $params.compression_level -o \"${meta.Taxon}.sorted.bam\"  \"${meta.Taxon}.extracted.bam\" 
+    samtools sort -n -l $params.compression_level -o \"${meta.Taxon}.sorted.bam\"  \"${meta.Taxon}.extracted.bam\"
     """
 }
 
@@ -555,6 +590,7 @@ process mapBwa {
 
     output:
     tuple meta, "${meta.Taxon}.mapped.bam" into mapbwa_out
+    stdout into bwa_v
 
     script:
     index = meta.Reference=='fixed' ? "bwa index reference" : ""
@@ -564,8 +600,12 @@ process mapBwa {
     """
     $index
     bwa bam2bam -g \"${genome}\" -n 0.01 -o 2 -l 16500 --only-aligned \"${meta.Taxon}.sorted.bam\" > \"${meta.Taxon}.mapped.bam\"
+    bwa 2>&1 > /dev/null | grep Version | cut -d ' ' -f2
     """
 }
+
+bwa_v.unique().map{'bwa:'+it.trim()}
+  .concat(versions).set{versions}
 
 process filterMappedBam{
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
@@ -605,13 +645,18 @@ process dedupBam {
 
     output:
     tuple meta, "${meta.Species}.deduped.bam" into dedupedbam_out
+    stdout into dedupedbam_v
 
     script:
     out_bam = "${meta.Taxon}/${meta.Reference}/3-deduped/${meta.RG}.${meta.Family}.${meta.Species}_deduped.bam"
     """
     bam-rmdup -r -o \"${meta.Species}.deduped.bam\" \"${meta.Species}.bam\" > rmdup.txt
+    bam-rmdup --version 2>&1> /dev/null | cut -d ' ' -f3
     """
 }
+
+dedupedbam_v.unique().map{'bam-rmdup:'+it.trim()}
+  .concat(versions).set{versions}
 
 process getDedupStats{
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
@@ -651,7 +696,7 @@ dedupedstats_out
 
 dedupedstats_out.bed
     .combine(bedfiledir)
-    .set{runbed_in} 
+    .set{runbed_in}
 
 process runIntersectBed{
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
@@ -667,13 +712,18 @@ process runIntersectBed{
 
     output:
     tuple meta, "${meta.Species}.masked.bam" into runbed_out
-    
+    stdout into bedtools_v
+
     script:
     out_bam = "${meta.Taxon}/${meta.Reference}/4-bedfiltered/${meta.RG}.${meta.Family}.${meta.Species}_deduped_bedfiltered.bam"
     """
     bedtools intersect -a \"${meta.Species}.bam\" -b masked/\"${meta.Species}.masked.bed\" -v > \"${meta.Species}.masked.bam\"
+    bedtools --version | cut -d' ' -f2
     """
 }
+
+bedtools_v.unique().map{'bedtools:'+it.trim()}
+  .concat(versions).set{versions}
 
 process getBedfilteredCounts{
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
@@ -728,13 +778,13 @@ process getDeaminationStats{
     tag "${meta.RG}:${meta.Taxon}:${meta.Species}"
     label 'process_medium'
     label 'local'
-    
+
     input:
     tuple meta, "${meta.Species}.bam" from damageanalysis_in.only_stats
-    
+
     output:
     tuple meta, 'ancient_stats.tsv' into damagestats_out
-    
+
     script:
     """
     bam_deam_stats.py \"${meta.Species}.bam\" only_stats > ancient_stats.tsv
@@ -748,14 +798,14 @@ process extractDeaminatedReads{
     tag "${meta.RG}:${meta.Taxon}:${meta.Species}"
     label 'process_medium'
     label 'local'
-    
+
     input:
     tuple meta, "${meta.Species}.bam" from damageanalysis_in.extract
-    
+
     output:
     tuple meta, 'output.deaminated1.bam', 'output.deaminated3.bam', "${meta.Species}.bam" into masking_in
     tuple meta, 'ancient_stats.tsv' into damageanalysis_out
-    
+
     script:
     out_bam1 = "${meta.Taxon}/${meta.Reference}/5-deaminated/${meta.RG}.${meta.Family}.${meta.Species}_deduped_deaminated_1term.bam"
     out_bam2 = "${meta.Taxon}/${meta.Reference}/5-deaminated/${meta.RG}.${meta.Family}.${meta.Species}_deduped_deaminated_3term.bam"
@@ -769,13 +819,13 @@ process maskDeamination{
     tag "${meta.RG}:${meta.Taxon}:${meta.Species}"
     label 'process_medium'
     label 'local'
-    
+
     input:
     tuple meta, 'deaminated1.bam', 'deaminated3.bam', "all_reads.bam" from masking_in
-    
+
     output:
     tuple meta, 'deaminated1.masked.bam', 'deaminated3.masked.bam', "all_reads.bam" into mpileup_in
-    
+
     script:
     """
     mask_qual_scores.py deaminated1.bam
@@ -792,22 +842,22 @@ process createMpileups{
     tag "${meta.RG}:${meta.Taxon}:${meta.Species}"
     label 'process_medium'
     label 'local'
-    
+
     input:
     tuple meta, 'in.deaminated1.bam', 'in.deaminated3.bam', "all_reads.bam" from mpileup_in
-    
+
     output:
     tuple "${meta.RG}.${meta.Family}.${meta.Species}_all_mpiled.tsv",
-          "${meta.RG}.${meta.Family}.${meta.Species}_term1_mpiled.tsv", 
-          "${meta.RG}.${meta.Family}.${meta.Species}_term3_mpiled.tsv" 
-   
+          "${meta.RG}.${meta.Family}.${meta.Species}_term1_mpiled.tsv",
+          "${meta.RG}.${meta.Family}.${meta.Species}_term3_mpiled.tsv"
+
     script:
     out = "out/${meta.Taxon}/${meta.Reference}/6-mpileups/"
     args = "--output-BP-5 --no-output-ends --no-output-ins --no-output-del"
     """
     samtools mpileup all_reads.bam $args  > \"${meta.RG}.${meta.Family}.${meta.Species}_all_mpiled.tsv\"
     samtools mpileup in.deaminated1.bam $args  > \"${meta.RG}.${meta.Family}.${meta.Species}_term1_mpiled.tsv\"
-    samtools mpileup in.deaminated3.bam $args > \"${meta.RG}.${meta.Family}.${meta.Species}_term3_mpiled.tsv\" 
+    samtools mpileup in.deaminated3.bam $args > \"${meta.RG}.${meta.Family}.${meta.Species}_term3_mpiled.tsv\"
     """
 }
 
@@ -825,6 +875,8 @@ final_report.map{it[2]}.set{final_report}
 // Write Reports
 //
 //
+
+versions.collectFile(name:'versions.txt', storeDir:'.', newLine:true, sort:true)
 
 combine_meta
   .map{ meta -> meta+[
@@ -851,8 +903,8 @@ header_map = [
  'deam'   : 'Ancientness\tReadsDeam(1term)\tReadsDeam(3term)\tDeam5(95ci)\tDeam3(95ci)\tDeam5Cond(95ci)\tDeam3Cond(95ci)',
  'extract': 'ExtractLVL\tReadsExtracted',
  'map'    : 'ReadsMapped\tProportionMapped',
- 'dedup'  : 'ReadsDeduped\tDuplicationRate\tCoveredBP', 
- 'bed'    : 'ReadsBedfiltered\tPostBedCoveredBP',  
+ 'dedup'  : 'ReadsDeduped\tDuplicationRate\tCoveredBP',
+ 'bed'    : 'ReadsBedfiltered\tPostBedCoveredBP',
 ]
 
 def getVals = {String header, meta, res=[] ->
@@ -861,17 +913,17 @@ def getVals = {String header, meta, res=[] ->
 }
 
 summary_file
-  .collectFile( name:'final_report.tsv', 
+  .collectFile( name:'final_report.tsv',
     seed:[
       'RG',
       header_map['split'],
-      header_map['kraken'], 
+      header_map['kraken'],
       header_map['extract'],
-      header_map['tax'], 
+      header_map['tax'],
       header_map['map'],
-      header_map['dedup'], 
+      header_map['dedup'],
       header_map['bed'],
-      'FamPercentage', 
+      'FamPercentage',
       header_map['deam']
     ].join('\t'), storeDir:'.', newLine:true, sort:true
   ){[
@@ -885,17 +937,17 @@ summary_file
       getVals(header_map['bed'],     it),
       it.FamPercentage,
       getVals(header_map['deam'],    it),
-    ].join('\t') 
+    ].join('\t')
   }
   .subscribe {
     println get_info_msg("Summary reports saved")
   }
 
 damageanalysis_file
-  .collectFile( 
-     storeDir: 'stats', newLine:true, 
+  .collectFile(
+     storeDir: 'stats', newLine:true,
      seed:[
-       header_map['tax'], 
+       header_map['tax'],
        header_map['deam']
      ].join('\t')
   ){[
@@ -908,14 +960,14 @@ damageanalysis_file
 
 bedfiltercounts_file
   .collectFile(
-    storeDir: 'stats', newLine:true, 
+    storeDir: 'stats', newLine:true,
     seed: [
       header_map['tax'],
       header_map['bed']
     ].join('\t')
   ){[
-      "${it.RG}_03_bedfiltered.tsv", 
-         [ 
+      "${it.RG}_03_bedfiltered.tsv",
+         [
            getVals(header_map['tax'], it),
            getVals(header_map['bed'], it)
          ].join('\t')
@@ -928,9 +980,9 @@ dedupedstats_file
     seed: [
       header_map['tax'],
       header_map['dedup']
-    ].join('\t')        
-  ){[ 
-      "${it.RG}_02_deduped.tsv", 
+    ].join('\t')
+  ){[
+      "${it.RG}_02_deduped.tsv",
         [
           getVals(header_map['tax'],   it),
           getVals(header_map['dedup'], it)
@@ -944,9 +996,9 @@ filtermappedbam_file
     seed: [
       header_map['tax'],
       header_map['map']
-    ].join('\t')        
-  ){[ 
-      "${it.RG}_01_mapped.tsv", 
+    ].join('\t')
+  ){[
+      "${it.RG}_01_mapped.tsv",
         [
           getVals(header_map['tax'], it),
           getVals(header_map['map'], it)
@@ -967,9 +1019,9 @@ splitcount_file
     seed: [
       'RG',
       header_map['split'],
-    ].join('\t')        
-  ){[ 
-      "splitcounts.tsv", 
+    ].join('\t')
+  ){[
+      "splitcounts.tsv",
         [
           it.RG,
           getVals(header_map['split'], it),
