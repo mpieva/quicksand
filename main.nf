@@ -158,8 +158,7 @@ process splitBam {
 }
 
 splitbam_v.map{'splitbam:'+it}
-  .concat(versions)
-  .set{versions}
+  .concat(versions).set{versions}
 
 // If split is defined, start the pipeline here
 if(params.split){
@@ -284,8 +283,7 @@ process filterLength {
 }
 
 filterlength_v.unique().map{'bam-lengthfilter:'+it.trim()}
-  .concat(versions)
-  .set{versions}
+  .concat(versions).set{versions}
 
 process filterLengthCount {
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
@@ -405,8 +403,6 @@ krakenuniq_v.unique().map{'krakenuniq:'+it.trim()}
 process findBestNode{
     container (workflow.containerEngine ? "merszym/bam_deam:nextflow" : null)
     label 'local'
-    label 'process_low'
-    label 'local'
     tag "$meta.RG"
 
     input:
@@ -415,7 +411,7 @@ process findBestNode{
     output:
     tuple meta, "parsed_record.tsv", "krakenUniq.translate" into bestspecies_out
     stdout into python_v
-    path 'pip.txt' into pip_v
+    path 'pip.txt' into packages_v
 
     when:
     params.rerun == false
@@ -424,14 +420,14 @@ process findBestNode{
     """
     parse_report.py krakenUniq.report ${params.krakenuniq_min_kmers} ${params.krakenuniq_min_reads}
     python3 --version | cut -f2 -d ' '
-    pip freeze | grep -E 'num|pan|pys' > pip.txt
+    pip freeze | grep -E 'pan|sci|num|pys' > pip.txt
     """
 }
 
 python_v.unique().map{'python:'+it.trim()}
   .concat(versions).set{versions}
-pip_v.map{it.text.trim().replace("==",":")}
-  .unique().concat(versions).set{versions}
+packages_v.map{it.text.trim().replace("==",":")}.unique()
+  .concat(versions).set{versions}
 
 taxid.splitCsv(sep:'\t')
     .map{[it[0], it[2]]} //[tax_id, species_file]}
@@ -876,7 +872,7 @@ final_report.map{it[2]}.set{final_report}
 //
 //
 
-versions.collectFile(name:'versions.txt', storeDir:'.', newLine:true, sort:true)
+versions.collectFile(name:'versions.txt', storeDir:'.', newLine:true, sort:true, seed:"#\n#quicksand:${workflow.manifest.version}\n#")
 
 combine_meta
   .map{ meta -> meta+[
