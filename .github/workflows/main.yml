@@ -18,7 +18,7 @@ jobs:
     strategy:
       matrix:
         profile: ['singularity', 'docker']
-        flags: ['--skip_bed Hominidae', '--skip_analysis', '--skip_report', '--byrg', '--taxlvl o']
+        flags: ['--taxlvl o']
 
     steps:
       - name: Checkout code
@@ -32,4 +32,3 @@ jobs:
 
       - name: CI test of ${{matrix.flags}} on ${{matrix.profile}}
         run:  nextflow run ${GITHUB_WORKSPACE} ${{matrix.flags}} -profile test,${{matrix.profile}}
-      
