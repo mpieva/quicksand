@@ -436,6 +436,17 @@ taxid.splitCsv(sep:'\t')
     .set{taxid}
 
 bestspecies_out.map{meta, record, translate -> [meta, translate, record.splitCsv(sep:'\t', header:true)]}
+    .branch{
+        empty: it[2].size() == 0
+        assigned: true
+    }
+    .set{bestspecies_out}
+
+bestspecies_out.empty
+  .map{it[0]}
+  .set{unassigned}
+
+bestspecies_out.assigned
     .transpose()
     .map{meta, translate, record -> [record.BestTaxID, meta+record, translate]}
     .combine(taxid,by:0)
@@ -872,7 +883,7 @@ final_report.map{it[2]}.set{final_report}
 //
 //
 
-versions.collectFile(name:'versions.txt', storeDir:'.', newLine:true, sort:true, seed:"#\n#quicksand:${workflow.manifest.version}\n#")
+versions.collectFile(name:'versions.txt', storeDir:'.', newLine:true, sort:true, seed:"#\n# quicksand:${workflow.manifest.version}\n#")
 
 combine_meta
   .map{ meta -> meta+[
@@ -882,6 +893,7 @@ combine_meta
       }
   .mix(final_report)
   .unique{meta -> meta.RG+meta.Species+meta.Reference}
+  .mix(unassigned)
   .into{
     summary_file ;
     damageanalysis_file;
@@ -905,7 +917,7 @@ header_map = [
 
 def getVals = {String header, meta, res=[] ->
     header.split('\t').each{res << meta[it]}
-    res.join('\t')
+    res.join('\t').replace('null','-')
 }
 
 summary_file
@@ -931,7 +943,7 @@ summary_file
       getVals(header_map['map'],     it),
       getVals(header_map['dedup'],   it),
       getVals(header_map['bed'],     it),
-      it.FamPercentage,
+      it.FamPercentage ?: '-',
       getVals(header_map['deam'],    it),
     ].join('\t')
   }
