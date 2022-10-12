@@ -1,7 +1,7 @@
 Description
 ===========
 
-.. image:: images/pipeline_overview_v1.5.png
+.. image:: images/pipeline_overview_v1.6.png
 	:width: 800
 	:align: center
 	:alt: Graphical overview over the processes of the quicksand pipeline

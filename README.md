@@ -28,27 +28,27 @@ With the workflow and background described in [_Slon et al., 2017_](https://scie
 While the default settings are optimized and tested for the assignment of mammalian mtDNA, quicksand can be combined with databases constructed from the whole RefSeq mtDNA database
 (see [HERE](https://www.github.com/mpieva/quicksand-build)).
 
-### Workflow   
+### Workflow
 
 <p align=center>
-    <img src="assets/pipeline_overview_v1.5.png" alt="Graphical overview over the pipeline workflow" width='800px'>
+    <img src="assets/pipeline_overview_v1.6.png" alt="Graphical overview over the pipeline workflow" width='800px'>
 </p>
 
 ### Input
 
 The pipeline accepts `bam` and `fastq` files.\
-Collect all files named `READGROUP.bam` and/or `READGROUP.{fq,fq.gz,fastq,fastq.gz}` into one directory.  
+Collect all files named `READGROUP.bam` and/or `READGROUP.{fq,fq.gz,fastq,fastq.gz}` into one directory.
 
 **Notes**
 - The files should be _demultiplexed_, _adapter-trimmed_ and _overlap-merged_
 - `fastq` files are converted to single-read `bam` files (in case the input is paired-end)
-- paired-end reads are filtered from the `bam` files by default 
+- paired-end reads are filtered from the `bam` files by default
 
 **Note #2:**\
 The pipeline includes a splitBam process for demultiplexing, however, it is restricted to libraries and index-combinations produced by the [MPI EVA CoreUnit](https://www.eva.mpg.de/genetics/index/).
 
 ### Output
-- For each readgroup: quicksand outputs the processed and binned reads in `.bam`-format at each stage of the pipeline (see workflow above). 
+- For each readgroup: quicksand outputs the processed and binned reads in `.bam`-format at each stage of the pipeline (see workflow above).
 - Summary stats for each readgroup and assigned family: Number of assigned reads, mapped reads, unique reads, bedfiltered reads, deaminated reads.
 
 ## Quickstart
@@ -65,7 +65,7 @@ And create the underlying datastructure
 To make a metagenomic classification, a reference database, some reference genomes and the taxonomy is required.
 
 To run quicksand, execute the supplementary pipeline `quicksand-build`  in advance to do exactly that. This pipeline will download the taxonomy from NCBI/taxonomy, the mitochondrial genomes from NCBI/RefSeq
-and build the kraken-database with the specified settings. 
+and build the kraken-database with the specified settings.
 
 For this README, create a database containing only the _Primate mtGenomes_. To use the pipeline for the analysis of all mammalian mtGenomes or _everything_ in RefSeq, please see the [README](https://www.github.com/mpieva/quicksand-build) of this pipeline
 
@@ -77,7 +77,7 @@ To run the pipline open your terminal and type:
 ```
 
 And wait. Especially the download of the taxonomy takes ~1h
-    
+
 ### Run quicksand
 
 With the databases created in `refseq` we can now run the actual pipeline.
@@ -103,8 +103,8 @@ After running the pipeline, please see the `final_report.tsv` for a summary of t
 ## References
 
 - *Slon,V. et al. (2017)*: Neandertal and Denisovan DNA from Pleistocene sediments. 10.1126/science.aam9695
-- *Li,H. et al. (2009)*: Fast and accurate short read alignment with Burrows-Wheeler transform. 10.1093/bioinformatics/btp324 
-- *Breitwieser, F.P. et al. (2018)*: KrakenUniq: confident and fast metagenomics classification using unique k-mer counts. 10.1186/s13059-018-1568-0 
+- *Li,H. et al. (2009)*: Fast and accurate short read alignment with Burrows-Wheeler transform. 10.1093/bioinformatics/btp324
+- *Breitwieser, F.P. et al. (2018)*: KrakenUniq: confident and fast metagenomics classification using unique k-mer counts. 10.1186/s13059-018-1568-0
 
 This pipeline uses code inspired by the [nf-core](https://nf-co.re) initative, reused here under the [MIT license](https://github.com/nf-core/tools/blob/master/LICENSE).
 

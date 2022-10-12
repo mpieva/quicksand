@@ -14,34 +14,34 @@ To run quicksand, an underlying datastructure with databases and reference genom
 - In the same directory, a file :file:`taxid_map.tsv`, linking the files in the folder to NCBI Taxonomy Ids
 - A directory containing a :file:`bed`-file for each genome, indicating non-informative and low-complexity regions within the genome
 
-Instead of creating this files manually, the supplementary pipeline quicksand-build is used for that. 
+Instead of creating this files manually, the supplementary pipeline quicksand-build is used for that.
 Note that quicksand-build is a **separate pipeline** hosted `here <https://github.com/mpieva/quicksand-build>`_.
 
 Workflow
 ---------
 
-.. image:: images/pipeline_overview_v1.5.png
+.. image:: images/pipeline_overview_v1.6.png
 	:width: 800
 	:align: center
-	:alt: Graphical overview over the processes of the quicksand pipeline 
+	:alt: Graphical overview over the processes of the quicksand pipeline
 
 
 downloadTaxonomy / downloadGenomes
 """"""""""""""""""""""""""""""""""
 
 The first step of the pipeline is downloading of the genbank-files from the `NCBI RefSeq mitochondrion FTP-Server<https://ftp.ncbi.nlm.nih.gov/refseq/release/mitochondrion/>`_ and
-the NCBI taxonomy using the :code:`kraken-build --download-taxonomy` command. 
+the NCBI taxonomy using the :code:`kraken-build --download-taxonomy` command.
 
 extractFamilies
 """"""""""""""""
 
 A custim python script is used to extract the fasta-files from the NCBI genbank files. Use the :code:`--include` flag to specify taxa that
-should be extracted. (default: all). All included taxa are used to build the kraken-database and can thus be identified by the quicksand pipeline. 
+should be extracted. (default: all). All included taxa are used to build the kraken-database and can thus be identified by the quicksand pipeline.
 
 indexFasta
 """"""""""
 
-The extracted :file:`fasta` files are indexed using the :code:`bwa index` command. 
+The extracted :file:`fasta` files are indexed using the :code:`bwa index` command.
 
 writeBedfiles
 """"""""""""""
@@ -52,7 +52,7 @@ For each :file:`fasta` file, :code:`dustmasker` is used to specify non-informati
 createKrakenDB
 """"""""""""""
 
-Use :code:`kraken-build` to add the extracted :file:`fasta` files to the database. The database is then built using the with the flag :code:`--kmers` specified kmer sizes 
+Use :code:`kraken-build` to add the extracted :file:`fasta` files to the database. The database is then built using the with the flag :code:`--kmers` specified kmer sizes
 (default: 22)
 
 
@@ -62,7 +62,7 @@ Usage
 .. note::
 
 	| quicksand-build uses singularity by default!
-	| Use the :code:`-profile docker` flag to use docker instead. 
+	| Use the :code:`-profile docker` flag to use docker instead.
 
 To run the pipeline with default parameters open the terminal and type::
 
@@ -75,7 +75,7 @@ Flags
 .. list-table::
   :widths: 10 10 60
   :header-rows: 1
-  
+
   * - Flag
     - Input type
     - Description
@@ -109,7 +109,7 @@ Flags
             │    ├── Mito_db_kmer22
             │    ├── Mito_db_kmer23
             │    └── Mito_db_kmer24
-		  
+
 		  Example:
 
           --kmers 22,23,24
@@ -121,10 +121,10 @@ Flags
       ::
 
           input (exclude.tsv):
-		
+
 		  Hominidae	Homo_sapiens,Homo_neandertalensis
 		  Bovidae	Capra_aegagrus
-		  
+
 		  Example:
 
           --exclude exclude.tsv
@@ -184,7 +184,7 @@ The :file:`taxid_map.tsv` file contains the following information::
 	9605  Hominidae  Homo_heidelbergensis            Primates
 	9605  Hominidae  Homo_sapiens_neanderthalensis   Primates
 	9605  Hominidae  Homo_sapiens                    Primates
-	9605  Hominidae  Homo_sapiens_subsp._'Denisova'  Primates   
+	9605  Hominidae  Homo_sapiens_subsp._'Denisova'  Primates
 
 | The quicksand process 'findBestNode' returns a taxon id. This :file:`taxid_map.tsv` file is used to provide the 'mapBwa' process
 | with all the species reference genomes linked to that TaxonId
