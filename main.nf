@@ -831,10 +831,11 @@ process maskDeamination{
     tuple meta, 'deaminated1.bam', 'deaminated3.bam', "all_reads.bam" from masking_in
 
     output:
-    tuple meta, 'deaminated1.masked.bam', 'deaminated3.masked.bam', "all_reads.bam" into mpileup_in
+    tuple meta, 'deaminated1.masked.bam', 'deaminated3.masked.bam', "all_reads.masked.bam" into mpileup_in
 
     script:
     """
+    mask_qual_scores.py all_reads.bam
     mask_qual_scores.py deaminated1.bam
     mask_qual_scores.py deaminated3.bam
     """
@@ -860,7 +861,7 @@ process createMpileups{
 
     script:
     out = "out/${meta.Taxon}/${meta.Reference}/6-mpileups/"
-    args = "--output-BP-5 --no-output-ends --no-output-ins --no-output-del"
+    args = "--output-BP-5 --no-output-ends --no-output-ins --no-output-del  --min-BQ 0"
     """
     samtools mpileup all_reads.bam $args  > \"${meta.RG}.${meta.Family}.${meta.Species}_all_mpiled.tsv\"
     samtools mpileup in.deaminated1.bam $args  > \"${meta.RG}.${meta.Family}.${meta.Species}_term1_mpiled.tsv\"

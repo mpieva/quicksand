@@ -8,7 +8,7 @@ def main(bamfile):
     #open the files
     infile = pysam.AlignmentFile(bamfile, 'rb')
     outfile = pysam.AlignmentFile(f"{str(bamfile).rsplit('.')[0]}.masked.bam", 'wb', template=infile)
-    
+
     #main loop
     for read in infile:
         #alter quality scores
@@ -17,10 +17,10 @@ def main(bamfile):
         for n in [0,1,2,-3,-2,-1]:
             #check if that position is deaminated
             if (read.is_reverse == False and seq[n]=='T'):
-                #set to 15 as mpileup by default ignores anything below 13
-                qual[n] = 15
+                #set to 0
+                qual[n] = 0
             elif(read.is_reverse and seq[n]=='A'):
-                qual[n] = 15
+                qual[n] = 0
             else:
                 pass
         read.query_qualities = qual
