@@ -125,12 +125,15 @@ def main(bamfile, stats_only=False):
     p_deam31_cond_95ci = binomial_ci(n_cond,all_5c_cond3)
 
     ancientness = '-'
-    test51,test31 = float(p_deam51_95ci.split(',')[0]),float(p_deam31_95ci.split(',')[0])
-    if test51 and test31:
-        if test51 > 9.5 or test31 > 9.5:
-            ancientness = '+'
-        if test51 > 9.5 and test31 > 9.5:
-            ancientness = '++'
+    try:
+        test51,test31 = float(p_deam51_95ci.split(',')[0]),float(p_deam31_95ci.split(',')[0])
+        if test51 and test31:
+            if test51 > 9.5 or test31 > 9.5:
+                ancientness = '+'
+            if test51 > 9.5 and test31 > 9.5:
+                ancientness = '++'
+    except ValueError:
+        pass
 
     #And the report
     #print header
