@@ -861,7 +861,7 @@ process createMpileups{
 
     script:
     out = "out/${meta.Taxon}/${meta.Reference}/6-mpileups/"
-    args = "--output-BP-5 --no-output-ends --no-output-ins --no-output-del  --min-BQ 0"
+    args = "--output-BP-5 --no-output-ends --no-output-ins --no-output-del --no-output-ins --no-output-del --min-BQ 0  -R"
     """
     samtools mpileup all_reads.bam $args  > \"${meta.RG}.${meta.Family}.${meta.Species}_all_mpiled.tsv\"
     samtools mpileup in.deaminated1.bam $args  > \"${meta.RG}.${meta.Family}.${meta.Species}_term1_mpiled.tsv\"
