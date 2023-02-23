@@ -1,6 +1,4 @@
 process SPLITBAM {
-    tag "$meta.id"
-
     container (workflow.containerEngine ? "merszym/splitbam:v0.1.6" : null)
 
     input:
