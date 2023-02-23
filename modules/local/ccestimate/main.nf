@@ -6,10 +6,10 @@ process ESTIMATE_CC{
     tuple val(meta), path(stats)
 
     output:
-    tuple val(meta), path("${meta.RG}.CC.txt"), emit: txt
+    tuple val(meta), path("CC.txt"), emit: txt
 
     script:
     """
-    cross_cont.py splittingstats.txt > \"${meta.RG}.CC.txt\"
+    cross_cont.py ${stats} > CC.txt
     """
 }
