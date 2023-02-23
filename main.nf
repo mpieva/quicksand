@@ -1,16 +1,15 @@
 #!/usr/bin/env nextflow
 
 // include workflows for different executions of the pipeline
-include { splitbam }  from './workflows/splitbam'
-include { splitdir }  from './workflows/splitdir'
+include { splitbam }   from './workflows/splitbam'
+include { splitdir }   from './workflows/splitdir'
+include { bamfilter }  from './workflows/bamfilter'
 
 // include modules that are used by the main workflow
-include { SAMTOOLS_FILTER } from './modules/local/samtools_filter'
 
-// some required functions
-def has_ending(file, extension){
-    return extension.any{ file.toString().toLowerCase().endsWith(it) }
-}
+include { SAMTOOLS_FASTA } from './modules/local/samtools_fasta'
+include { RUN_KRAKENUNIQ } from './modules/local/krakenuniq_run'
+
 
 // input
 versions = Channel.empty()
@@ -18,32 +17,66 @@ bam   = params.bam   ? file( params.bam,   checkIfExists:true) : ""
 by    = params.by    ? file( params.by,    checkIfExists:true) : ""
 split = params.split ? Channel.fromPath("${params.split}/*", checkIfExists:true) : ""
 
-
+//
+//
 // The main workflow
+//
+//
 
 workflow {
+
+    //
+    // Input Processing ~ Input Parameters
+    //
+
     if (bam) {
         splitbam( bam,by )
 
-        bams = splitbam.out.bams
+        bam = splitbam.out.bams
         cc_stats = splitbam.out.cc
         versions = versions.mix( splitbam.out.versions )
     }
     else {
         splitdir( split )
 
-        bams = splitdir.out.bams
+        bam = splitdir.out.bams
         cc_stats = splitdir.out.cc
+        versions = versions.mix( splitdir.out.versions )
     }
-    // save the crosscontamination file
+
+    //
+    // Save the crosscontamination file
+    //
+
     cc_stats
-        .filter { it[1].text != '' }
-        .collectFile( storeDir: '.', newLine:true ) { meta, file ->
-            [ "cc_estimates.txt", ["# Cross contamination calculated from File: ${meta.RG}.txt"  ,file.text ].join( '\n' ) ]
-        }
+        .map{ it[1].text }
+        .collectFile( storeDir:'.', newLine:true, name:"cc_estimates.txt" )
 
-    bams.map { [it[0] + [ "id":it[1].baseName], it[1]] }.set{ bams }
+    //
+    // Filter the bam files
+    //
 
-    // filter bam
-    SAMTOOLS_FILTER(bams)
+    bam.map { [it[0] + [ "id":it[1].baseName], it[1]] }.set{ bam }
+    bamfilter( bam )
+
+    bam = bamfilter.out.bam
+    versions = versions.mix( bamfilter.out.versions )
+
+    //
+    // Convert bam to fasta for kraken
+    //
+
+    SAMTOOLS_FASTA( bam )
+    versions = versions.mix( SAMTOOLS_FASTA.out.versions.first() )
+
+    //
+    // Run kraken
+    //
+
+    database = Channel.fromPath("${params.db}", type:'dir', checkIfExists:true)
+    for_kraken = SAMTOOLS_FASTA.out.fasta.combine(database)
+
+    RUN_KRAKENUNIQ( for_kraken )
+    versions = versions.mix( RUN_KRAKENUNIQ.out.versions.first() )
+
 }

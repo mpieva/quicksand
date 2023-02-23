@@ -9,10 +9,16 @@ process SAMTOOLS_FQ2BAM{
 
     output:
     tuple val(meta), path("*.bam"), emit: bam
+    path "versions.yml"           , emit: versions
 
     script:
     def name = fastq.baseName
     """
     samtools import -0 ${fastq} -o \"${name}.bam\"
+
+    cat <<-END_VERSIONS > versions.yml
+    "${task.process}":
+        samtools: \$(samtools version | head -1 | cut -d' ' -f2)
+    END_VERSIONS
     """
 }

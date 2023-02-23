@@ -1,6 +1,11 @@
 include { ESTIMATE_CC }     from '../modules/local/ccestimate'
 include { SAMTOOLS_FQ2BAM } from '../modules/local/samtools_fq2bam'
 
+// some required functions
+def has_ending(file, extension){
+    return extension.any{ file.toString().toLowerCase().endsWith(it) }
+}
+
 workflow splitdir {
     take:
         split
@@ -21,7 +26,9 @@ workflow splitdir {
         // convert fastq to bam
         SAMTOOLS_FQ2BAM( split.fastq )
 
+
     emit:
         bams = split.bam.mix( SAMTOOLS_FQ2BAM.out.bam )
         cc = ESTIMATE_CC.out.txt
+        versions = SAMTOOLS_FQ2BAM.out.versions.first()
 }
