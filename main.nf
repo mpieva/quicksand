@@ -6,10 +6,10 @@ include { splitdir }   from './workflows/splitdir'
 include { bamfilter }  from './workflows/bamfilter'
 
 // include modules that are used by the main workflow
-
-include { SAMTOOLS_FASTA } from './modules/local/samtools_fasta'
-include { RUN_KRAKENUNIQ } from './modules/local/krakenuniq_run'
-
+include { SAMTOOLS_FASTA       } from './modules/local/samtools_fasta'
+include { RUN_KRAKENUNIQ       } from './modules/local/krakenuniq_run'
+include { RUN_KRAKENUNIQ_BATCH } from './modules/local/krakenuniq_run'
+include { PARSE_KRAKEN_REPORT  } from './modules/local/parse_kraken_report'
 
 // input
 versions = Channel.empty()
@@ -63,20 +63,29 @@ workflow {
     versions = versions.mix( bamfilter.out.versions )
 
     //
-    // Convert bam to fasta for kraken
-    //
-
-    SAMTOOLS_FASTA( bam )
-    versions = versions.mix( SAMTOOLS_FASTA.out.versions.first() )
-
-    //
     // Run kraken
     //
 
-    database = Channel.fromPath("${params.db}", type:'dir', checkIfExists:true)
-    for_kraken = SAMTOOLS_FASTA.out.fasta.combine(database)
+    // Convert bam to fasta
 
-    RUN_KRAKENUNIQ( for_kraken )
+    SAMTOOLS_FASTA( bam )
+    versions = versions.mix( SAMTOOLS_FASTA.out.versions.first() )
+    fastas = SAMTOOLS_FASTA.out.fasta.map{ it[1] }.collect()
+
+    // Get the database
+    database = Channel.fromPath("${params.db}", type:'dir', checkIfExists:true)
+
+    // Run krakenuniq
+    RUN_KRAKENUNIQ( SAMTOOLS_FASTA.out.fasta.combine(database) )
     versions = versions.mix( RUN_KRAKENUNIQ.out.versions.first() )
+
+    RUN_KRAKENUNIQ_BATCH ( fastas, database )
+    versions = versions.mix( RUN_KRAKENUNIQ_BATCH.out.versions.first() )
+
+    // Parse the krakenuniq-report
+    //PARSE_KRAKEN_REPORT( RUN_KRAKENUNIQ.out.report )
+    //versions = versions.mix( PARSE_KRAKEN_REPORT.out.versions.first() )
+
+
 
 }
