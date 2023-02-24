@@ -8,7 +8,6 @@ include { bamfilter }  from './workflows/bamfilter'
 // include modules that are used by the main workflow
 include { SAMTOOLS_FASTA       } from './modules/local/samtools_fasta'
 include { RUN_KRAKENUNIQ       } from './modules/local/krakenuniq_run'
-include { RUN_KRAKENUNIQ_BATCH } from './modules/local/krakenuniq_run'
 include { PARSE_KRAKEN_REPORT  } from './modules/local/parse_kraken_report'
 
 // input
@@ -79,13 +78,8 @@ workflow {
     RUN_KRAKENUNIQ( SAMTOOLS_FASTA.out.fasta.combine(database) )
     versions = versions.mix( RUN_KRAKENUNIQ.out.versions.first() )
 
-    RUN_KRAKENUNIQ_BATCH ( fastas, database )
-    versions = versions.mix( RUN_KRAKENUNIQ_BATCH.out.versions.first() )
-
     // Parse the krakenuniq-report
-    //PARSE_KRAKEN_REPORT( RUN_KRAKENUNIQ.out.report )
-    //versions = versions.mix( PARSE_KRAKEN_REPORT.out.versions.first() )
-
-
+    PARSE_KRAKEN_REPORT( RUN_KRAKENUNIQ.out.report )
+    versions = versions.mix( PARSE_KRAKEN_REPORT.out.versions.first() )
 
 }
