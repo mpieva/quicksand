@@ -1,5 +1,5 @@
 process ESTIMATE_CC{
-    container (workflow.containerEngine ? "merszym/bam_deam:nextflow" : null)
+    container (workflow.containerEngine ? "pypy:3" : null)
     label 'local'
 
     input:
