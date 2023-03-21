@@ -186,7 +186,7 @@ splitbam_out.fail
 crosscont_in = splitbam_out.split?: null
 
 process EstimateCrossContamination{
-    container (workflow.containerEngine ? "merszym/bam_deam:nextflow" : null)
+    container (workflow.containerEngine ? "pypy:3" : null)
     label 'local'
 
     input:
