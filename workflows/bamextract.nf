@@ -7,7 +7,6 @@ workflow bamextract {
     take: translate
 
     main:
-        versions = channel.empty()
 
         //
         // 1. Create a list of reads for each taxon that need to be extracted
@@ -51,7 +50,7 @@ workflow bamextract {
 
         // extract the bams
         EXTRACT_BAM( ids )
-        versions = versions.mix(EXTRACT_BAM.out.versions.first())
+        versions = EXTRACT_BAM.out.versions.first()
 
         //
         // 3. Sort the bam

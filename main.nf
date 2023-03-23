@@ -5,11 +5,10 @@ include { splitbam   } from './workflows/splitbam'
 include { splitdir   } from './workflows/splitdir'
 include { bamfilter  } from './workflows/bamfilter'
 include { bamextract } from './workflows/bamextract'
+include { krakenrun  } from './workflows/krakenrun'
 
 // include modules that are used by the main workflow
-include { SAMTOOLS_FASTA       } from './modules/local/samtools_fasta'
-include { RUN_KRAKENUNIQ       } from './modules/local/krakenuniq_run'
-include { PARSE_KRAKEN_REPORT  } from './modules/local/parse_kraken_report'
+
 
 // input
 versions = Channel.empty()
@@ -28,7 +27,7 @@ database = Channel.fromPath("${params.db}", type:'dir', checkIfExists:true)
 workflow {
 
     //
-    // Input Processing ~ Input Parameters
+    // 1. Input Processing ~ Input Parameters
     //
 
     if (bam) {
@@ -47,7 +46,7 @@ workflow {
     }
 
     //
-    // Save the crosscontamination file
+    // 2. Save the crosscontamination file
     //
 
     cc_stats
@@ -55,7 +54,7 @@ workflow {
         .collectFile( storeDir:'.', newLine:true, name:"cc_estimates.txt" )
 
     //
-    // Filter the bam files
+    // 3. Filter the bam files
     //
 
     bam.map { [it[0] + [ "id":it[1].baseName], it[1]] }.set{ bam }
@@ -65,28 +64,17 @@ workflow {
     versions = versions.mix( bamfilter.out.versions )
 
     //
-    // Run kraken
+    // 4. Run kraken
     //
 
-    // Convert bam to fasta
-    SAMTOOLS_FASTA( bam )
-    versions = versions.mix( SAMTOOLS_FASTA.out.versions.first() )
-
-    // Run krakenuniq
-    RUN_KRAKENUNIQ( SAMTOOLS_FASTA.out.fasta.combine(database) )
-    versions = versions.mix( RUN_KRAKENUNIQ.out.versions.first() )
-
-    // Parse the krakenuniq-report
-    PARSE_KRAKEN_REPORT( RUN_KRAKENUNIQ.out.report )
-    versions = versions.mix( PARSE_KRAKEN_REPORT.out.versions.first() )
+    krakenrun( bam, database )
+    version = versions.mix( krakenrun.out.versions )
 
     //
-    // Extract bams based on kraken-results
+    // 5. Extract bams based on kraken-results
     //
 
-    bamextract( bamfilter.out.bam, RUN_KRAKENUNIQ.out.translate )
+    bamextract( bamfilter.out.bam, krakenrun.out.translate )
     versions = versions.mix( bamextract.out.versions.first() )
-
-    bamextract.out.bam.view()
 
 }
