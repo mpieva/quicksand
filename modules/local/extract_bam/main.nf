@@ -11,6 +11,9 @@ process EXTRACT_BAM {
     tuple val(meta), path("${meta.id}_${meta.taxon}.out.bam"), emit: bam
     path "versions.yml"                                      , emit: versions
 
+    when:
+    meta.ReadsExtracted > params.krakenuniq_min_reads
+
     script:
     """
     bamfilter -i ${txt} -l ${params.compression_level} -o ${meta.id}_${meta.taxon}.out.bam ${bam}
