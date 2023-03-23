@@ -1,9 +1,10 @@
 #!/usr/bin/env nextflow
 
 // include workflows for different executions of the pipeline
-include { splitbam }   from './workflows/splitbam'
-include { splitdir }   from './workflows/splitdir'
-include { bamfilter }  from './workflows/bamfilter'
+include { splitbam   } from './workflows/splitbam'
+include { splitdir   } from './workflows/splitdir'
+include { bamfilter  } from './workflows/bamfilter'
+include { bamextract } from './workflows/bamextract'
 
 // include modules that are used by the main workflow
 include { SAMTOOLS_FASTA       } from './modules/local/samtools_fasta'
@@ -15,6 +16,8 @@ versions = Channel.empty()
 bam   = params.bam   ? file( params.bam,   checkIfExists:true) : ""
 by    = params.by    ? file( params.by,    checkIfExists:true) : ""
 split = params.split ? Channel.fromPath("${params.split}/*", checkIfExists:true) : ""
+
+database = Channel.fromPath("${params.db}", type:'dir', checkIfExists:true)
 
 //
 //
@@ -66,13 +69,8 @@ workflow {
     //
 
     // Convert bam to fasta
-
     SAMTOOLS_FASTA( bam )
     versions = versions.mix( SAMTOOLS_FASTA.out.versions.first() )
-    fastas = SAMTOOLS_FASTA.out.fasta.map{ it[1] }.collect()
-
-    // Get the database
-    database = Channel.fromPath("${params.db}", type:'dir', checkIfExists:true)
 
     // Run krakenuniq
     RUN_KRAKENUNIQ( SAMTOOLS_FASTA.out.fasta.combine(database) )
@@ -81,5 +79,14 @@ workflow {
     // Parse the krakenuniq-report
     PARSE_KRAKEN_REPORT( RUN_KRAKENUNIQ.out.report )
     versions = versions.mix( PARSE_KRAKEN_REPORT.out.versions.first() )
+
+    //
+    // Extract bams based on kraken-results
+    //
+
+    bamextract( bamfilter.out.bam, RUN_KRAKENUNIQ.out.translate )
+    versions = versions.mix( bamextract.out.versions.first() )
+
+    bamextract.out.bam.view()
 
 }

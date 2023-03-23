@@ -32,8 +32,8 @@ workflow bamfilter {
         SAMTOOLS_COUNT( BAM_LENGTHFILTER.out.bam )
         versions = versions.mix( SAMTOOLS_COUNT.out.versions.first() )
 
-        counted = SAMTOOLS_COUNT.out.bam.map {
-            [ it[0]+['ReadsLengthfiltered': it[2] as int], it[1] ]
+        counted = SAMTOOLS_COUNT.out.bam.map { meta, bam, count ->
+            [ meta+['ReadsLengthfiltered': count as int], bam ]
         }
     emit:
         bam = counted
