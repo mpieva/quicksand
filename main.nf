@@ -6,10 +6,10 @@ include { splitdir       } from './workflows/splitdir'
 include { bamfilter      } from './workflows/bamfilter'
 include { bamextract     } from './workflows/bamextract'
 include { krakenrun      } from './workflows/krakenrun'
-include { refprep  } from './workflows/refprep'
+include { refprep        } from './workflows/refprep'
 
 // include modules that are used by the main workflow
-
+include { MAP_BWA } from './modules/local/bwa'
 
 // input
 versions = Channel.empty()
@@ -61,7 +61,7 @@ workflow {
     // 3. Filter the bam files
     //
 
-    bam.map { [it[0] + [ "id":it[1].baseName], it[1]] }.set{ bam }
+    bam.map { [it[0] + [ "id":it[1].baseName, 'Reference':'fixed'], it[1]] }.set{ bam }
     bamfilter( bam )
 
     bam = bamfilter.out.bam
@@ -99,5 +99,22 @@ workflow {
     .map{ key, meta, bam, report, references ->
         [meta+report, bam, references]
     }
+    .transpose()
+    .map{ meta, bam, reference ->
+        [meta+['Species':reference], bam]
+    }
+    .combine( genomesdir )
     .view()
+    .set{bwa_in}
+
+    //
+    // 6. Map with BWA
+    //
+
+    MAP_BWA( bwa_in )
+    versions = versions.mix( MAP_BWA.out.versions.first() )
+
+    MAP_BWA.out.mapped_bam.view()
+
+
 }
