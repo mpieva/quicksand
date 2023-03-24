@@ -1,5 +1,5 @@
 include { GATHER_TAXON }  from "../modules/local/gather_taxon"
-include { EXTRACT_BAM }   from "../modules/local/extract_bam"
+include { EXTRACT_TAXON }   from "../modules/local/extract_bam"
 include { SAMTOOLS_SORT } from "../modules/local/samtools_sort"
 
 workflow bamextract {
@@ -49,14 +49,14 @@ workflow bamextract {
         .set{ ids }
 
         // extract the bams
-        EXTRACT_BAM( ids )
-        versions = EXTRACT_BAM.out.versions.first()
+        EXTRACT_TAXON( ids )
+        versions = EXTRACT_TAXON.out.versions.first()
 
         //
         // 3. Sort the bam
         //
 
-        SAMTOOLS_SORT( EXTRACT_BAM.out.bam )
+        SAMTOOLS_SORT( EXTRACT_TAXON.out.bam )
         versions = versions.mix(SAMTOOLS_SORT.out.versions.first())
 
     emit:

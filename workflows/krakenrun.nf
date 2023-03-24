@@ -19,8 +19,31 @@ workflow krakenrun {
         PARSE_KRAKEN_REPORT( RUN_KRAKENUNIQ.out.report )
         versions = versions.mix( PARSE_KRAKEN_REPORT.out.versions.first() )
 
+        // prepare the output channel for best_species
+        PARSE_KRAKEN_REPORT.out.parsed_report
+            .map{ meta, report ->
+                [meta, report.splitCsv(sep:'\t', header:true)]
+            }
+            .branch{
+                empty: it[1].size() == 0
+                assigned: true
+            }
+            .set{parsed_report}
+
+        // Handle Readgroups with no assignment
+        parsed_report.empty.set{ empty }
+
+        // Handle Readgroups with assignment(s)
+        parsed_report.assigned
+            .transpose()
+            .map{meta, report ->
+                [[meta.id, report[['f':'Family','o':'Order'][params.taxlvl]]], meta, report] // extract the 'taxon' from the parsed report
+            }
+            .set{assignments}
+
     emit:
         versions = versions
         translate = RUN_KRAKENUNIQ.out.translate
-        report = PARSE_KRAKEN_REPORT.out.parsed_report
+        assignments = assignments
+        empty = empty
 }

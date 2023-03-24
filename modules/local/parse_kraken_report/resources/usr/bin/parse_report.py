@@ -6,7 +6,7 @@ min_kmers = int(sys.argv[2])
 min_reads = int(sys.argv[3])
 
 # parse the report
-# Assume the following structure:
+# Imagine the following structure:
 #
 # family(400kmers)
 # |  |

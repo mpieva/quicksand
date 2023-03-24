@@ -1,4 +1,4 @@
-process EXTRACT_BAM {
+process EXTRACT_TAXON {
     container (workflow.containerEngine ? "merszym/bamfilter:nextflow" : null)
     tag "$meta.id:$meta.taxon"
     label "process_low"
