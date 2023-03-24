@@ -34,6 +34,7 @@ workflow krakenrun {
         parsed_report.empty.set{ empty }
 
         // Handle Readgroups with assignment(s)
+        // Include a key [RG, taxon] to merge references later back to the extracted bams
         parsed_report.assigned
             .transpose()
             .map{meta, report ->

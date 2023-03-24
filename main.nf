@@ -6,7 +6,7 @@ include { splitdir       } from './workflows/splitdir'
 include { bamfilter      } from './workflows/bamfilter'
 include { bamextract     } from './workflows/bamextract'
 include { krakenrun      } from './workflows/krakenrun'
-include { get_reference  } from './workflows/get_reference'
+include { refprep  } from './workflows/refprep'
 
 // include modules that are used by the main workflow
 
@@ -86,6 +86,18 @@ workflow {
     //
 
     assignments = krakenrun.out.assignments
-    get_reference( database, assignments, [],[] )
 
+    refprep( database, assignments, [] )
+    versions = versions.mix( refprep.out.versions.first() )
+
+    // combine the extracted and assigned paths
+
+    bamextract.out.bam.map{ meta, bam ->
+        [[meta.id, meta.taxon], meta, bam]
+    }
+    .join( refprep.out.references )
+    .map{ key, meta, bam, report, references ->
+        [meta+report, bam, references]
+    }
+    .view()
 }

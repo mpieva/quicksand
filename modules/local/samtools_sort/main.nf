@@ -5,7 +5,7 @@ process SAMTOOLS_SORT{
     tag "$meta.id:$meta.taxon"
     label "process_low"
     label "local"
-    publishDir 'out', mode: 'copy', saveAs: {out_bam}
+    publishDir 'out', mode: 'copy', saveAs: {out_bam}, pattern: 'sorted_*.bam'
 
     input:
     tuple val(meta), path(extracted_bam)
