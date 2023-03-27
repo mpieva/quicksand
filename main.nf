@@ -1,15 +1,13 @@
 #!/usr/bin/env nextflow
 
 // include workflows for different executions of the pipeline
-include { splitbam       } from './workflows/splitbam'
-include { splitdir       } from './workflows/splitdir'
-include { bamfilter      } from './workflows/bamfilter'
-include { bamextract     } from './workflows/bamextract'
-include { krakenrun      } from './workflows/krakenrun'
-include { refprep        } from './workflows/refprep'
-
-// include modules that are used by the main workflow
-include { MAP_BWA } from './modules/local/bwa'
+include { splitbam   } from './workflows/splitbam'
+include { splitdir   } from './workflows/splitdir'
+include { bamfilter  } from './workflows/bamfilter'
+include { bamextract } from './workflows/bamextract'
+include { krakenrun  } from './workflows/krakenrun'
+include { refprep    } from './workflows/refprep'
+include { mapbam     } from './workflows/mapbam'
 
 // input
 versions = Channel.empty()
@@ -111,10 +109,7 @@ workflow {
     // 6. Map with BWA
     //
 
-    MAP_BWA( bwa_in )
-    versions = versions.mix( MAP_BWA.out.versions.first() )
-
-    MAP_BWA.out.mapped_bam.view()
-
+    mapbam( bwa_in )
+    versions = versions.mix( mapbam.out.versions.first() )
 
 }
