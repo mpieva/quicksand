@@ -13,8 +13,9 @@ process SAMTOOLS_FILTER {
     path "versions.yml"                                             , emit: versions
 
     script:
+    def args = task.ext.args ?: ''
     """
-    samtools view -b -u -F ${params.bamfilterflag} -o filtered_${bam} ${bam}
+    samtools view -b -u $args -o filtered_${bam} ${bam}
     echo -n "\$(samtools view -c -F 128 ${bam}), \$(samtools view -c filtered_${bam})" > filtercount.txt
 
     cat <<-END_VERSIONS > versions.yml

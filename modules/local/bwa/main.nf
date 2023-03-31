@@ -9,7 +9,7 @@ process MAP_BWA {
     tuple val(meta), path(bam), path(genomesdir)
 
     output:
-    tuple val(meta), path("mapped_${bam}"), emit: mapped_bam
+    tuple val(meta), path("mapped_${bam}"), emit: bam
     path 'versions.yml'                   , emit: versions
 
     script:

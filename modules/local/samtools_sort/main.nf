@@ -5,7 +5,6 @@ process SAMTOOLS_SORT{
     tag "$meta.id:$meta.taxon"
     label "process_low"
     label "local"
-    publishDir 'out', mode: 'copy', saveAs: {out_bam}, pattern: 'sorted_*.bam'
 
     input:
     tuple val(meta), path(extracted_bam)
@@ -15,7 +14,7 @@ process SAMTOOLS_SORT{
     path "versions.yml"                             , emit: versions
 
     script:
-    out_bam = "${meta.taxon}/1-extracted/${meta.id}_extractedReads-${meta.taxon}.bam"
+    extracted_out = "${meta.taxon}/1-extracted/${meta.id}_extractedReads-${meta.taxon}.bam"
     """
     samtools sort -n -l $params.compression_level -o sorted_${extracted_bam}  ${extracted_bam}
 

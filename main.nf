@@ -59,7 +59,7 @@ workflow {
     // 3. Filter the bam files
     //
 
-    bam.map { [it[0] + [ "id":it[1].baseName, 'Reference':'fixed'], it[1]] }.set{ bam }
+    bam.map { [it[0] + [ "id":it[1].baseName, 'Reference':'best'], it[1]] }.set{ bam }
     bamfilter( bam )
 
     bam = bamfilter.out.bam
@@ -102,7 +102,6 @@ workflow {
         [meta+['Species':reference], bam]
     }
     .combine( genomesdir )
-    .view()
     .set{bwa_in}
 
     //
@@ -111,5 +110,11 @@ workflow {
 
     mapbam( bwa_in )
     versions = versions.mix( mapbam.out.versions.first() )
+
+    //
+    // 7. Dedup the mapped bam
+    //
+
+    mapbam.out.bam.view()
 
 }
