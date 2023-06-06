@@ -3,6 +3,7 @@
 import pysam
 from scipy import stats
 import sys
+import statistics
 
 def binomial_ci(x, n, alpha=0.05):
     #Clopper-Pearson interval for binomial distribution
@@ -43,9 +44,13 @@ def main(bamfile, stats_only=False):
         out3term = pysam.AlignmentFile('output.deaminated3.bam', 'wb', template=infile)
 
     #main loop
+    lengths_all = []
+    lengths_deam = []
     for read in infile:
         # get read and ref sequences, reverse complement if necessary
         seq = read.query_sequence
+        lengths_all.append(len(seq))
+
         ref = ''.join([str(z).replace('None','-') for x,y,z in read.get_aligned_pairs(with_seq=True) if x != None])
 
         if read.is_reverse:
@@ -92,9 +97,13 @@ def main(bamfile, stats_only=False):
             if not only_stats:
                 out1term.write(read)
         if deam53 or deam33:
+            lengths_deam.append(len(seq)) #deaminated fragment length
             n_deam_3 += 1
             if not only_stats:
                 out3term.write(read)
+
+    avg_fraglen = statistics.mean(lengths_all) if len(lengths_all) > 0 else 'N/A'
+    avg_fraglen_deam = statistics.mean(lengths_deam) if len(lengths_deam) > 0 else 'N/A'
 
     infile.close()
     if not only_stats:
@@ -140,13 +149,13 @@ def main(bamfile, stats_only=False):
     print(
         "Ancientness", "ReadsDeam(1term)","ReadsDeam(3term)",
         "Deam5(95ci)", "Deam3(95ci)", "Deam5Cond(95ci)",
-        "Deam3Cond(95ci)", sep='\t',file=sys.stdout
+        "Deam3Cond(95ci)","MeanFragmentLength","MeanFragmentLength(3term)", sep='\t',file=sys.stdout
         )
 
     def pprint(var):
         try:
             return f"{var:.1f}"
-        except: 
+        except:
             return 'N/A'
 
     #and row
@@ -156,6 +165,7 @@ def main(bamfile, stats_only=False):
         f"{pprint(p_deam31)} ({p_deam31_95ci})",
         f"{pprint(p_deam51_cond)} ({p_deam51_cond_95ci})",
         f"{pprint(p_deam31_cond)} ({p_deam31_cond_95ci})",
+        pprint(avg_fraglen), pprint(avg_fraglen_deam),
         sep='\t', file=sys.stdout
         )
 

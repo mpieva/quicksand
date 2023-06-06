@@ -126,6 +126,28 @@ if(standard_run && !params.genomes){ exit_missing_required('--genomes') }
 if(standard_run && !params.db){   exit_missing_required('--db')      }
 if(standard_run && !params.bedfiles){ exit_missing_required('--bedfiles')}
 
+//
+//
+// copy the used command line and config files over
+//
+//
+
+def start = workflow.start.format('yyyyMMdd_HHmmss')
+def commandFile = new File("${start}_commands.txt")
+
+commandFile << "# User\t${workflow.userName}\n"
+commandFile << "# Date/Time\t${workflow.start.format('yyyy-MM-dd HH:mm:ss')}\n"
+commandFile << "# Git Revision\t${workflow.commitId} (${workflow.revision})\n"
+commandFile << "${workflow.commandLine}\n"
+
+if( workflow.configFiles.size > 1 ){
+  // configFiles[0] is the nextflow.config in the repository...
+  // configFiles[1] is the one handed over with the -c flag
+  def newconf = new File(workflow.configFiles[1] as String)
+  def copyconf = new File("${start}.config")
+
+  copyconf << newconf.text
+}
 
 //
 //
@@ -909,11 +931,11 @@ header_map = [
  'tax'    : 'Order\tFamily\tSpecies\tReference',
  'split'  : 'ReadsRaw\tReadsFiltered\tReadsLengthfiltered',
  'kraken' : 'FamilyKmers\tKmerCoverage\tKmerDupRate',
- 'deam'   : 'Ancientness\tReadsDeam(1term)\tReadsDeam(3term)\tDeam5(95ci)\tDeam3(95ci)\tDeam5Cond(95ci)\tDeam3Cond(95ci)',
+ 'deam'   : 'Ancientness\tReadsDeam(1term)\tReadsDeam(3term)\tMeanFragmentLength(3term)\tDeam5(95ci)\tDeam3(95ci)\tDeam5Cond(95ci)\tDeam3Cond(95ci)',
  'extract': 'ExtractLVL\tReadsExtracted',
  'map'    : 'ReadsMapped\tProportionMapped',
  'dedup'  : 'ReadsDeduped\tDuplicationRate\tCoveredBP',
- 'bed'    : 'ReadsBedfiltered\tPostBedCoveredBP',
+ 'bed'    : 'ReadsBedfiltered\tPostBedCoveredBP\tMeanFragmentLength',
 ]
 
 def getVals = {String header, meta, res=[] ->
