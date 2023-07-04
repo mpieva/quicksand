@@ -931,11 +931,12 @@ header_map = [
  'tax'    : 'Order\tFamily\tSpecies\tReference',
  'split'  : 'ReadsRaw\tReadsFiltered\tReadsLengthfiltered',
  'kraken' : 'FamilyKmers\tKmerCoverage\tKmerDupRate',
- 'deam'   : 'Ancientness\tReadsDeam(1term)\tReadsDeam(3term)\tMeanFragmentLength(3term)\tDeam5(95ci)\tDeam3(95ci)\tDeam5Cond(95ci)\tDeam3Cond(95ci)',
+ 'deam'   : 'Ancientness\tReadsDeam(1term)\tReadsDeam(3term)\tDeam5(95ci)\tDeam3(95ci)\tDeam5Cond(95ci)\tDeam3Cond(95ci)',
  'extract': 'ExtractLVL\tReadsExtracted',
  'map'    : 'ReadsMapped\tProportionMapped',
  'dedup'  : 'ReadsDeduped\tDuplicationRate\tCoveredBP',
- 'bed'    : 'ReadsBedfiltered\tPostBedCoveredBP\tMeanFragmentLength',
+ 'bed'    : 'ReadsBedfiltered\tPostBedCoveredBP',
+ 'frags'  : 'MeanFragmentLength\tMeanFragmentLength(3term)'
 ]
 
 def getVals = {String header, meta, res=[] ->
@@ -955,7 +956,8 @@ summary_file
       header_map['dedup'],
       header_map['bed'],
       'FamPercentage',
-      header_map['deam']
+      header_map['deam'],
+      header_map['frags']
     ].join('\t'), storeDir:'.', newLine:true, sort:true
   ){[
       it.RG,
@@ -968,6 +970,7 @@ summary_file
       getVals(header_map['bed'],     it),
       it.FamPercentage ?: '-',
       getVals(header_map['deam'],    it),
+      getVals(header_map['frags'],   it)
     ].join('\t')
   }
   .subscribe {
