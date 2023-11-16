@@ -91,7 +91,7 @@ workflow {
     // combine the extracted and assigned paths
 
     bamextract.out.bam.map{ meta, bam ->
-        [[meta.id, meta.taxon], meta, bam]
+        [[meta.id, meta.Taxon], meta, bam]
     }
     .join( refprep.out.references )
     .map{ key, meta, bam, report, references ->

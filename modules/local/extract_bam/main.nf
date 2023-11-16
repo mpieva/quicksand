@@ -1,6 +1,6 @@
 process EXTRACT_TAXON {
     container (workflow.containerEngine ? "merszym/bamfilter:nextflow" : null)
-    tag "$meta.id:$meta.taxon"
+    tag "$meta.id:$meta.Taxon"
     label "process_low"
     label 'local'
 
@@ -8,7 +8,7 @@ process EXTRACT_TAXON {
     tuple val(meta), path(txt), path(bam)
 
     output:
-    tuple val(meta), path("${meta.id}_${meta.taxon}.out.bam"), emit: bam
+    tuple val(meta), path("${meta.id}_${meta.Taxon}.out.bam"), emit: bam
     path "versions.yml"                                      , emit: versions
 
     when:
@@ -17,7 +17,7 @@ process EXTRACT_TAXON {
     script:
     def args = task.ext.args ?: ''
     """
-    bamfilter -i ${txt} $args -o ${meta.id}_${meta.taxon}.out.bam ${bam}
+    bamfilter -i ${txt} $args -o ${meta.id}_${meta.Taxon}.out.bam ${bam}
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":

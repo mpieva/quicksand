@@ -2,7 +2,7 @@ process SAMTOOLS_SORT{
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
         'https://depot.galaxyproject.org/singularity/samtools:1.15.1--h1170115_0' :
         'quay.io/biocontainers/samtools:1.15.1--h1170115_0' }"
-    tag "$meta.id:$meta.taxon"
+    tag "$meta.id:$meta.Taxon"
     label "process_low"
     label "local"
 
@@ -15,7 +15,8 @@ process SAMTOOLS_SORT{
 
     script:
     def args = task.ext.args ?: ''
-    extracted_out = "${meta.taxon}/1-extracted/${meta.id}_extractedReads-${meta.taxon}.bam"
+    extracted_out = "${meta.Taxon}/1-extracted/${meta.id}_extractedReads-${meta.Taxon}.bam"
+
     """
     samtools sort $args -o sorted_${extracted_bam}  ${extracted_bam}
 

@@ -13,9 +13,11 @@ process BAM_RMDUP {
     path "versions.yml"                    , emit: versions
 
     script:
-    out_bam = "${meta.Taxon}/${meta.Reference}/3-deduped/${meta.id}.${meta.Family}.${meta.Species}_deduped.bam"
+    def args = task.ext.args ?: ''
+    bamrmdup_out = "${meta.Taxon}/${meta.Reference}/3-deduped/${meta.id}.${meta.Family}.${meta.Species}_deduped.bam"
+
     """
-    bam-rmdup -r -o deduped_${bam} ${bam} > rmdup.txt
+    bam-rmdup $args -o deduped_${bam} ${bam} > rmdup.txt
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":

@@ -1,6 +1,6 @@
 process MAP_BWA {
     container (workflow.containerEngine ? "merszym/network-aware-bwa:v0.5.10" : null)
-    tag "${meta.id}:${meta.taxon}:${meta.Species}"
+    tag "${meta.id}:${meta.Taxon}:${meta.Species}"
     label "process_low"
     label 'local'
 
@@ -12,10 +12,11 @@ process MAP_BWA {
     path 'versions.yml'                   , emit: versions
 
     script:
-    out_bam = "${meta.taxon}/${meta.Reference}/2-aligned/${meta.id}.${meta.Family}.${meta.Species}.bam"
-
+    def args = task.ext.args ?: ''
+    mapbwa_out = "${meta.Taxon}/${meta.Reference}/2-aligned/${meta.id}.${meta.Family}.${meta.Species}.bam"
+    println mapbwa_out
     """
-    bwa bam2bam -g \"${genomesdir}/${meta.Family}/${meta.Species}.fasta\" -n 0.01 -o 2 -l 16500 --only-aligned ${bam} > mapped_${bam}
+    bwa bam2bam -g \"${genomesdir}/${meta.Family}/${meta.Species}.fasta\" $args --only-aligned ${bam} > mapped_${bam}
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":

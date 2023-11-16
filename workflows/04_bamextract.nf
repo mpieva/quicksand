@@ -19,7 +19,7 @@ workflow bamextract {
         .transpose()
         .filter{ it[2] =~ "${params.taxlvl}__" }
         .map{ meta, translate, asgn ->
-            [meta + ['taxon':(asgn =~ "${params.taxlvl}__([^|]*)")[0][1]],
+            [meta + ['Taxon':(asgn =~ "${params.taxlvl}__([^|]*)")[0][1]],
             translate]
         }
         .unique()

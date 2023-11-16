@@ -1,7 +1,7 @@
 process GATHER_TAXON {
     label 'process_low'
     label 'local'
-    tag "$meta.id:$meta.taxon"
+    tag "$meta.id:$meta.Taxon"
 
     input:
     tuple val(meta), path(translate)
@@ -11,6 +11,6 @@ process GATHER_TAXON {
 
     script:
     """
-    grep "__${meta.taxon}" ${translate} | cut -f1 | tee ids.txt | wc -l
+    grep "__${meta.Taxon}" ${translate} | cut -f1 | tee ids.txt | wc -l
     """
 }
