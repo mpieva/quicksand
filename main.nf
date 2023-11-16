@@ -2,13 +2,14 @@
 
 // include workflows for different executions of the pipeline
 include { setup      } from './workflows/00_setup'
-include { splitbam   } from './workflows/splitbam'
-include { splitdir   } from './workflows/splitdir'
-include { bamfilter  } from './workflows/bamfilter'
-include { bamextract } from './workflows/bamextract'
-include { krakenrun  } from './workflows/krakenrun'
-include { refprep    } from './workflows/refprep'
-include { mapbam     } from './workflows/mapbam'
+include { splitbam   } from './workflows/01_splitbam'
+include { splitdir   } from './workflows/01_splitdir'
+include { bamfilter  } from './workflows/02_bamfilter'
+include { bamextract } from './workflows/04_bamextract'
+include { krakenrun  } from './workflows/03_krakenrun'
+include { refprep    } from './workflows/03_refprep'
+include { mapbam     } from './workflows/05_mapbam'
+include { dedupbam   } from './workflows/06_dedupbam'
 
 // input
 versions = Channel.empty()
@@ -53,13 +54,7 @@ workflow {
     }
 
     //
-    // 2. Save the crosscontamination file
-    //
-
-    // happens automatically
-
-    //
-    // 3. Filter the bam files
+    // 2. Filter the bam files
     //
 
     bam.map { [it[0] + [ "id":it[1].baseName, 'Reference':'best'], it[1]] }.set{ bam }
@@ -69,7 +64,7 @@ workflow {
     versions = versions.mix( bamfilter.out.versions )
 
     //
-    // 4. Run kraken
+    // 3. Run kraken
     //
 
     krakenrun( bam, database )
@@ -77,14 +72,14 @@ workflow {
     version = versions.mix( krakenrun.out.versions )
 
     //
-    // 5.1 Extract bams based on kraken-results
+    // 4.1 Extract bams based on kraken-results
     //
 
     bamextract( bamfilter.out.bam, krakenrun.out.translate )
     versions = versions.mix( bamextract.out.versions.first() )
 
     //
-    // 5.2 Prepare the reference genomes
+    // 4.2 Prepare the reference genomes
     //
 
     assignments = krakenrun.out.assignments
@@ -109,15 +104,17 @@ workflow {
     .set{bwa_in}
 
     //
-    // 6. Map with BWA
+    // 5. Map with BWA
     //
 
     mapbam( bwa_in )
     versions = versions.mix( mapbam.out.versions.first() )
 
     //
-    // 7. Dedup the mapped bam
+    // 6. Dedup the mapped bam
     //
 
-    mapbam.out.bam.view()
+    dedupbam(mapbam.out.bam)
+    dedupbam.out.bam.view()
+
 }
