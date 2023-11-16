@@ -14,9 +14,10 @@ process SAMTOOLS_SORT{
     path "versions.yml"                             , emit: versions
 
     script:
+    def args = task.ext.args ?: ''
     extracted_out = "${meta.taxon}/1-extracted/${meta.id}_extractedReads-${meta.taxon}.bam"
     """
-    samtools sort -n -l $params.compression_level -o sorted_${extracted_bam}  ${extracted_bam}
+    samtools sort $args -o sorted_${extracted_bam}  ${extracted_bam}
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":

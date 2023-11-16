@@ -10,10 +10,10 @@ process BAM_LENGTHFILTER {
     path "versions.yml"                  , emit: versions
 
     script:
+    def args = task.ext.args ?: ''
     """
     bam-lengthfilter \
-      -c $params.bamfilter_length_cutoff \
-      -l $params.compression_level \
+      $args \
       -o length${bam} \
       ${bam}
 

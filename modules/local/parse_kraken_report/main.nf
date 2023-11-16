@@ -13,8 +13,9 @@ process PARSE_KRAKEN_REPORT{
     path 'versions.yml'                       , emit: versions
 
     script:
+    def args = task.ext.args ?: ''
     """
-    parse_report.py ${report} ${params.krakenuniq_min_kmers} ${params.krakenuniq_min_reads} > parsed_report.tsv
+    parse_report.py ${report} $args > parsed_report.tsv
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":

@@ -14,16 +14,16 @@ workflow bamfilter {
         SAMTOOLS_FILTER( bam )
         versions = SAMTOOLS_FILTER.out.versions.first()
 
-        filtered = SAMTOOLS_FILTER.out.bam.map {
-            [ it[0]+[
-                'ReadsRaw':it[2].text.split(',')[0].trim() as int,
-                'ReadsFiltered':it[2].text.split(',')[1].trim() as int
-            ], it[1]
+        filtered = SAMTOOLS_FILTER.out.bam.map { meta, bam, count ->
+            [ meta+[
+                'ReadsRaw':count.text.split(',')[0].trim() as int,
+                'ReadsFiltered':count.text.split(',')[1].trim() as int
+            ], bam
             ]
         }
 
         //
-        // filter the bam files No. 2
+        // filter the bam files by length
         //
 
         BAM_LENGTHFILTER( filtered )
