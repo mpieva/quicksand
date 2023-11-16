@@ -6,12 +6,12 @@ process ESTIMATE_CC{
     tuple val(meta), path(stats)
 
     output:
-    tuple val(meta), path("CC.txt"), emit: txt
     path "versions.yml"            , emit: versions
+    path "cc_estimates.txt"
 
     script:
     """
-    cross_cont.py ${stats} > CC.txt
+    cross_cont.py ${stats} > cc_estimates.txt
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":

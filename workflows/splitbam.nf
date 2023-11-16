@@ -13,9 +13,9 @@ workflow splitbam {
 
         // Estimate Crosscontamination
         ESTIMATE_CC(SPLITBAM.out.stats)
+        cc_versions = ESTIMATE_CC.out.versions
 
     emit:
-        versions = SPLITBAM.out.versions
+        versions = cc_versions.mix(SPLITBAM.out.versions)
         bams = SPLITBAM.out.bams.transpose()
-        cc = ESTIMATE_CC.out.txt
 }

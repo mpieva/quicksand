@@ -1,6 +1,7 @@
 #!/usr/bin/env nextflow
 
 // include workflows for different executions of the pipeline
+include { setup      } from './workflows/00_setup'
 include { splitbam   } from './workflows/splitbam'
 include { splitdir   } from './workflows/splitdir'
 include { bamfilter  } from './workflows/bamfilter'
@@ -29,6 +30,12 @@ taxid = new File("${params.genomes}/taxid_map.tsv").exists() ? Channel.fromPath(
 workflow {
 
     //
+    // 0. Setup the folders etc.
+    //
+
+    setup([])
+
+    //
     // 1. Input Processing ~ Input Parameters
     //
 
@@ -36,14 +43,12 @@ workflow {
         splitbam( bam,by )
 
         bam = splitbam.out.bams
-        cc_stats = splitbam.out.cc
         versions = versions.mix( splitbam.out.versions )
     }
     else {
         splitdir( split )
 
         bam = splitdir.out.bams
-        cc_stats = splitdir.out.cc
         versions = versions.mix( splitdir.out.versions )
     }
 
@@ -51,9 +56,7 @@ workflow {
     // 2. Save the crosscontamination file
     //
 
-    cc_stats
-        .map{ it[1].text }
-        .collectFile( storeDir:'.', newLine:true, name:"cc_estimates.txt" )
+    // happens automatically
 
     //
     // 3. Filter the bam files
@@ -70,6 +73,7 @@ workflow {
     //
 
     krakenrun( bam, database )
+    // #TODO: handle empty...
     version = versions.mix( krakenrun.out.versions )
 
     //
@@ -116,5 +120,4 @@ workflow {
     //
 
     mapbam.out.bam.view()
-
 }

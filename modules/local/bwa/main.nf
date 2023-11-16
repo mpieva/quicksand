@@ -1,6 +1,5 @@
 process MAP_BWA {
     container (workflow.containerEngine ? "merszym/network-aware-bwa:v0.5.10" : null)
-    publishDir 'out', mode: 'copy', saveAs: {out_bam}, pattern: '*.bam'
     tag "${meta.id}:${meta.taxon}:${meta.Species}"
     label "process_low"
     label 'local'

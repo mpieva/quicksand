@@ -22,6 +22,7 @@ workflow splitdir {
 
         // Estimate cross-contamination if file exists
         ESTIMATE_CC( split.stats.first() )
+        cc_versions = ESTIMATE_CC.out.versions
 
         // convert fastq to bam
         SAMTOOLS_FQ2BAM( split.fastq )
@@ -29,6 +30,5 @@ workflow splitdir {
 
     emit:
         bams = split.bam.mix( SAMTOOLS_FQ2BAM.out.bam )
-        cc = ESTIMATE_CC.out.txt
-        versions = SAMTOOLS_FQ2BAM.out.versions.first()
+        versions = cc_versions.mix(SAMTOOLS_FQ2BAM.out.versions.first())
 }

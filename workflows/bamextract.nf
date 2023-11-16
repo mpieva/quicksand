@@ -49,6 +49,8 @@ workflow bamextract {
         .set{ ids }
 
         // extract the bams
+        // Note: It will extract _more_ taxa than mapped, because the mapped taxa are stricter filtered than the extracted taxa
+        // We dont have kmer-information here to filter on, only nuber of reads...
         EXTRACT_TAXON( ids )
         versions = EXTRACT_TAXON.out.versions.first()
 
