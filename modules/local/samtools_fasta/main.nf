@@ -16,7 +16,7 @@ process SAMTOOLS_FASTA {
 
     script:
     """
-    samtools fasta ${bam} > \"${meta.id}.fa\"
+    samtools fasta ${bam} > ${meta.id}.fa
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":

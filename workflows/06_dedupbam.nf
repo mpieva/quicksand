@@ -33,10 +33,10 @@ workflow dedupbam {
 
         // Add the CoveredBP value to the meta of the main bam channel
 
-        bam.combine(SAMTOOLS_COVERAGE.out.coverage, by:0)
+        SAMTOOLS_COVERAGE.out.bam
         .map{ meta, bam, cov ->
             [
-                meta+["CoveredBP":cov.text.trim() as int],
+                meta+["CoveredBP":cov.trim() as int],
                 bam
             ]
         }

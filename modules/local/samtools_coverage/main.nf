@@ -8,12 +8,12 @@ process SAMTOOLS_COVERAGE {
     tuple val(meta), path(bam)
 
     output:
-    tuple val(meta), path("coverage.txt"), emit: coverage
+    tuple val(meta), path(bam), stdout   , emit: bam
     path "versions.yml"                  , emit: versions
 
     script:
     """
-    samtools coverage -H \"${bam}\" | cut -f 5 > coverage.txt
+    samtools coverage -H ${bam} | cut -f 5
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":

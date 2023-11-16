@@ -14,7 +14,7 @@ process SAMTOOLS_FQ2BAM{
     script:
     def name = fastq.baseName
     """
-    samtools import -0 ${fastq} -o \"${name}.bam\"
+    samtools import -0 ${fastq} -o ${name}.bam
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
