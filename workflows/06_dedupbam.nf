@@ -1,5 +1,5 @@
-include { BAM_RMDUP } from '../modules/local/bam_rmdup'
-
+include { BAM_RMDUP         } from '../modules/local/bam_rmdup'
+include { SAMTOOLS_COVERAGE } from '../modules/local/samtools_coverage'
 
 workflow dedupbam {
     take: mapped_bam
@@ -26,8 +26,23 @@ workflow dedupbam {
 
         versions = BAM_RMDUP.out.versions.first()
 
+        // Calculate the coverage
 
+        SAMTOOLS_COVERAGE( bam )
+        versions = versions.mix(SAMTOOLS_COVERAGE.out.versions.first())
+
+        // Add the CoveredBP value to the meta of the main bam channel
+
+        bam.combine(SAMTOOLS_COVERAGE.out.coverage, by:0)
+        .map{ meta, bam, cov ->
+            [
+                meta+["CoveredBP":cov.text.trim() as int],
+                bam
+            ]
+        }
+        .set{ bam }
 
     emit:
         bam = bam
+        versions = versions
 }

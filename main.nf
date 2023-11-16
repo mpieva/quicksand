@@ -76,7 +76,7 @@ workflow {
     //
 
     bamextract( bamfilter.out.bam, krakenrun.out.translate )
-    versions = versions.mix( bamextract.out.versions.first() )
+    versions = versions.mix( bamextract.out.versions )
 
     //
     // 4.2 Prepare the reference genomes
@@ -85,7 +85,7 @@ workflow {
     assignments = krakenrun.out.assignments
 
     refprep( database, assignments, [] )
-    versions = versions.mix( refprep.out.versions.first() )
+    versions = versions.mix( refprep.out.versions )
 
     // combine the extracted and assigned paths
 
@@ -108,13 +108,12 @@ workflow {
     //
 
     mapbam( bwa_in )
-    versions = versions.mix( mapbam.out.versions.first() )
+    versions = versions.mix( mapbam.out.versions )
 
     //
     // 6. Dedup the mapped bam
     //
 
     dedupbam(mapbam.out.bam)
-    dedupbam.out.bam.view()
-
+    versions = versions.mix( dedupbam.out.versions )
 }
