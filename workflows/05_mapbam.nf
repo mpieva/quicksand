@@ -5,7 +5,32 @@ include { SAMTOOLS_SORT   } from '../modules/local/samtools_sort'
 
 workflow mapbam {
     take: bwa_in
+    take: genomesdir
     main:
+        // first, find the reference
+        // prepare the genomesdir to match family/species
+
+        genomesdir.map{ genome ->
+            def fam = genome.getParent().getName()
+            def matcher = genome.name =~ /(.+)\.fasta/
+            def speciesName = matcher ? matcher[0][1] : null
+            [[speciesName, fam], genome]
+        }.set{ genomesdir }
+
+        //combine with bam
+        //prepare key (species,family)
+        bwa_in.map{ meta, bam ->
+            [
+                [meta.Species, meta.Family],
+                meta,
+                bam]
+        }
+        .combine(genomesdir, by:0)
+        .map{ key, meta, bam, genome ->
+            [meta, bam, genome]
+        }
+        .set{ bwa_in }
+
         // Map with BWA
         MAP_BWA( bwa_in )
         versions = MAP_BWA.out.versions.first()

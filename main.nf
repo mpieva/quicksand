@@ -16,9 +16,9 @@ include { bedfilterbam } from './workflows/07_bedfilterbam'
 versions = Channel.empty()
 bam        = params.bam      ? file( params.bam, checkIfExists:true) : ""
 by         = params.by       ? file( params.by,  checkIfExists:true) : ""
-split      = params.split    ? Channel.fromPath("${params.split}/*", checkIfExists:true) : ""
-genomesdir = params.genomes  ? Channel.fromPath("${params.genomes}", type:'dir',   checkIfExists:true)  : Channel.empty()
-bedfiles   = params.bedfiles ? Channel.fromPath("${params.bedfiles}/*", checkIfExists:true)  : Channel.empty()
+split      = params.split    ? Channel.fromPath("${params.split}/*",     checkIfExists:true) : ""
+genomesdir = params.genomes  ? Channel.fromPath("${params.genomes}/*/*.fasta", checkIfExists:true) : Channel.empty()
+bedfiles   = params.bedfiles ? Channel.fromPath("${params.bedfiles}/*",  checkIfExists:true) : Channel.empty()
 
 database = Channel.fromPath("${params.db}", type:'dir', checkIfExists:true)
 taxid = new File("${params.genomes}/taxid_map.tsv").exists() ? Channel.fromPath("${params.genomes}/taxid_map.tsv", type:'file') : Channel.fromPath("${baseDir}/assets/taxid_map_example.tsv", type:'file')
@@ -101,14 +101,13 @@ workflow {
     .map{ meta, bam, reference ->
         [meta+['Species':reference], bam]
     }
-    .combine( genomesdir )
     .set{bwa_in}
 
     //
     // 5. Map with BWA
     //
 
-    mapbam( bwa_in )
+    mapbam( bwa_in, genomesdir )
     versions = versions.mix( mapbam.out.versions )
 
     //
@@ -145,6 +144,6 @@ workflow {
     //
 
     bedfilterbam( best, bedfiles )
-    bedfilterbam.out.bam.view()
+
 
 }

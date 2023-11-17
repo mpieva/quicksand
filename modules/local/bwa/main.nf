@@ -5,7 +5,7 @@ process MAP_BWA {
     label 'local'
 
     input:
-    tuple val(meta), path(bam), path(genomesdir)
+    tuple val(meta), path(bam), path(genome)
 
     output:
     tuple val(meta), path("mapped_${bam}"), emit: bam
@@ -14,9 +14,9 @@ process MAP_BWA {
     script:
     def args = task.ext.args ?: ''
     mapbwa_out = "${meta.Taxon}/${meta.Reference}/2-aligned/${meta.id}.${meta.Family}.${meta.Species}.bam"
-    println mapbwa_out
     """
-    bwa bam2bam -g \"${genomesdir}/${meta.Family}/${meta.Species}.fasta\" $args --only-aligned ${bam} > mapped_${bam}
+    bwa index ${genome}
+    bwa bam2bam -g ${genome} $args --only-aligned ${bam} > mapped_${bam}
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
