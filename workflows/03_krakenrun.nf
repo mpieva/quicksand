@@ -43,6 +43,8 @@ workflow krakenrun {
             .set{assignments}
 
         // parse and filter the translate-file
+        // so that we later only extract bamfiles from families
+        // that pass min-reads and min-kmers
         translate = RUN_KRAKENUNIQ.out.translate
         translate.map{ meta, translate ->
             [meta, translate, translate.readLines()]
