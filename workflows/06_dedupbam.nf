@@ -18,7 +18,7 @@ workflow dedupbam {
         .combine(stats, by: 0)
         .map{ meta, bam, stats ->
             [
-                meta+["ReadsDeduped":stats["out"] as int],
+                meta+["ReadsDeduped":stats["out"].replace(",","") as int],
                 bam
             ]
         }
