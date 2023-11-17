@@ -1,16 +1,17 @@
 #!/usr/bin/env nextflow
 
 // include workflows for different executions of the pipeline
-include { setup        } from './workflows/00_setup'
-include { splitbam     } from './workflows/01_splitbam'
-include { splitdir     } from './workflows/01_splitdir'
-include { bamfilter    } from './workflows/02_bamfilter'
-include { bamextract   } from './workflows/04_bamextract'
-include { krakenrun    } from './workflows/03_krakenrun'
-include { refprep      } from './workflows/03_refprep'
-include { mapbam       } from './workflows/05_mapbam'
-include { dedupbam     } from './workflows/06_dedupbam'
-include { bedfilterbam } from './workflows/07_bedfilterbam'
+include { setup             } from './workflows/00_setup'
+include { splitbam          } from './workflows/01_splitbam'
+include { splitdir          } from './workflows/01_splitdir'
+include { bamfilter         } from './workflows/02_bamfilter'
+include { bamextract        } from './workflows/04_bamextract'
+include { krakenrun         } from './workflows/03_krakenrun'
+include { refprep           } from './workflows/03_refprep'
+include { mapbam            } from './workflows/05_mapbam'
+include { dedupbam          } from './workflows/06_dedupbam'
+include { bedfilterbam      } from './workflows/07_bedfilterbam'
+include { deamination_stats } from './workflows/08_deamination_stats'
 
 // input
 versions = Channel.empty()
@@ -22,6 +23,12 @@ bedfiles   = params.bedfiles ? Channel.fromPath("${params.bedfiles}/*",  checkIf
 
 database = Channel.fromPath("${params.db}", type:'dir', checkIfExists:true)
 taxid = new File("${params.genomes}/taxid_map.tsv").exists() ? Channel.fromPath("${params.genomes}/taxid_map.tsv", type:'file') : Channel.fromPath("${baseDir}/assets/taxid_map_example.tsv", type:'file')
+
+// fixed references
+ch_fixed = params.fixed ? Channel.fromPath("${params.fixed}", checkIfExists:true) : ""
+
+
+ch_final = Channel.empty()
 
 //
 //
@@ -58,7 +65,11 @@ workflow {
     // 2. Filter the bam files
     //
 
-    bam.map { [it[0] + [ "id":it[1].baseName, 'Reference':'best'], it[1]] }.set{ bam }
+    //include a meta-file with all fields existing
+    meta = Channel.fromPath("$baseDir/assets/pipeline/meta.tsv").splitCsv(sep:'\t', header:true)
+    bam.combine(meta).map{ m1, bam, meta -> [meta, bam] }.set{ bam }
+
+    bam.map { [it[0] + [ "id":it[1].baseName, "RG":it[1].baseName ], it[1]] }.set{ bam }
     bamfilter( bam )
 
     bam = bamfilter.out.bam
@@ -69,9 +80,12 @@ workflow {
     //
 
     krakenrun( bam, database )
-    // #TODO: handle empty...
     version = versions.mix( krakenrun.out.versions )
-    //krakenrun.out.assignments.view()
+
+    // Add the libraries with no assignments to the final channel
+    ch_empty = krakenrun.out.empty.map{ it[0] }
+    ch_final.mix(ch_empty).set{ ch_final }
+
 
     //
     // 4.1 Extract bams based on kraken-results
@@ -145,6 +159,17 @@ workflow {
     //
 
     bedfilterbam( best, bedfiles )
+    best = bedfilterbam.out.bam
 
+    //
+    // 8. Run Deamination workflow
+    //
+
+    deamination_stats( best, deduped.fixed )
+
+    // get the meta-table from the "best"-libraries
+    best = deamination_stats.out.best.map{ it[0] }
+
+    ch_final.mix( best ).view().set{ch_final}
 
 }
