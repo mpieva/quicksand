@@ -11,9 +11,6 @@ process EXTRACT_TAXON {
     tuple val(meta), path("${meta.id}_${meta.Taxon}.out.bam"), emit: bam
     path "versions.yml"                                      , emit: versions
 
-    when:
-    meta.ReadsExtracted > params.krakenuniq_min_reads
-
     script:
     def args = task.ext.args ?: ''
     """

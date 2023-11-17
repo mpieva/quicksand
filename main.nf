@@ -71,6 +71,7 @@ workflow {
     krakenrun( bam, database )
     // #TODO: handle empty...
     version = versions.mix( krakenrun.out.versions )
+    //krakenrun.out.assignments.view()
 
     //
     // 4.1 Extract bams based on kraken-results

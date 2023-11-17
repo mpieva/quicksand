@@ -42,9 +42,30 @@ workflow krakenrun {
             }
             .set{assignments}
 
+        // parse and filter the translate-file
+        translate = RUN_KRAKENUNIQ.out.translate
+        translate.map{ meta, translate ->
+            [meta, translate, translate.readLines()]
+        }
+        .transpose()
+        .filter{ it[2] =~ "${params.taxlvl}__" }
+        .map{ meta, translate, asgn ->
+            [meta + ['Taxon':(asgn =~ "${params.taxlvl}__([^|]*)")[0][1]],
+            translate]
+        }
+        .unique()
+        .map{ meta, translate ->
+            [[meta.id, meta.Taxon], meta, translate ]
+        }
+        .combine(assignments, by:0) // this is to filter for the taxa in the parsed_report
+        .map{ key, meta, translate, meta2, report ->
+            [ meta, translate ]
+        }
+        .set{ translate }
+
     emit:
         versions = versions
-        translate = RUN_KRAKENUNIQ.out.translate
+        translate = translate
         assignments = assignments
         empty = empty
 }

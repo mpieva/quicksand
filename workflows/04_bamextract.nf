@@ -12,19 +12,6 @@ workflow bamextract {
         // 1. Create a list of reads for each taxon that need to be extracted
         //
 
-        // parse the translate-file
-        translate.map{ meta, translate ->
-            [meta, translate, translate.readLines()]
-        }
-        .transpose()
-        .filter{ it[2] =~ "${params.taxlvl}__" }
-        .map{ meta, translate, asgn ->
-            [meta + ['Taxon':(asgn =~ "${params.taxlvl}__([^|]*)")[0][1]],
-            translate]
-        }
-        .unique()
-        .set{translate}
-
         GATHER_TAXON(translate)
 
         //
