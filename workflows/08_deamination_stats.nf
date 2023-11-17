@@ -37,7 +37,6 @@ workflow deamination_stats {
                 bam3
             ]
         }
-        .view()
         .set{ fixed }
 
     emit:

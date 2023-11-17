@@ -13,8 +13,10 @@ include { dedupbam          } from './workflows/06_dedupbam'
 include { bedfilterbam      } from './workflows/07_bedfilterbam'
 include { deamination_stats } from './workflows/08_deamination_stats'
 
-// input
-versions = Channel.empty()
+//
+// input Channels
+//
+
 bam        = params.bam      ? file( params.bam, checkIfExists:true) : ""
 by         = params.by       ? file( params.by,  checkIfExists:true) : ""
 split      = params.split    ? Channel.fromPath("${params.split}/*",     checkIfExists:true) : ""
@@ -22,12 +24,14 @@ genomesdir = params.genomes  ? Channel.fromPath("${params.genomes}/*/*.fasta", c
 bedfiles   = params.bedfiles ? Channel.fromPath("${params.bedfiles}/*",  checkIfExists:true) : Channel.empty()
 
 database = Channel.fromPath("${params.db}", type:'dir', checkIfExists:true)
-taxid = new File("${params.genomes}/taxid_map.tsv").exists() ? Channel.fromPath("${params.genomes}/taxid_map.tsv", type:'file') : Channel.fromPath("${baseDir}/assets/taxid_map_example.tsv", type:'file')
 
 // fixed references
-ch_fixed = params.fixed ? Channel.fromPath("${params.fixed}", checkIfExists:true) : ""
+ch_fixed = params.fixed ?
+    Channel.fromPath("${params.fixed}", checkIfExists:true)
+        .splitCsv(sep:'\t', header:['Family','Species','Genome'], skip:1)
+    : Channel.empty()
 
-
+versions = Channel.empty()
 ch_final = Channel.empty()
 
 //
@@ -122,7 +126,7 @@ workflow {
     // 5. Map with BWA
     //
 
-    mapbam( bwa_in, genomesdir )
+    mapbam( bwa_in, genomesdir, ch_fixed )
     versions = versions.mix( mapbam.out.versions )
 
     //
@@ -142,11 +146,10 @@ workflow {
     }
     .set{deduped}
 
-    //#TODO: handle fixed
-
     // best: reduce the 1 "best" hit per family
 
     deduped.best
+        .ifEmpty('None') // TODO: BREAKS!!! emit empty Channel if Empty
         .map{meta,bam -> [meta.id, meta.Family, meta.CoveredBP, meta, bam]}
         .toSortedList({ a,b -> a[0]+a[1] <=> b[0]+b[1] ?: a[2] <=> b[2]})
         .flatMap{n -> n[0..-1]}
@@ -170,6 +173,6 @@ workflow {
     // get the meta-table from the "best"-libraries
     best = deamination_stats.out.best.map{ it[0] }
 
-    ch_final.mix( best ).view().set{ch_final}
+    ch_final.mix( best ).set{ch_final}
 
 }

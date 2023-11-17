@@ -6,8 +6,44 @@ include { SAMTOOLS_SORT   } from '../modules/local/samtools_sort'
 workflow mapbam {
     take: bwa_in
     take: genomesdir
+    take: ch_fixed
+
     main:
-        // first, find the reference
+        // prepare ch_fixed
+        ch_fixed.map{ info ->
+            [ info.Family, info ]
+        }.set{ ch_fixed }
+
+        //create a list of families that need replacement
+        def famList = []
+        specmap = new File("${params.fixed}")
+        if(specmap.exists()){
+            specmap.eachLine{famList << it.split("\t").flatten()[0]}
+        }
+
+        //now split the main channel into best and fixed
+        bwa_in
+        .branch{
+            fixed: it[0].Family in famList
+            best: true
+        }
+        .set{bwa_in}
+
+        // prepare main channel
+        // replace assignments in the fixed branch
+        bwa_in.fixed
+        .map{ meta, bam ->
+            [meta.Family, meta, bam ]
+        }
+        .combine( ch_fixed, by:0 )
+        .map{ fam, meta, bam, info -> //this is where the replacement happens
+            [
+                meta+['Species':info.Species, "Reference":"fixed"], bam, file(info.Genome)
+            ]
+        }
+        .set{fixed}
+
+        // For the best-branch
         // prepare the genomesdir to match family/species
 
         genomesdir.map{ genome ->
@@ -19,7 +55,7 @@ workflow mapbam {
 
         //combine with bam
         //prepare key (species,family)
-        bwa_in.map{ meta, bam ->
+        bwa_in.best.map{ meta, bam ->
             [
                 [meta.Species, meta.Family],
                 meta,
@@ -29,10 +65,12 @@ workflow mapbam {
         .map{ key, meta, bam, genome ->
             [meta, bam, genome]
         }
-        .set{ bwa_in }
+        .set{ best }
+
+        best.mix(fixed).set{ combined }
 
         // Map with BWA
-        MAP_BWA( bwa_in )
+        MAP_BWA( combined )
         versions = MAP_BWA.out.versions.first()
 
         // Filter for Mapping quality
