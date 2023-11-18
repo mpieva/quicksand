@@ -146,16 +146,16 @@ workflow {
     }
     .set{deduped}
 
+    // if default.best is empty it would throw an index error,
     // best: reduce the 1 "best" hit per family
 
-    deduped.best
-        .ifEmpty('None') // TODO: BREAKS!!! emit empty Channel if Empty
+    best = deduped.best
         .map{meta,bam -> [meta.id, meta.Family, meta.CoveredBP, meta, bam]}
         .toSortedList({ a,b -> a[0]+a[1] <=> b[0]+b[1] ?: a[2] <=> b[2]})
-        .flatMap{n -> n[0..-1]}
+        .flatten()
+        .collate(5)
         .groupTuple(by:[0,1])   //[[rg, fam, [covered_bp < .. < covered_bp][meta,meta,meta],[bam,bam,bam]]
         .map{n -> [n[3][-1], n[4][-1]]} // from the highest, the [meta, bam]
-        .set{ best }
 
     //
     // 7. Run Intersect Bed
