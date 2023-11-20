@@ -14,12 +14,68 @@ include { bedfilterbam      } from './workflows/07_bedfilterbam'
 include { deamination_stats } from './workflows/08_deamination_stats'
 include { write_reports     } from './workflows/09_reports.nf'
 
+//The colors
+red = "\033[0;31m"
+white = "\033[0m"
+yellow = "\033[0;33m"
+
+// Define some functions
+
+def exit_with_error_msg(error, text){
+    println "[quicksand]: ${red}${error}: ${text}${white}"
+    exit 0
+}
+def get_warn_msg(text){
+    return "[quicksand]: ${yellow}(WARN): ${text}${white}"
+}
+def get_info_msg(text){
+    return "[quicksand]: ${text}"
+}
+def exit_missing_required(flag){
+    exit_with_error_msg("ArgumentError", "missing required argument ${flag}")
+}
+
+// Define the current workflow
+
+standard_run = params.rerun ? false : true
+
+//
+//
+// Validation of input parameters
+//
+//
+
+if(params.taxlvl !in ['f','o']){
+    exit_with_error_msg("ArgumentError","taxlvl must be one of [o, f] not ${params.taxlvl}")
+}
+if( params.rerun && new File('final_report.tsv').exists()==false){
+    log.info get_info_msg("Use --rerun only for additional runs together with --fixed flag")
+    exit_with_error_msg("ArgumentError", "Conflicting arguments")
+}
+if(params.split && (params.bam || params.rg) && standard_run){
+    log.info get_info_msg("Use: nextflow run mpieva/quicksand {--rg FILE --bam FILE | --split DIR}")
+    exit_with_error_msg("ArgumentError", "Too many arguments")
+}
+if(!params.split && !(params.bam && params.rg) && standard_run){
+    log.info get_info_msg("Use: nextflow run mpieva/quicksand {--rg FILE --bam FILE | --split DIR}")
+    exit_with_error_msg("ArgumentError", "Too few arguments")
+}
+if(params.rerun && !(params.fixed)){
+    log.info get_info_msg("Use --rerun together with --fixed")
+    exit_with_error_msg("ArgumentError", "Too few arguments")
+}
+if(standard_run && !params.genomes){ exit_missing_required('--genomes') }
+if(standard_run && !params.db){   exit_missing_required('--db')      }
+if(standard_run && !params.bedfiles){ exit_missing_required('--bedfiles')}
+
+//
 //
 // input Channels
 //
+//
 
 bam        = params.bam      ? file( params.bam, checkIfExists:true) : ""
-by         = params.by       ? file( params.by,  checkIfExists:true) : ""
+by         = params.rg       ? file( params.rg,  checkIfExists:true) : ""
 split      = params.split    ? Channel.fromPath("${params.split}/*",     checkIfExists:true) : ""
 genomesdir = params.genomes  ? Channel.fromPath("${params.genomes}/*/*.fasta", checkIfExists:true) : Channel.empty()
 bedfiles   = params.bedfiles ? Channel.fromPath("${params.bedfiles}/*",  checkIfExists:true) : Channel.empty()
@@ -42,6 +98,8 @@ ch_final = Channel.empty()
 //
 
 workflow {
+
+    standard_run = true
 
     //
     // 0. Setup the folders etc.

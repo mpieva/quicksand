@@ -1,13 +1,12 @@
+cyan = "\033[0;36m"
+red = "\033[0;31m"
+white = "\033[0m"
+yellow = "\033[0;33m"
+
 workflow setup {
     take: setup
     main:
         // write the commandline down
-        red = "\033[0;31m"
-        white = "\033[0m"
-        cyan = "\033[0;36m"
-        yellow = "\033[0;33m"
-        standard_run = true
-
         log.info """
 [quicksand]: Execution started: ${workflow.start.format('dd.MM.yyyy HH:mm')} ${cyan}
 
@@ -24,6 +23,12 @@ workflow setup {
 
  --------------------------------------------------------------
         """
+
+        //
+        //
+        // Additional Setup, Copy Files etc.
+        //
+        //
 
         def start = workflow.start.format('yyyyMMdd_HHmmss')
 
