@@ -1,0 +1,24 @@
+# Change Log
+
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](http://keepachangelog.com/)
+and this project adheres to [Semantic Versioning](http://semver.org/).
+
+## [v2.0] - 2023-11-20
+
+This is a rewrite of the `v1.6.1` pipeline in dsl2 syntax of nextflow
+to account for nextflow-versions \>22.10
+
+While the code was restructured, the flags, features and outputs remain the same as in `v1.6.1`
+making these versions fully compatible
+
+## [v1.6.1] - 2023-07-04
+
+This is a minor update to the final_report created
+
+### Changed
+
+- Added two columns to the end of the final_report.
+  - `MeanFragmentLength`: The mean fragment length of all the DNA molecules in the bedfiltered or deduped bamfile
+  - `MeanFragmentLength(3term)`: The mean fragment length of all deaminated DNA molecules in the bedfiltered or deduped bamfile
