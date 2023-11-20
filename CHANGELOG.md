@@ -13,6 +13,10 @@ to account for nextflow-versions \>22.10
 While the code was restructured, the flags, features and outputs remain the same as in `v1.6.1`
 making these versions fully compatible
 
+### Changes
+
+- instead of `FamKmers` now report `SpeciesKmers` and the respective kmer-stats to better compare assignments. Before, families with many species always had lower kmer-stats
+
 ## [v1.6.1] - 2023-07-04
 
 This is a minor update to the final_report created

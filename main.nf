@@ -12,6 +12,7 @@ include { mapbam            } from './workflows/05_mapbam'
 include { dedupbam          } from './workflows/06_dedupbam'
 include { bedfilterbam      } from './workflows/07_bedfilterbam'
 include { deamination_stats } from './workflows/08_deamination_stats'
+include { write_reports     } from './workflows/09_reports.nf'
 
 //
 // input Channels
@@ -31,7 +32,7 @@ ch_fixed = params.fixed ?
         .splitCsv(sep:'\t', header:['Family','Species','Genome'], skip:1)
     : Channel.empty()
 
-versions = Channel.empty()
+ch_versions = Channel.empty()
 ch_final = Channel.empty()
 
 //
@@ -56,13 +57,13 @@ workflow {
         splitbam( bam,by )
 
         bam = splitbam.out.bams
-        versions = versions.mix( splitbam.out.versions )
+        ch_versions = ch_versions.mix( splitbam.out.versions )
     }
     else {
         splitdir( split )
 
         bam = splitdir.out.bams
-        versions = versions.mix( splitdir.out.versions )
+        ch_versions = ch_versions.mix( splitdir.out.versions )
     }
 
     //
@@ -73,18 +74,27 @@ workflow {
     meta = Channel.fromPath("$baseDir/assets/pipeline/meta.tsv").splitCsv(sep:'\t', header:true)
     bam.combine(meta).map{ m1, bam, meta -> [meta, bam] }.set{ bam }
 
-    bam.map { [it[0] + [ "id":it[1].baseName, "RG":it[1].baseName ], it[1]] }.set{ bam }
+    bam.map {
+        [
+            it[0] + [
+                "id":it[1].baseName,
+                "RG":it[1].baseName,
+                "ExtractLVL": params.taxlvl
+            ],
+            it[1]
+        ]
+    }.set{ bam }
     bamfilter( bam )
 
     bam = bamfilter.out.bam
-    versions = versions.mix( bamfilter.out.versions )
+    ch_versions = ch_versions.mix( bamfilter.out.versions )
 
     //
     // 3. Run kraken
     //
 
     krakenrun( bam, database )
-    version = versions.mix( krakenrun.out.versions )
+    ch_versions = ch_versions.mix( krakenrun.out.versions )
 
     // Add the libraries with no assignments to the final channel
     ch_empty = krakenrun.out.empty.map{ it[0] }
@@ -96,7 +106,7 @@ workflow {
     //
 
     bamextract( bamfilter.out.bam, krakenrun.out.translate )
-    versions = versions.mix( bamextract.out.versions )
+    ch_versions = ch_versions.mix( bamextract.out.versions )
 
     //
     // 4.2 Prepare the reference genomes
@@ -105,7 +115,7 @@ workflow {
     assignments = krakenrun.out.assignments
 
     refprep( database, assignments, [] )
-    versions = versions.mix( refprep.out.versions )
+    ch_versions = ch_versions.mix( refprep.out.versions )
 
     // combine the extracted and assigned paths
 
@@ -127,14 +137,14 @@ workflow {
     //
 
     mapbam( bwa_in, genomesdir, ch_fixed )
-    versions = versions.mix( mapbam.out.versions )
+    ch_versions = ch_versions.mix( mapbam.out.versions )
 
     //
     // 6. Dedup the mapped bam
     //
 
     dedupbam(mapbam.out.bam)
-    versions = versions.mix( dedupbam.out.versions )
+    ch_versions = ch_versions.mix( dedupbam.out.versions )
 
     deduped = dedupbam.out.bam
 
@@ -163,6 +173,7 @@ workflow {
 
     bedfilterbam( best, bedfiles )
     best = bedfilterbam.out.bam
+    ch_versions = ch_versions.mix(bedfilterbam.out.versions)
 
     //
     // 8. Run Deamination workflow
@@ -172,7 +183,13 @@ workflow {
 
     // get the meta-table from the "best"-libraries
     best = deamination_stats.out.best.map{ it[0] }
+    fixed = deamination_stats.out.fixed.map{ it[0] }
 
-    ch_final.mix( best ).set{ch_final}
+    ch_final.mix( best ).mix( fixed ).set{ch_final}
 
+    //
+    // 9. Write the output files
+    //
+
+    write_reports( ch_final, ch_versions )
 }
