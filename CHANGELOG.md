@@ -18,6 +18,7 @@ making these versions fully compatible
 - instead of `FamKmers` now report `SpeciesKmers` and the respective kmer-stats to better compare assignments. Before, families with many species always had lower kmer-stats
 - For each genome in the fixed-references file, run the full pipeline. **Dont** reduce to 1 per family as in `v1.6.1`
 - parse the taxonomy directly from the DB, no need to add an additional file!
+- remove the test-data
 
 ## [v1.6.1] - 2023-07-04
 

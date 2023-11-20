@@ -70,6 +70,17 @@ if(standard_run && !params.bedfiles){ exit_missing_required('--bedfiles')}
 
 //
 //
+// Help
+//
+//
+
+if (params.help){
+    print file("$baseDir/assets/pipeline/help.txt").text
+    exit 0
+}
+
+//
+//
 // input Channels
 //
 //
