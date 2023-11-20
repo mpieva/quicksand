@@ -14,7 +14,6 @@ process BEDTOOLS_INTERSECT {
     path "versions.yml"                   , emit: versions
 
     script:
-    out_bam = "${meta.Taxon}/${meta.Reference}/4-bedfiltered/${meta.id}.${meta.Family}.${meta.Species}_deduped_bedfiltered.bam"
     """
     bedtools intersect -a ${bam} -b ${bedfile} -v > masked_${bam}
 

@@ -14,8 +14,6 @@ process BAM_RMDUP {
 
     script:
     def args = task.ext.args ?: ''
-    bamrmdup_out = "${meta.Taxon}/${meta.Reference}/3-deduped/${meta.id}.${meta.Family}.${meta.Species}_deduped.bam"
-
     """
     bam-rmdup $args -o deduped_${bam} ${bam} > rmdup.txt
 

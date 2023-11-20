@@ -13,7 +13,6 @@ process MAP_BWA {
 
     script:
     def args = task.ext.args ?: ''
-    mapbwa_out = "${meta.Taxon}/${meta.Reference}/2-aligned/${meta.id}.${meta.Family}.${meta.Species}.bam"
     """
     bwa index ${genome}
     bwa bam2bam -g ${genome} $args --only-aligned ${bam} > mapped_${bam}

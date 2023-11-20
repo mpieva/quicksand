@@ -15,8 +15,6 @@ process SAMTOOLS_SORT{
 
     script:
     def args = task.ext.args ?: ''
-    extracted_out = "${meta.Taxon}/1-extracted/${meta.id}_extractedReads-${meta.Taxon}.bam"
-
     """
     samtools sort $args -o sorted_${extracted_bam}  ${extracted_bam}
 
