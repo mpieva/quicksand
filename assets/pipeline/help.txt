@@ -18,16 +18,18 @@ optional arguments:
   --rerun             Works together with --fixed flag,
                       Start with the extracted reads, maps the extracted reads of specified families against all fixed reference genomes
 
-  --fixed      FILE   A file to fix a reference genome for a family. Reads assigned by kraken to the given family are only mapped to the fixed reference
-                        - Format: 'Family<tab>Species(tag)<tab>Genome'
+  --fixed      FILE   A file to fix reference genome(s) for specified taxlvl. Reads assigned by kraken to the given hierarchy are mapped to the fixed reference
+                        - Format: 'Taxon<tab>Species(tag)<tab>Genome'
                         - Genome must be an absolute path to a fasta file
-                        - Families fixed on a reference genome have a special processing pipeline that includes
+                        - Taxa fixed on a reference genome have a special processing pipeline that includes
                             - Skipped bedfiltering
                             - Extraction of deaminated reads
                             - Creation of mpileup files for deaminated sequences
+                        - Please add an Order or Family name in the Taxon column, depending on `--taxlvl` o or f
   --taxlvl     VAL    ['f' or 'o'] The taxonomic level of kraken assignments used for extracting reads (default: f).
                         - e.g. if 'o' is picked, reads assigned to 'Primates' will be mapped to 'Homo_sapiens' reference genomes instead of only the 'Hominidae' reads
                         - the 'best' reference genomes are still picked by the best guess per family
+                        - ! this decision also influences the --fixed file !
 
 process arguments:
   --bamfilterflag               N    The bitwise filterflag used by samtools to filter the input bam files (default: 1)

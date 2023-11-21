@@ -23,51 +23,33 @@ workflow write_reports {
     .unique{meta -> meta.RG+meta.Species+meta.Reference}
     .set{ ch_final }
 
-    // prepare for famPercentage
-    ch_final
-    .map{meta ->
-        [
-            [meta.id, meta.Family],
-            meta.ReadsFinal,
-            meta
-        ]
-    }
-    .branch{ //for calculation of fam percentage, split the channel - as for fixed entries multiple references might occur for a single family
-        fixed: it[2].Reference == 'fixed'
-        best: true
-    }
-    .set{calc_perc}
-
     //
     // calculate the FamPercentage
     //
-    //   WORKFLOW: (way too complicated...)
-    //
-    //     best       fixed
-    //       |          |
-    //       |         mean (by family and rg)
-    //        \        /
-    //    sum the family reads by RG // total_rg
+    //         best/fixed
+    //             |
+    //    maximum value (by family and rg)
+    //    (no difference for best)
+    //             |
+    //    sum the family reads by RG = total_rg
     //             |
     //    add to ch_final by RG
     //             |
     //    calculate FamPercent by Species
+    //
 
-    // Start with fixed
-
-    calc_perc.fixed
+    ch_final
+    .map{meta ->
+        [
+            [meta.RG, meta.Family],
+            meta.ReadsFinal,
+            meta
+        ]
+    }
     .groupTuple()
     .map{key, vals, metas ->
-        [key, ['FamilyMeanReads':vals.average()]]
-    }
-    .set{ fixed }
-
-    // then the best
-    calc_perc.best
-    .map{ key, val, meta ->
-        [key, ['FamilyMeanReads':val]]
-    } // now combine
-    .mix(fixed)
+        [key, ['FamilyMeanReads':vals.max()]]
+    } // now set key to RG
     .map{ key, val ->
         [key[0], val.FamilyMeanReads]
     } //and sum up
@@ -79,7 +61,7 @@ workflow write_reports {
 
     // and combine with the main channel
     ch_final
-    .map{ meta  -> [ meta.id, meta ] } //prepare id as key
+    .map{ meta  -> [ meta.RG, meta ] } //prepare id as key
     .combine(total_rg, by:0)
     .map{rg, meta, total_rg -> // and calculate
         meta+['FamPercentage': total_rg==0 ? 0 : (meta.ReadsFinal * 100 / total_rg).trunc(2)]

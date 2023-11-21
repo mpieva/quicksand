@@ -45,28 +45,36 @@ standard_run = params.rerun ? false : true
 //
 //
 
-if(params.taxlvl !in ['f','o']){
-    exit_with_error_msg("ArgumentError","taxlvl must be one of [o, f] not ${params.taxlvl}")
+def outdir = "quicksand_${workflow.manifest.version}"
+
+if(standard_run){
+
+    if(params.taxlvl !in ['f','o']){
+        exit_with_error_msg("ArgumentError","taxlvl must be one of [o, f] not ${params.taxlvl}")
+    }
+    if(!params.genomes){ exit_missing_required('--genomes') }
+    if(!params.db){   exit_missing_required('--db')      }
+    if(!params.bedfiles){ exit_missing_required('--bedfiles')}
+
+    if(params.split && (params.bam || params.rg)){
+        log.info get_info_msg("Use: nextflow run mpieva/quicksand {--rg FILE --bam FILE | --split DIR}")
+        exit_with_error_msg("ArgumentError", "Too many arguments")
+    }
+    if(!params.split && !(params.bam && params.rg)){
+        log.info get_info_msg("Use: nextflow run mpieva/quicksand {--rg FILE --bam FILE | --split DIR}")
+        exit_with_error_msg("ArgumentError", "Too few arguments")
+    }
+} else {
+    if(!(params.fixed)){
+        log.info get_info_msg("Use --rerun together with --fixed")
+        exit_missing_required('--fixed')
+    }
+    if( new File("${outdir}/final_report.tsv").exists()==false ){
+        log.info get_info_msg("Use --rerun in an existing run")
+        exit_with_error_msg("LogicError", "${outdir}/final_report.tsv is missing")
+    }
 }
-if( params.rerun && new File('final_report.tsv').exists()==false){
-    log.info get_info_msg("Use --rerun only for additional runs together with --fixed flag")
-    exit_with_error_msg("ArgumentError", "Conflicting arguments")
-}
-if(params.split && (params.bam || params.rg) && standard_run){
-    log.info get_info_msg("Use: nextflow run mpieva/quicksand {--rg FILE --bam FILE | --split DIR}")
-    exit_with_error_msg("ArgumentError", "Too many arguments")
-}
-if(!params.split && !(params.bam && params.rg) && standard_run){
-    log.info get_info_msg("Use: nextflow run mpieva/quicksand {--rg FILE --bam FILE | --split DIR}")
-    exit_with_error_msg("ArgumentError", "Too few arguments")
-}
-if(params.rerun && !(params.fixed)){
-    log.info get_info_msg("Use --rerun together with --fixed")
-    exit_with_error_msg("ArgumentError", "Too few arguments")
-}
-if(standard_run && !params.genomes){ exit_missing_required('--genomes') }
-if(standard_run && !params.db){   exit_missing_required('--db')      }
-if(standard_run && !params.bedfiles){ exit_missing_required('--bedfiles')}
+
 
 //
 //
@@ -91,16 +99,71 @@ split      = params.split    ? Channel.fromPath("${params.split}/*",     checkIf
 genomesdir = params.genomes  ? Channel.fromPath("${params.genomes}/*/*.fasta", checkIfExists:true) : Channel.empty()
 bedfiles   = params.bedfiles ? Channel.fromPath("${params.bedfiles}/*",  checkIfExists:true) : Channel.empty()
 
-database = Channel.fromPath("${params.db}", type:'dir', checkIfExists:true)
+database = params.db ? Channel.fromPath("${params.db}", type:'dir', checkIfExists:true) : Channel.empty()
 
-// fixed references
+// if fixed references
+// load the file and create input channel
+//
+
 ch_fixed = params.fixed ?
     Channel.fromPath("${params.fixed}", checkIfExists:true)
-        .splitCsv(sep:'\t', header:['Family','Species','Genome'], skip:1)
+        .splitCsv(sep:'\t', header:['Taxon','Species','Genome'], skip:1)
     : Channel.empty()
+
+// if rerun,
+// we need new entry points, so load the final_report
+// and the extracted bam files
+//
+
+ch_report = params.rerun ? Channel.fromPath("${outdir}/final_report.tsv", type:'file').splitCsv(sep:'\t', header:true) : Channel.empty()
+ch_report
+    .map{row -> [[ row.ExtractLVL == 'f' ? row.Family : row.Order, row.RG], row]} // get the right taxon
+    .unique{ it[0] }
+    .set{ ch_report_for_rerun }
+
+outdir = params.rerun ? Channel.fromPath("${outdir}/out/*/1-extracted/*.bam", type: 'file').map{ bam ->
+    [
+        [
+            bam.getParent().getParent().name, // taxon name
+            bam.baseName.split('_')[0] // The id
+        ],
+        bam // the extracted reads file
+    ]
+} : Channel.empty()
+
+ch_rerun = Channel.empty() // this will later be overwritten if there is a rerun
+
+if(! standard_run){
+    // combine extracted bam with entries in report
+    ch_report_for_rerun.combine(outdir, by:0)
+    .map{ key, meta, bam ->
+        [key[0], meta, bam]
+    }
+    .set{ ch_report_for_rerun }
+
+    // only keep fixed families that were already in report
+    ch_fixed.map{ it ->
+        [it.Taxon, it.Species, it.Genome]
+    }
+    .combine(ch_report_for_rerun, by:0)
+    .map{ tax, sp, genome, meta, bam ->
+        [
+            meta+[
+                'Species':sp,
+                'Reference':'fixed',
+                'id':meta.RG,
+                'Taxon':tax
+            ],
+            file(bam),
+            file(genome)
+        ]
+    }
+    .set{ ch_rerun } //this can go into bwa directly
+}
 
 ch_versions = Channel.empty()
 ch_final = Channel.empty()
+
 
 //
 //
@@ -109,8 +172,6 @@ ch_final = Channel.empty()
 //
 
 workflow {
-
-    standard_run = true
 
     //
     // 0. Setup the folders etc.
@@ -121,91 +182,99 @@ workflow {
     //
     // 1. Input Processing ~ Input Parameters
     //
+    if( standard_run ){
+        if (bam) {
+            splitbam( bam,by )
 
-    if (bam) {
-        splitbam( bam,by )
+            bam = splitbam.out.bams
+            ch_versions = ch_versions.mix( splitbam.out.versions )
+        }
+        else {
+            splitdir( split )
 
-        bam = splitbam.out.bams
-        ch_versions = ch_versions.mix( splitbam.out.versions )
+            bam = splitdir.out.bams
+            ch_versions = ch_versions.mix( splitdir.out.versions )
+        }
+
+        //
+        // 2. Filter the bam files
+        //
+
+        //include a meta-file with all fields existing
+        meta = Channel.fromPath("$baseDir/assets/pipeline/meta.tsv").splitCsv(sep:'\t', header:true)
+        bam.combine(meta).map{ m1, bam, meta -> [meta, bam] }.set{ bam }
+
+        bam.map {
+            [
+                it[0] + [
+                    "id":it[1].baseName,
+                    "RG":it[1].baseName,
+                    "ExtractLVL": params.taxlvl
+                ],
+                it[1]
+            ]
+        }.set{ bam }
+        bamfilter( bam )
+
+        bam = bamfilter.out.bam
+        ch_versions = ch_versions.mix( bamfilter.out.versions )
+
+        //
+        // 3. Run kraken
+        //
+
+        krakenrun( bam, database )
+        ch_versions = ch_versions.mix( krakenrun.out.versions )
+
+        // Add the libraries with no assignments to the final channel
+        ch_empty = krakenrun.out.empty.map{ it[0] }
+        ch_final.mix(ch_empty).set{ ch_final }
+
+
+        //
+        // 4.1 Extract bams based on kraken-results
+        //
+
+        bamextract( bamfilter.out.bam, krakenrun.out.translate )
+        ch_versions = ch_versions.mix( bamextract.out.versions )
+
+        //
+        // 4.2 Prepare the reference genomes
+        //
+
+        assignments = krakenrun.out.assignments
+
+        refprep( database, assignments, [] )
+        ch_versions = ch_versions.mix( refprep.out.versions )
+
+        // combine the extracted and assigned paths
+
+        bamextract.out.bam.map{ meta, bam ->
+            [[meta.id, meta.Taxon], meta, bam]
+        }
+        .join( refprep.out.references )
+        .map{ key, meta, bam, report, references ->
+            [meta+report, bam, references]
+        }
+        .transpose()
+        .map{ meta, bam, reference ->
+            [meta+['Species':reference], bam]
+        }
+        .set{bwa_in}
+
+    // this else refers to the if standard_run
+    // else: start from extracted reads.
+    // Mapping is thus the first step
+
+    } else {
+        bwa_in = Channel.empty()
+        genomesdir = Channel.empty()
     }
-    else {
-        splitdir( split )
-
-        bam = splitdir.out.bams
-        ch_versions = ch_versions.mix( splitdir.out.versions )
-    }
-
-    //
-    // 2. Filter the bam files
-    //
-
-    //include a meta-file with all fields existing
-    meta = Channel.fromPath("$baseDir/assets/pipeline/meta.tsv").splitCsv(sep:'\t', header:true)
-    bam.combine(meta).map{ m1, bam, meta -> [meta, bam] }.set{ bam }
-
-    bam.map {
-        [
-            it[0] + [
-                "id":it[1].baseName,
-                "RG":it[1].baseName,
-                "ExtractLVL": params.taxlvl
-            ],
-            it[1]
-        ]
-    }.set{ bam }
-    bamfilter( bam )
-
-    bam = bamfilter.out.bam
-    ch_versions = ch_versions.mix( bamfilter.out.versions )
-
-    //
-    // 3. Run kraken
-    //
-
-    krakenrun( bam, database )
-    ch_versions = ch_versions.mix( krakenrun.out.versions )
-
-    // Add the libraries with no assignments to the final channel
-    ch_empty = krakenrun.out.empty.map{ it[0] }
-    ch_final.mix(ch_empty).set{ ch_final }
-
-
-    //
-    // 4.1 Extract bams based on kraken-results
-    //
-
-    bamextract( bamfilter.out.bam, krakenrun.out.translate )
-    ch_versions = ch_versions.mix( bamextract.out.versions )
-
-    //
-    // 4.2 Prepare the reference genomes
-    //
-
-    assignments = krakenrun.out.assignments
-
-    refprep( database, assignments, [] )
-    ch_versions = ch_versions.mix( refprep.out.versions )
-
-    // combine the extracted and assigned paths
-
-    bamextract.out.bam.map{ meta, bam ->
-        [[meta.id, meta.Taxon], meta, bam]
-    }
-    .join( refprep.out.references )
-    .map{ key, meta, bam, report, references ->
-        [meta+report, bam, references]
-    }
-    .transpose()
-    .map{ meta, bam, reference ->
-        [meta+['Species':reference], bam]
-    }
-    .set{bwa_in}
-
     //
     // 5. Map with BWA
     //
 
-    mapbam( bwa_in, genomesdir, ch_fixed )
+    mapbam( bwa_in, genomesdir, ch_fixed, ch_rerun )
     ch_versions = ch_versions.mix( mapbam.out.versions )
 
     //
@@ -253,6 +322,10 @@ workflow {
     // get the meta-table from the "best"-libraries
     best = deamination_stats.out.best.map{ it[0] }
     fixed = deamination_stats.out.fixed.map{ it[0] }
+
+    if( ! standard_run ){
+        ch_final = ch_report //the base ch_final is the report, then mix in the new rerun-rows
+    }
 
     ch_final.mix( best ).mix( fixed ).set{ch_final}
 

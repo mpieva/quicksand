@@ -1,0 +1,23 @@
+# Test different executions of the pipeline
+
+- regular run: bam, rg
+  - yes
+- regular run: split
+  - yes
+- regular run: with fixed references
+  - yes
+- regular run: with multiple fixed references
+  - yes
+- rerun: after multiple fixed references, with multiple fixed reference
+  - yes
+- regular run: with taxlvl order
+  - yes
+- regular run: with taxlvl order and fixed references
+  - yes
+- rerun: with fixed families
+  - yes
+- rerun after taxlvl order
+  - yes --> needs adjustment of fixed file
+- regular run: singularity
+  - yes
+- regular run: docker
