@@ -1,6 +1,7 @@
 process PARSE_TAXONOMY{
     container (workflow.containerEngine ? "pypy:3" : null)
     label 'local'
+    label "process_low"
 
     input:
     path(database)

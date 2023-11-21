@@ -1,5 +1,4 @@
 process GATHER_TAXON {
-    label 'process_low'
     label 'local'
     tag "$meta.id:$meta.Taxon"
 

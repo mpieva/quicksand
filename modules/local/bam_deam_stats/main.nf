@@ -1,7 +1,6 @@
 process BAM_DEAM_STATS{
     container (workflow.containerEngine ? "merszym/bam_deam:nextflow" : null)
     tag "${meta.id}:${meta.Taxon}:${meta.Species}"
-    label 'process_medium'
     label 'local'
 
     input:

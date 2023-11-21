@@ -3,6 +3,8 @@ workflow write_reports {
     take: ch_versions
     main:
 
+    def basedir = "quicksand_${workflow.manifest.version}"
+
     //
     //
     // Write Reports
@@ -10,7 +12,7 @@ workflow write_reports {
     //
 
     // write the reports to file...
-    // ch_versions.collectFile(name:'versions.txt', storeDir:'.', newLine:true, sort:true, seed:"#\n# quicksand:${workflow.manifest.version}\n#")
+    ch_versions.unique().collectFile(name: 'pipeline_versions.yml', storeDir:"${basedir}/")
 
     // calculate proportion mapped and duplication rate
     ch_final
@@ -88,9 +90,6 @@ workflow write_reports {
         header.split('\t').each{res << meta[it]}
         res.join('\t')
     }
-
-    def basedir = "quicksand_${workflow.manifest.version}"
-
 
     ch_final
     .collectFile( name:"final_report.tsv",

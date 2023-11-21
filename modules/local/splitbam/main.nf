@@ -1,5 +1,6 @@
 process SPLITBAM {
     container (workflow.containerEngine ? "merszym/splitbam:v0.1.6" : null)
+    label "process_medium"
 
     input:
     tuple val(meta), path(bam), path(by)

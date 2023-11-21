@@ -3,7 +3,6 @@ process SAMTOOLS_SORT{
         'https://depot.galaxyproject.org/singularity/samtools:1.15.1--h1170115_0' :
         'quay.io/biocontainers/samtools:1.15.1--h1170115_0' }"
     tag "$meta.id:$meta.Taxon"
-    label "process_low"
     label "local"
 
     input:
