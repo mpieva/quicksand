@@ -7,7 +7,7 @@ process MASK_DEAMINATION{
     tuple val(meta), path(bam1), path(bam3), path(bam)
 
     output:
-    tuple val(meta), path("masked_${bam}"), path("masked_${bam1}"), path("masked_${bam3}"), emit: bam
+    tuple val(meta), path("masked_${bam1}"), path("masked_${bam3}"), path("masked_${bam}"), emit: bam
 
     script:
     """

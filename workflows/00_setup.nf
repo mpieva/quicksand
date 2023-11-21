@@ -29,10 +29,10 @@ workflow setup {
         // Additional Setup, Copy Files etc.
         //
         //
-
+        def basedir = "quicksand_${workflow.manifest.version}"
         def start = workflow.start.format('yyyyMMdd_HHmmss')
 
-        def commandFile = new File("nextflow/${start}_commands.txt")
+        def commandFile = new File("${basedir}/nextflow/${start}_commands.txt")
         // create the nextflow dir if it doesnt exist yet
         if(!commandFile.getParentFile().exists()) {
             commandFile.getParentFile().mkdirs();
@@ -47,7 +47,7 @@ workflow setup {
             // configFiles[0] is the nextflow.config in the repository...
             // configFiles[1] is the one handed over with the -c flag
             def newconf = new File(workflow.configFiles[1] as String)
-            def copyconf = new File("nextflow/${start}.config")
+            def copyconf = new File("${basedir}/nextflow/${start}.config")
 
             copyconf << newconf.text
         }
