@@ -277,11 +277,21 @@ workflow {
     mapbam( bwa_in, genomesdir, ch_fixed, ch_rerun )
     ch_versions = ch_versions.mix( mapbam.out.versions )
 
+    mapped = mapbam.out.bam
+    mapped.branch{
+        dedup: it[0].ReadsMapped > 0
+        nodedup: true
+    }
+    .set{ mapped }
+
+    ch_empty = mapped.nodedup.map{ it[0] }
+    ch_final.mix( ch_empty ).set{ ch_final }
+
     //
     // 6. Dedup the mapped bam
     //
 
-    dedupbam(mapbam.out.bam)
+    dedupbam(mapbam.dedup)
     ch_versions = ch_versions.mix( dedupbam.out.versions )
 
     deduped = dedupbam.out.bam
