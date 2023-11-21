@@ -291,7 +291,7 @@ workflow {
     // 6. Dedup the mapped bam
     //
 
-    dedupbam(mapbam.dedup)
+    dedupbam( mapped.dedup )
     ch_versions = ch_versions.mix( dedupbam.out.versions )
 
     deduped = dedupbam.out.bam
