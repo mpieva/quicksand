@@ -1,0 +1,40 @@
+FROM ubuntu:xenial as base
+
+ARG DEBIAN_FRONTEND=noninteractive
+
+RUN set -eux \
+    && apt-get update \
+    && apt-get install -y  --no-install-recommends \
+    libzmq3-dev  \
+    tzdata \
+    zlib1g-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+
+FROM base as builder
+
+RUN set -eux \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends \
+    build-essential \
+    ca-certificates \
+    g++-4.8 \
+    gcc-4.8 \
+    git \
+    pkg-config
+
+RUN set -eux \
+    && update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-4.8 1 \
+    && update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-4.8 1
+
+RUN set -eux \
+    && git clone -b 0.5.10-evan.10 --depth 1 https://github.com/mpieva/network-aware-bwa \
+    && make -C network-aware-bwa \
+    && cp network-aware-bwa/bwa /bin/
+
+
+FROM base as runner
+
+COPY --from=builder /bin/bwa /bin/
+
+ENTRYPOINT ["/bin/bwa"]

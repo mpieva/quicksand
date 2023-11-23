@@ -1,0 +1,106 @@
+FROM ubuntu:xenial as base
+
+ARG DEBIAN_FRONTEND=noninteractive
+
+RUN set -eux \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends \
+    libgmp-dev \
+    libjudy-dev \
+    libsnappy-dev \
+    tzdata \
+    zlib1g-dev
+
+
+FROM base AS builder
+
+RUN set -eux \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends \
+    software-properties-common \
+    && add-apt-repository -y ppa:hvr/ghc \
+    && add-apt-repository -y ppa:ubuntu-toolchain-r/test
+
+#install ghc
+RUN set -eux \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends \
+    build-essential \
+    curl \
+    g++-9 \
+    gcc-9 \
+    ghc-8.0.2 \
+    git
+
+#install cabal and cabal-install (haskell library-installer)
+RUN set -eux \
+    && update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-9 2 \
+    && update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-9 2 \
+    && update-alternatives --set g++ /usr/bin/g++-9 \
+    && update-alternatives --set gcc /usr/bin/gcc-9
+
+WORKDIR /src
+RUN set -eux \
+    && curl -s https://downloads.haskell.org/~cabal/Cabal-1.24.2.0/Cabal-1.24.2.0.tar.gz \
+    | tar xz \
+    && curl -s https://hackage.haskell.org/package/cabal-install-1.24.0.2/cabal-install-1.24.0.2.tar.gz \
+    | tar xz \
+    && git clone -q https://github.com/mpieva/biohazard \
+    && git clone -q https://github.com/mpieva/biohazard-tools
+
+ENV PATH="/opt/ghc/bin:/root/.cabal/bin:${PATH}"
+
+WORKDIR /src/Cabal-1.24.2.0
+RUN set -eux  \
+    && ghc -threaded --make Setup \
+    && ./Setup configure \
+    && ./Setup build \
+    && ./Setup install
+
+WORKDIR /src/cabal-install-1.24.0.2
+RUN set -eux \
+    && EXTRA_CONFIGURE_OPTS="" ./bootstrap.sh
+
+# install Biohazard
+# from the branched version 0.6.15 that is required for bam-rmdup 0.2 with 
+# and fixed a bug that occurs parsing bam header @CO tags
+WORKDIR /src/biohazard
+RUN set -eux \
+    && git checkout fixed_bam_header \
+    && cabal update \
+    && cabal install --global base-prelude-1.2.0.1 \
+    && cabal install --global .
+
+# and Biohazard-tools
+# version 0.2 that doesnt lose sequences
+WORKDIR /src/biohazard-tools
+RUN set -eux \
+    && git checkout 2bee15e0 \
+    && cabal update \
+    && cabal install --global .
+
+
+FROM base AS runner
+
+COPY --from=builder /usr/local/bin/* /usr/local/bin/
+
+
+FROM runner as bam-fixpair
+
+ENTRYPOINT ["/usr/local/bin/bam-fixpair"]
+
+CMD ["--help"]
+
+
+FROM runner as bam-mangle
+
+ENTRYPOINT ["/usr/local/bin/bam-mangle"]
+
+CMD ["--help"]
+
+
+FROM runner as bam-rmdup
+
+ENTRYPOINT ["/usr/local/bin/bam-rmdup"]
+
+CMD ["--help"]

@@ -1,0 +1,13 @@
+FROM python:3 as base
+
+COPY pkg/splitbam-0.1.6a4.tar.gz .
+
+RUN tar xzf splitbam-0.1.6a4.tar.gz && \
+    python3 -m pip install splitbam-0.1.6a4/ && \
+    rm splitbam-0.1.6a4.tar.gz && \
+    rm -r splitbam-0.1.6a4
+
+FROM base as runner
+COPY --from=base /usr/local/bin/* /usr/local/bin/
+ENTRYPOINT ["/usr/local/bin/splitbam"]
+CMD ["--help"]
