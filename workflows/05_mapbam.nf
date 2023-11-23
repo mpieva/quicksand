@@ -48,6 +48,7 @@ workflow mapbam {
                     meta+['Species':info.Species, "Reference":"fixed"], bam, file(info.Genome)
                 ]
             }
+            .unique{ it[0] } // replacing all family assignments to the same reference can cause duplicated entries!
             .set{fixed}
 
             // For the best-branch
