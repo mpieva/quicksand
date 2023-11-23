@@ -38,7 +38,7 @@ class Node:
         if self.level == 'order':
             return self.name
         else:
-            return self.parent.order
+            return self.parent.order if self.parent else None
 
     @property
     def best_child(self):
