@@ -10,10 +10,9 @@ Input and Output
 Input
 -----
 
-The pipeline uses as input :file:`.fastq` or :file:`.bam` files that contain demultiplexed, merged, and adapter trimmed reads.
-Use the :code:`--split` flag to point to the directory that contains these files. The pipeline refers to the name of the files
-as readgroups. The reads within the files are assigned, processed and structured by readgroups.
-:file:`.bam` and :file:`.fastq` files can be mixed::
+quicksand requires as input demultiplexed, merged, and adapter trimmed sequencing libraries in :file:`.fastq` or :file:`.bam` format.
+Use the :code:`--split` flag to point to the directory containing these files. quicksand refers to the name of the files
+as readgroups::
 
     splitdir/
         readgroup1.fastq
@@ -21,15 +20,15 @@ as readgroups. The reads within the files are assigned, processed and structured
         readgroup3.bam
 
 .. note::
-    Quicksand will process all the :file:`.fastq,fq,fastq.gz,fq.gz` and :file:`.bam`-files within the :code:`--split` directory and ignore all remaining files.
-    Be sure to name/rename your files accordingly
+    Quicksand will process all the :file:`.fastq,fq,fastq.gz,fq.gz` and :file:`.bam`-files within the :code:`--split` directory and ignore all other files.
 
 .. _output:
 
 Output
 ------
 
-Several directories and files should appear after the run. The 'taxon' corresponds to either the family or the order level name::
+quicksand writes all output files to the **quicksand_v2.0** directory. Within this directory the files are
+layed out as follows::
 
     quicksand_v2.0
     ├── out
@@ -75,92 +74,143 @@ Several directories and files should appear after the run. The 'taxon' correspon
 
 .. _files:
 
-Files explained
-"""""""""""""""
+Files
+"""""
 
-The content of the files is explained here:
+Directory: out/TAXON
+~~~~~~~~~~~~~~~~~~~~
 
-**out/**
+.. rst-class:: file
+*1-extracted/$\{RG\}.extractedReads-$\{taxon\}.bam*
 
-.. list-table::
-   :widths: 20 80
-   :header-rows: 1
+.. rst-class:: description
+BAM FILE. Contains the DNA sequences of one readgroup assigned by KrakenUniq to one taxon [family or order].
 
-   * - File
-     - Description
-   * - :file:`$\\{RG\\}.extractedReads-$\\{taxon\\}.bam`
-     - Contains all DNA sequences from one readgroup assigned by krakenuniq to one taxon (family or order).
-   * - :file:`aligned/$\\{RG\\}.$\\{family\\}.$\\{species\\}.bam`
-     - An alignemnt file. The result of mapping all extractedReads (see above) against the genome of the assigned 'best' species
-   * - :file:`aligend/$\\{RG\\}.$\\{family\\}.$\\{species\\}_deduped.bam`
-     - The same alignment file, but depleted of PCR duplicates - reads with the same start and end coordinates in the alignment
-   * - :file:`bed/$\\{RG\\}.$\\{family\\}.$\\{species\\}_deduped_bedfiltered.bam`
-     - The same aligned and deduped bamfile, but additionally depleted of reads overlapping the low-complexity regions specified in the :code:`--bedfiles` for the given species
-   * - :file:`deaminated/$\\{RG\\}.$\\{family\\}.$\\{species\\}_deduped_deaminated_1term.bam`
-     - | The aligned and deduped bamfile, filtered for reads that show a C to T
-       | substitution at one of the terminal basepair positions in respect to the reference genome
-   * - :file:`deaminated/$\\{RG\\}.$\\{family\\}.$\\{species\\}_deduped_deaminated_3term.bam`
-     - | The aligned and deduped bamfile, filtered for reads that show a C to T
-       | substitution at one of the terminal three basepair positions in respect to the reference genome
-   * - :file:`deaminated/$\\{RG\\}.$\\{family\\}.$\\{species\\}_all_mpiled.tsv`
-     - The aligned and deduped bamfile, but in mpileup format
-   * - :file:`deaminated/$\\{RG\\}.$\\{family\\}.$\\{species\\}_1term_mpiled.tsv`
-     - The deaminated 1term bamfile, with masked terminal T bases - in mpileup format
-   * - :file:`deaminated/$\\{RG\\}.$\\{family\\}.$\\{species\\}_3term_mpiled.tsv`
-     - The deaminated 3term bamfile, with masked terminal T bases - in mpileup format
+.. rst-class:: file
+*2-aligned/$\{RG\}.$\{family\}.$\{species\}.bam*
+
+.. rst-class:: description
+BAM FILE. Contains the aligend sequences after mapping the extractedReads to the reference species
+
+.. rst-class:: file
+*3-deduped/$\{RG\}.$\{family\}.$\{species\}_deduped.bam*
+
+.. rst-class:: description
+BAM FILE. The same alignment, but depleted of PCR duplicates.
+
+.. rst-class:: file
+*4-bedfiltered/$\{RG\}.$\{family\}.$\{species\}_deduped_bedfiltered.bam*
+
+.. rst-class:: description
+| BAM FILE. The deduped alignment, but depleted of reads overlapping low-complexity regions
+| specified in the provided bedfiles for the given species.
+
+.. rst-class:: file
+*5-deaminated/$\{RG\}.$\{family\}.$\{species\}_deduped_deaminated_1term.bam*
+
+.. rst-class:: description
+| BAM FILE. The deduped alignment, filtered for reads that show a C to T
+| substitution at one of the terminal positions in respect to the reference genome
+
+.. rst-class:: file
+*5-deaminated/$\{RG\}.$\{family\}.$\{species\}_deduped_deaminated_3term.bam*
+
+.. rst-class:: description
+| BAM FILE. The deduped alignment, filtered for reads that show a C to T
+| substitution at one of the terminal `three` positions in respect to the reference genome
+
+.. rst-class:: file
+*6-mpileups/$\{RG\}.$\{family\}.$\{species\}_all_mpiled.tsv*
+
+.. rst-class:: description
+| TSV FILE. The deduped alignment, but in mpileup format.
+| The first three positions of each sequence are masked by setting the mapping quality to 0
+
+.. rst-class:: file
+*6-mpileups/$\{RG\}.$\{family\}.$\{species\}_1term_mpiled.tsv*
+
+.. rst-class:: description
+| TSV FILE. Mpileup format. The first three positions of each sequence are masked by setting the mapping quality to 0.
+| The pileup contains only reads showing a C to T substitution at one of the terminal positions in respect to the reference genome
+
+.. rst-class:: file
+*6-mpileups/$\{RG\}.$\{family\}.$\{species\}_3term_mpiled.tsv*
+
+.. rst-class:: description
+| TSV FILE. Mpileup format. The first three positions of each sequence are masked by setting the mapping quality to 0.
+| The pileup contains only reads showing a C to T substitution at one of the terminal `three` positions in respect to the reference genome
 
 
-**stats/**
+Directory: stats
+~~~~~~~~~~~~~~~~
 
-.. list-table::
-   :widths: 20 80
-   :header-rows: 1
+.. rst-class:: file
+*$\{RG\}.report*
 
-  * - File
-    - Description
-  * - :file:`$\\{RG\\}.report`
-    - The standard krakenuniq report
-  * - :file:`$\\{RG\\}.translate`
-    - The read-wise human readable kraken report in mpa-format
-  * - :file:`stats/splitcounts.tsv`
-    - | For each readgroup (RG), show the number of reads before (raw) and after the filterBam process, as
-      | well as the number of reads after the bam-lengthfilter process
-      ::
+.. rst-class:: description
+The standard krakenuniq report
 
-          RG          ReadsRaw      ReadsFiltered ReadsLengthfiltered
-          test1       235           235           230
-          test2       235           235           230
-          test3       235           235           230
-  * - :file:`$\\{RG\\}_00_extracted.tsv`
-    - Shows the number of reads extracted for each assigned taxon based on the kraken assignments
-      ::
+.. rst-class:: file
+*$\{RG\}.translate*
 
-          Taxon       ReadsExtracted
-          Hominidae   235
-  * - :file:`$\\{RG\\}_01_mapped.tsv`
-    - | For each readgroup (RG) show the number of reads mapped against the reference genome, if the reference genome was fixed
-      | (see :code:`--fixed` flag) and the proportion of mapped reads (from the number of extracted reads for this family)
-      ::
+.. rst-class:: description
+The human readable kraken report in mpa-format
 
-          Order     Family      Species       Reference    ReadsMapped   ProportionMapped
-          Primates  Hominidae   Homo_sapiens  fixed        235           0.913
-  * - :file:`$\\{RG\\}_02_deduped.tsv`
-    - | For each readgroup (RG) report the number of unique (deduplicated) reads mapped against the reference genome, the duplication rate
-      | and the number of basepairs covered in the reference genome by the reads
-      ::
+.. rst-class:: file
+*stats/splitcounts.tsv*
 
-          Order     Family      Species       Reference  ReadsDeduped  DuplicationRate  CoveredBP
-          Primates  Hominidae   Homo_sapiens  fixed      98            2.31             4216
-  * - :file:`$\\{RG\\}_03_bedfiltered.tsv`
-    - | For each readgroup (RG) show the number of reads remaining in the bam-file after bedfiltering as well as the number of covered basepairs
-      | in the reference genome
-      ::
+.. rst-class:: description
+TSV FILE. Contains for each readgroup the number of reads before (raw) and after the initial filter step::
 
-          Order     Family      Species       Reference  ReadsBedfiltered PostBedCoveredBP
-          Primates  Hominidae   Homo_sapiens  fixed      97               4177
-  * - :file:`$\\{RG\\}_04_deamination.tsv`
-    - For each readgroup (RG) show the deamination stats for the mapped bam-file after bedfiltering
-      ::
+    RG          ReadsRaw      ReadsFiltered ReadsLengthfiltered
+    test1       235           235           230
+    test2       235           235           230
+    test3       235           235           230
+
+.. rst-class:: file
+*$\{RG\}_00_extracted.tsv*
+
+.. rst-class:: description
+TSV FILE. Contains the number of sequences assigned to a taxon based on the KrakenUniq classification::
+
+    Taxon       ReadsExtracted
+    Hominidae   235
+
+.. rst-class:: file
+*$\{RG\}_01_mapped.tsv*
+
+.. rst-class:: description
+TSV FILE. Contains for each readgroup and family the number of sequences mapped to the reference genome. The column 'Reference' shows if the reference
+genome was fixed. The proportion mapped is the proportion of mapped to extracted reads::
+
+    Order     Family      Species       Reference    ReadsMapped   ProportionMapped
+    Primates  Hominidae   Homo_sapiens  fixed        235           0.913
+
+.. rst-class:: file
+*$\{RG\}_02_deduped.tsv*
+
+.. rst-class:: description
+TSV FILE. Contains for each readgroup and family the number of unique reads mapped to the reference genome, the duplication rate
+and the number of basepairs covered in the reference genome.::
+
+    Order     Family      Species       Reference  ReadsDeduped  DuplicationRate  CoveredBP
+    Primates  Hominidae   Homo_sapiens  fixed      98            2.31             4216
+
+.. rst-class:: file
+*$\{RG\}_03_bedfiltered.tsv*
+
+.. rst-class:: description
+TSV FILE. Contains for each readgroup and family the number of sequences remaining in the bam-file after bedfiltering and the number of covered basepairs
+in the reference genome after removal of low-complexity sequences::
+
+    Order     Family      Species       Reference  ReadsBedfiltered PostBedCoveredBP
+    Primates  Hominidae   Homo_sapiens  fixed      97               4177
+
+.. rst-class:: file
+*$\{RG\\}_04_deamination.tsv*
+
+.. rst-class:: description
+TSV FILE. Contains for each readgroup the deamination stats for the BAM file after bedfiltering::
 
           Ancientness:  ++  = more than 9.5% of the reads that show a terminal C in both the 5' and 3' position in the reference genome, carry a T
                         +   = more than 9.5% of the reads that show a terminal C in either the 5' or 3' position in the reference genome, carry a T
@@ -173,46 +223,11 @@ The content of the files is explained here:
           Deam5Cond(95ci):  Taken only 3' deaminated sequences, report the percentage of C to T substitutions (and the 95% confidence interval) at the 5' terminal base
           Deam3Cond(95ic):  Taken only 5' deaminated sequences, report the percentage of C to T substitutions (and the 95% confidence interval) at the 3' terminal base
 
-**final report:**
 
-.. list-table::
-   :widths: 20 80
-   :header-rows: 1
+final_report.tsv
+~~~~~~~~~~~~~~~~
 
-   * - File
-     - Description
-
-   * - :file:`final_report.tsv`
-     - A summary of all the files in the :file:`stats` dir plus additional information gathered from processes during the pipeline run::
-
-        RG                  The analyzed readgroup
-        ReadsRaw            The total number of reads in the split' file (by RG)
-        ReadsFiltered       The total number of reads in the split' file after the bamfilter process - removing paired reads. (by RG)
-        ReadsLengthfiltered The total number of reads in the split' file after the filterLength process - removing reads <35bp length (by RG)
-        SpeciesKmers        The total number of kmers assigned to the species node by krakenuniq
-        KmerCoverage        The proportion of species kmers assigned by the total number of kmers present in the database for that species
-        KmerDupRate         The average duplication rate of kmers used for the assignment of the given species
-        ExtractLVL          The taxon level used for extraction of reads (f or o)
-        ReadsExtracted      The number of reads extracted/assigned to the taxon by krakenuniq
-        Order               The name of the Order assigned
-        Family              The name of the Family assigned
-        Species             The name of the reference species used for mapping assigned taxon reads against
-        Reference           'fixed' if reference genome is set for that family, 'best' if inferred from the kraken assignments
-        ReadsMapped         The number of reads mapped against the Species genome
-        ProportionMapped    The proportion of mapped/extracted reads
-        ReadsDeduped        The number of deduplicated(unique) reads in the alignment file
-        DuplicationRate     The duplication rate of mapped reads --> mapped/deduped reads
-        CoveredBP           The number of basepairs in the reference genome covered by the aligned reads
-        ReadsBedfiltered    The number of reads not overlapping low-complexity regions
-        PostBedCoveredBP    The number of basepairs in the reference genome covered by the aligned reads - after bedfiltering
-        FamPercentage       Taken all bedfiltered reads of the RG, report the percentage of bedfiltered reads for the given family
-        Ancientness         One of ++,+ or - --> See above for an explanation of the symbols
-        ReadsDeam(1term)    The number of reads showing a C to T substitution on either of the 5' or 3' ends in respect to the reference
-        ReadsDeam(3term)    The number of reads showing a C to T substitution in the terminal 3 basepairs in respect to the reference
-        Deam5(95ci)         For the given family, the percentage of C to T substitutions (and the 95% confidence interval) on the terminal 5' end
-        Deam3(95ci)         For the given family, the percentage of C to T substitutions (and the 95% confidence interval) on the terminal 3' end
-        Deam5Cond(95ci)     Taken only 3' deaminated sequences, report the percentage of C to T substitutions (and the 95% confidence interval) at the 5' terminal base
-        Deam3Cond(95ci)     Taken only 5' deaminated sequences, report the percentage of C to T substitutions (and the 95% confidence interval) at the 3' terminal base
+The final report contains all the columns presented above
 
 | The :file:`cc_estimates.tsv` files contains information about index-hopping and cross contamintaion
 | The :file:`nextflow` directory contains nextflow specific information about the run

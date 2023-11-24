@@ -2,7 +2,7 @@
 
 Flags
 =====
-Required Flags
+Required flags
 --------------
 
 | **Datastructure flags**
@@ -17,7 +17,7 @@ Required Flags
 
   * - --db
     - PATH
-    - The :bold:`directory` containing the preindexed :file:`Kraken` or :file:`KrakenUniq` database (see: :ref:`quicksand_build-page`)::
+    - The **directory** containing the preindexed :file:`Kraken` or :file:`KrakenUniq` database (see: :ref:`quicksand_build-page`)::
 
         Input:
 
@@ -35,7 +35,7 @@ Required Flags
 
   * - --genomes
     - PATH
-    - | The :bold:`directory` containing the indexed FASTA-FILES of the reference genomes that were used to build
+    - | The **directory** containing the indexed FASTA-FILES of the reference genomes that were used to build
       | the kraken database. Format :file:`PATH/$\\{family\\}/$\\{species\\}.fasta` (see: :ref:`quicksand_build-page`)
       ::
 
@@ -134,7 +134,7 @@ MPI EVA run quicksand with the :code:`--bam PATH` and :code:`--rg PATH` flags as
           --rg Path/to/index.tsv
 
 
-Optional Flags
+Optional flags
 --------------
 
 .. list-table::

@@ -6,12 +6,10 @@ Quickstart
 Requirements
 ------------
 
-Make sure you have the following two components installed.
+quicksand has two dependencies
 
-:Nextflow: in Version :code:`22.04` or above. See more details here: `Nextflow <https://www.nextflow.io/docs/latest/getstarted.html>`_
-:Singularity or Docker: See more details here: `Singularity <https://sylabs.io/guides/3.0/user-guide/installation.html>`_ or `Docker <https://docs.docker.com/get-docker/>`_
-
-Nextflow is the pipeline framework, while Singularity/Docker are software tools for the containerization of processes.
+:Nextflow: Version :code:`22.04` or above. `See here <https://www.nextflow.io/docs/latest/getstarted.html>`_
+:Container: Please use `Singularity <https://sylabs.io/guides/3.0/user-guide/installation.html>`_ or `Docker <https://docs.docker.com/get-docker/>`_
 
 .. tip::
 
@@ -23,8 +21,8 @@ Nextflow is the pipeline framework, while Singularity/Docker are software tools 
             >>> singularity version 3.7.2-dirty
 
 
-Download the Databases
-----------------------
+Download the database
+---------------------
 
 THIS SECTION IS WORK IN PROGRESS
 
@@ -35,12 +33,11 @@ As input for the pipeline, download the Hominin "Hohlenstein-Stadel" mtDNA [1]_ 
 
 	wget -P split http://ftp.eva.mpg.de/neandertal/Hohlenstein-Stadel/BAM/mtDNA/HST.raw_data.ALL.bam
 
-Then run the quicksand pipeline
 
 Run quicksand
 -------------
 
-Test the runability of the quicksand pipeline using the downloaded data-set::
+nextflow pipelines can be executed directly from github. To run quicksand using the downloaded data-set type::
 
 	nextflow run mpieva/quicksand -r v2.0 -profile singularity \
 	    --db refseq_rel220/kraken/Mito_db_kmer22 \

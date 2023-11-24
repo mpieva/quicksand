@@ -118,6 +118,9 @@ Extract Ancient Sequences
 For families with a fixed reference genome deaminated sequences are extracted. Then the quality score of the first and last 3 base pairs is masked by
 setting the quality score to 0, and mpileup files are created.
 
+References
+""""""""""
+
 .. [1] Di Tommaso, P., Chatzou, M., Floden, E. et al. Nextflow enables reproducible computational workflows. Nat Biotechnol 35, 316–319 (2017). https://doi.org/10.1038/nbt.3820
 .. [2] Breitwieser, F.P., Baker, D.N. & Salzberg, S.L. KrakenUniq: confident and fast metagenomics classification using unique k-mer counts. Genome Biol 19, 198 (2018). https://doi.org/10.1186/s13059-018-1568-0
 .. [3] Heng Li, Richard Durbin, Fast and accurate short read alignment with Burrows–Wheeler transform, Bioinformatics, Volume 25, Issue 14, July 2009, Pages 1754–1760, https://doi.org/10.1093/bioinformatics/btp324
