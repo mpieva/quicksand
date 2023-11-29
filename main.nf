@@ -252,7 +252,7 @@ workflow {
         bamextract.out.bam.map{ meta, bam ->
             [[meta.id, meta.Taxon], meta, bam]
         }
-        .join( refprep.out.references )
+        .combine( refprep.out.references, by:0 )
         .map{ key, meta, bam, report, references ->
             [meta+report, bam, references]
         }

@@ -1,7 +1,5 @@
 .. _output-page:
 
-.. _output:
-
 Input and Output
 ================
 
@@ -22,7 +20,6 @@ as readgroups::
 .. note::
     Quicksand will process all the :file:`.fastq,fq,fastq.gz,fq.gz` and :file:`.bam`-files within the :code:`--split` directory and ignore all other files.
 
-.. _output:
 
 Output
 ------
@@ -207,7 +204,7 @@ in the reference genome after removal of low-complexity sequences::
     Primates  Hominidae   Homo_sapiens  fixed      97               4177
 
 .. rst-class:: file
-*$\{RG\\}_04_deamination.tsv*
+*$\{RG\}_04_deamination.tsv*
 
 .. rst-class:: description
 TSV FILE. Contains for each readgroup the deamination stats for the BAM file after bedfiltering::
@@ -227,8 +224,10 @@ TSV FILE. Contains for each readgroup the deamination stats for the BAM file aft
 final_report.tsv
 ~~~~~~~~~~~~~~~~
 
-The final report contains all the columns presented above
+The final report contains all the columns presented above. In Addition, the final report contains a column :code:`FamPercentage` which provides the relative
+proportion of *final reads* (after deduplication or bedfiltering) of the assigned family in the readgroup. If there are several lines for one family and readgroup (e.g. after a rerun or multiple fixed references)
+the highest number of final reads is used as the baseline for the other entries of the same family
 
 | The :file:`cc_estimates.tsv` files contains information about index-hopping and cross contamintaion
-| The :file:`nextflow` directory contains nextflow specific information about the run
+| The :file:`nextflow` directory contains information about the run, like the commandline used and the config-files provided
 | the :file:`work` directory can be deleted after the run - it contains nextflow specific intermediate files

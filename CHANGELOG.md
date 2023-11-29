@@ -17,20 +17,20 @@ This is a rewrite of the `v1.6.1` pipeline in dsl2 syntax of nextflow
 to account for nextflow-versions \>22.10
 
 While the code was restructured, the flags, features and outputs remain the same as in `v1.6.1`
-making these versions fully compatible
+making these versions (almost) fully compatible. See the changes below.
 
 ### Changes
 
 - instead of `FamKmers` now report `SpeciesKmers` and the respective kmer-stats to better compare assignments. Before, families with many species always had lower kmer-stats
-- For each genome in the fixed-references file, run the full pipeline. **Dont** reduce to 1 reference per family as in `v1.6.1`
+- for each genome in the fixed-references file, run the full pipeline. They are no longer reduced to 1 reference per family as in `v1.6.1`
 - parse the taxonomy directly from the DB, no need to add an additional file!
-- remove the test-data
+- remove the test-data and the -profile test option, as it was no longer working
 
 ## [v1.6.1] - 2023-07-04
 
 This is a minor update to the final_report created
 
-### Changed
+### Changes
 
 - Added two columns to the end of the final_report.
   - `MeanFragmentLength`: The mean fragment length of all the DNA molecules in the bedfiltered or deduped bamfile

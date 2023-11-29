@@ -12,6 +12,8 @@ workflow bamextract {
         // 1. Create a list of reads for each taxon that need to be extracted
         //
 
+        // for order-lvl: only extract each order once
+        translate = translate.unique()
         GATHER_TAXON(translate)
 
         //

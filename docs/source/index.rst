@@ -17,5 +17,3 @@ Table of content
    flags
    in_and_out
    examples
-   contribute
-   license

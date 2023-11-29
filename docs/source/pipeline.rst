@@ -25,7 +25,7 @@ of the alignments. quicksand generates taxonomic profiles for each of the analyz
 
 The pipeline requires as input demultiplexed, adapter-trimmed and overlap-merged DNA sequences.
 
-filtering
+Filtering
 """""""""
 
 In the filtering stage, quicksand takes measures to ensure a smooth execution of the pipeline. It also removes sequences from the files that are non-mappable
@@ -36,7 +36,7 @@ Input :file:`bam` files are filtered by default to eliminate paired-end reads.
 
 
 Metagenomics classification
-""""""""""""""""""""""""""
+""""""""""""""""""""""""""""
 
 Sequences are classified by the metagenomic classifier KrakenUniq [2]_. which operates as a kmer-based classifier.
 In simple terms, each sequence is broken into smaller chunks of length k (kmers). These informative kmers are then matched against a database to
@@ -95,10 +95,14 @@ DNA Deamination Stats
 
 In the last step of the pipeline, the deduplicated sequences are checked for C to T substitutions compared to the reference genome.
 Ancient DNA exhibits C to T substitutions at the 3’ and 5’ ends of DNA fragments, a degradation pattern used to identify ancient DNA.
-Families whose sequences show more than 10% of terminal C bases in the reference genome replaced by a T are flagged as ancient (++).
+Families whose sequences show more than 10% of terminal C bases in the reference genome replaced by a T are flagged as ancient (++) in the final report.
 
-Best vs Fixed
-""""""""""""""
+Fixed References
+-----------------
+
+quicksand operates on the family-level and reduces the reads assigned by KrakenUniq to
+one family to the sequences mapped to a single *best* reference. The :code:`fixed` references are used
+to **specify** one or multiple reference genomes instead.
 
 Throughout the run quicksand distinguishes between families with 'best' and 'fixed' references. fixed references are genomes specified with the :code:`--fixed`
 flag, which assigns a specific reference genome for certain families. This overwrites the KrakenUniq reference-node.
@@ -117,6 +121,21 @@ Extract Ancient Sequences
 
 For families with a fixed reference genome deaminated sequences are extracted. Then the quality score of the first and last 3 base pairs is masked by
 setting the quality score to 0, and mpileup files are created.
+
+Rerun
+------
+
+The :code:`--rerun` flag provides an
+alternative entry-point into the the pipeline and starts the workflow *after* the KrakenUniq step. The :code:`--rerun` flag works only
+together with the :code:`--fixed` flag. In this mode, quicksand takes the extracted reads and reanalyzes them with the
+genomes specified.
+
+.. image:: images/rerun.png
+	:width: 800
+	:align: center
+	:alt: A comparison between the 'best' and the 'fixed' workflows.
+
+During a rerun, quicksand imports the final report and overwrites it at the end. Only families are reanalyzed for which an extracted-reads file exists.
 
 References
 """"""""""
