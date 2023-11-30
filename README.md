@@ -68,8 +68,6 @@ quicksand is executed directly from github, no local build is required. With the
       -profile    singularity
 ```
 
-After running the pipeline, please see the `final_report.tsv` for a summary of the results. Please see the [docs](https://mpieva.github.io/quicksand/usage.html#output) for a comprehensive description of the output!
-
 ### Output
 
 Please see the [documentation](https://quicksand.readthedocs.io/en/latest/in_and_out.html) for a comprehensive description of the output!
