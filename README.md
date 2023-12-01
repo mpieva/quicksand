@@ -40,9 +40,11 @@ For the most recent RefSeq releases please download the quicksand-datastructure
 here:
 
 ```bash
-  wget -P refseq \
-  http://ftp.eva.mpg.de/TODO-NOT-DONE-YET
+    latest=$(curl http://ftp.eva.mpg.de/quicksand/LATEST)
+    wget -r -np -nc -nH --cut-dirs=3 --reject="*index.html*" -q --show-progress -P refseq http://ftp.eva.mpg.de/quicksand/build/$latest
 ```
+
+This step takes a while! Make yourself a coffee and relax
 
 For a custom creation of the datastructure see the [quicksand-build pipeline](https://github.com/mpieva/quicksand-build)
 

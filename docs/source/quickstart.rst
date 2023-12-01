@@ -24,14 +24,19 @@ quicksand has two dependencies
 Download the database
 ---------------------
 
-THIS SECTION IS WORK IN PROGRESS
+Download the most recent datastructure for running the quicksand pipeline here::
+
+    latest=$(curl http://ftp.eva.mpg.de/quicksand/LATEST)
+    wget -r -np -nc -nH --cut-dirs=3 --reject="*index.html*" -q --show-progress -P refseq http://ftp.eva.mpg.de/quicksand/build/$latest
+
+This step takes a while! Make yourself a coffee and relax
 
 Download test-data
 ------------------
 
 As input for the pipeline, download the Hominin "Hohlenstein-Stadel" mtDNA [1]_ into a directory `split`::
 
-	wget -P split http://ftp.eva.mpg.de/neandertal/Hohlenstein-Stadel/BAM/mtDNA/HST.raw_data.ALL.bam
+	wget -q --show-progress -P split http://ftp.eva.mpg.de/neandertal/Hohlenstein-Stadel/BAM/mtDNA/HST.raw_data.ALL.bam
 
 
 Run quicksand
@@ -42,8 +47,8 @@ nextflow pipelines can be executed directly from github. To run quicksand using 
     nextflow run mpieva/quicksand -r v2.0 \
       -profile   singularity \
       --db       refseq/kraken/Mito_db_kmer22 \
-      --genomes  refseq_rel220/genomes/ \
-      --bedfiles refseq_rel220/masked/ \
+      --genomes  refseq/genomes/ \
+      --bedfiles refseq/masked/ \
       --split    split/
 
 
