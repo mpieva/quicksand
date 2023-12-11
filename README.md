@@ -40,8 +40,8 @@ For the most recent RefSeq releases please download the quicksand-datastructure
 here:
 
 ```bash
-    latest=$(curl http://ftp.eva.mpg.de/quicksand/LATEST)
-    wget -r -np -nc -nH --cut-dirs=3 --reject="*index.html*" -q --show-progress -P refseq http://ftp.eva.mpg.de/quicksand/build/$latest
+latest=$(curl http://ftp.eva.mpg.de/quicksand/LATEST)
+wget -r -np -nc -nH --cut-dirs=3 --reject="*index.html*" -q --show-progress -P refseq http://ftp.eva.mpg.de/quicksand/build/$latest
 ```
 
 This step takes a while! Make yourself a coffee and relax
@@ -53,8 +53,8 @@ For a custom creation of the datastructure see the [quicksand-build pipeline](ht
 To run quicksand with real data, download the Hohlenstein-Stadel mtDNA (please see the [README](http://ftp.eva.mpg.de/neandertal/Hohlenstein-Stadel/README) for more information) as input
 
 ```bash
-  wget -P split \
-  http://ftp.eva.mpg.de/neandertal/Hohlenstein-Stadel/BAM/mtDNA/HST.raw_data.ALL.bam
+wget -P split \
+http://ftp.eva.mpg.de/neandertal/Hohlenstein-Stadel/BAM/mtDNA/HST.raw_data.ALL.bam
 ```
 
 ### Run quicksand
@@ -62,12 +62,12 @@ To run quicksand with real data, download the Hohlenstein-Stadel mtDNA (please s
 quicksand is executed directly from github, no local build is required. With the databases and the testdata downloaded, run the pipeline.
 
 ```bash
-  nextflow run mpieva/quicksand -r v2.0 \
-      --db        refseq/kraken/Mito_db_kmer22/ \
-      --genomes   refseq/genomes/ \
-      --bedfiles  refseq/masked/ \
-      --split     split/ \
-      -profile    singularity
+nextflow run mpieva/quicksand -r v2.0 \
+  --db        refseq/kraken/Mito_db_kmer22/ \
+  --genomes   refseq/genomes/ \
+  --bedfiles  refseq/masked/ \
+  --split     split/ \
+  -profile    singularity
 ```
 
 ### Output
