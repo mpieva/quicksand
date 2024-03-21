@@ -18,12 +18,12 @@
 # -- Project information -----------------------------------------------------
 
 project = 'quicksand'
-copyright = '2023, Merlin Szymanski'
+copyright = '2024, Merlin Szymanski'
 author = 'Merlin Szymanski'
 
 # The full version, including alpha/beta/rc tags
-release = 'v2.0'
-version = 'v2.0'
+release = 'v2.1'
+version = 'v2.1'
 
 # -- General configuration ---------------------------------------------------
 

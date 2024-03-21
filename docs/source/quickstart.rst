@@ -44,7 +44,7 @@ Run quicksand
 
 nextflow pipelines can be executed directly from github. To run quicksand using the downloaded data-set type::
 
-    nextflow run mpieva/quicksand -r v2.0 \
+    nextflow run mpieva/quicksand -r v2.1 \
       -profile   singularity \
       --db       refseq/kraken/Mito_db_kmer22 \
       --genomes  refseq/genomes/ \
@@ -52,8 +52,8 @@ nextflow pipelines can be executed directly from github. To run quicksand using 
       --split    split/
 
 
-| The output of quicksand can be found in the directory **quicksand_v2.0/**
-| See the :code:`final_report.tsv` for a summary of the results.
+| The output of quicksand can be found in the directory **quicksand_v2.1/**
+| See the :code:`final_report.tsv` and :code:`filtered_report_0.5p_0.5b.tsv` for a summary of the results.
 | See the :ref:`output-page` section for a detailed explaination of all the output files.
 
 .. [1] http://ftp.eva.mpg.de/neandertal/Hohlenstein-Stadel/README

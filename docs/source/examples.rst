@@ -18,7 +18,7 @@ families and the number of ancient sequences found.
 
 Execute quicksand like this::
 
-    nextflow run mpieva/quicksand -r v2.0 \
+    nextflow run mpieva/quicksand -r v2.1 \
         -profile   singularity \
         --split    split/ \
         --db       refseq/kraken/Mito_db_kmer22/ \
@@ -29,7 +29,7 @@ The output files are grouped by family-level in the :code:`out/` directory. Extr
 after the KrakenUniq run are stored in :code:`out/{family}/1-extracted/` while mapped, deduped and filtered sequences are saved to the
 :code:`out/{family}/best/{step}/` directory after the respective processing step::
 
-    quicksand_v2.0
+    quicksand_v2.1
     ├── out
     │    └── {family}
     │         ├── 1-extracted
@@ -65,7 +65,7 @@ file-names and should be unique!::
 
 and start the execution with::
 
-    nextflow run mpieva/quicksand -r v2.0 \
+    nextflow run mpieva/quicksand -r v2.1 \
         -profile   singularity \
         --split    split/ \
         --db       refseq/kraken/Mito_db_kmer22/ \
@@ -77,7 +77,7 @@ The output file structure remains the same as before. For families specified in 
 appear in the :code:`out/{family}/fixed/{step}/` directory, together with additional output-files
 that are useful in additional downstream-analyses, such as the extracted deaminated reads::
 
-    quicksand_v2.0
+    quicksand_v2.1
     ├── out
     │    └── {family}
     │         ├── 1-extracted
@@ -122,14 +122,14 @@ After collecting the reference genome(s) for the Suidae family, prepare a fresh 
 
 and rerun the pipeline with::
 
-    nextflow run mpieva/quicksand -r v2.0 \
+    nextflow run mpieva/quicksand -r v2.1 \
         -profile   singularity \
         --rerun    \
         --fixed    fixed-references.tsv
 
 The (additional) output files are the ones created by the :code:`--fixed` flag::
 
-    quicksand_v2.0
+    quicksand_v2.1
     ├── out
     │    └── {family}
     │         ├── 1-extracted

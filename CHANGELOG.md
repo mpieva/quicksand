@@ -7,9 +7,25 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## Unpublished
 
-### Bugfixes
+- Nothing to see here
 
-- change in parse-report script to account for taxa without order hierarchy
+## [v2.1] - 2024-03-21
+
+This version adds 4 columns to the end of the `final_report.tsv` file and adds an additional file `filtered_report_{n}p_{m}b.tsv` to the output-directory. This file should serve as a quick look on the final_report and shoult **not** be treated as the final output file
+
+### Changes
+
+This version alters the `final_report.tsv` file and adds an additional file `filtered_report_{n}p_{m}b.tsv` which is a filtered version of the final_report based on two freshly introduced filter-flags
+
+- `--reportfilter_percentage` sets the filter threshold for the FamPercentage column
+- `--reportfilter_breadth` sets the filter threshold for the ProportionExpectedBreadth column
+
+Within the workflow quicksand now takes additional information from the `samtools coverage` command that analyzes the deduplicated reads. This additional information is (or is used to calculate)
+
+- Depth of Coverage
+- Breadth of Coverage
+- Expected Breadth of Coverage, based on the [inStrain documentation](https://instrain.readthedocs.io/en/latest/important_concepts.html)
+- Proportion of Expected Breadth, based on the [inStrain documentation](https://instrain.readthedocs.io/en/latest/important_concepts.html)
 
 ## [v2.0] - 2023-11-20
 
