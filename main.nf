@@ -35,9 +35,22 @@ def exit_missing_required(flag){
     exit_with_error_msg("ArgumentError", "missing required argument ${flag}")
 }
 
+//
+//
+// Help
+//
+//
+
+if (params.help){
+    print file("$baseDir/assets/pipeline/help.txt").text
+    exit 0
+}
+
+
 // Define the current workflow
 
 standard_run = params.rerun ? false : true
+
 
 //
 //
@@ -75,17 +88,6 @@ if(standard_run){
     }
 }
 
-
-//
-//
-// Help
-//
-//
-
-if (params.help){
-    print file("$baseDir/assets/pipeline/help.txt").text
-    exit 0
-}
 
 //
 //

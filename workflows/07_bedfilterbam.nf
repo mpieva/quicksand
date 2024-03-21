@@ -45,8 +45,9 @@ workflow bedfilterbam {
         // And add the coverage to the meta
         SAMTOOLS_COVERAGE.out.bam
         .map{ meta, bam, cov ->
+            def (covered_bases, breadth, coverage) = cov.split()
             [
-                meta+[ "PostBedCoveredBP":cov.trim() as int ],
+                meta+[ "PostBedCoveredBP":covered_bases.trim() as int ],
                 bam
             ]
         }

@@ -31,12 +31,22 @@ workflow dedupbam {
         SAMTOOLS_COVERAGE( bam )
         versions = versions.mix(SAMTOOLS_COVERAGE.out.versions.first())
 
-        // Add the CoveredBP value to the meta of the main bam channel
+        // Add the samtools coverage values to the meta of the main bam channel
 
         SAMTOOLS_COVERAGE.out.bam
         .map{ meta, bam, cov ->
+            def (covered_bases, b, c) = cov.split()
+            def coverage = c.trim() as float
+            def breadth = (b.trim() as float) / 100
+            def expected_breadth = 1 - (Math.exp(-0.883 * coverage))
             [
-                meta+["CoveredBP":cov.trim() as int],
+                meta+[
+                        "CoveredBP": covered_bases.trim() as int,
+                        "Coverage": coverage,
+                        "Breadth": breadth,
+                        'ExpectedBreadth': expected_breadth.trunc(2),
+                        'ProportionExpectedBreadth': (breadth / expected_breadth).trunc(2)
+                    ],
                 bam
             ]
         }

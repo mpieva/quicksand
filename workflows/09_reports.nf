@@ -14,12 +14,12 @@ workflow write_reports {
     // write the reports to file...
     ch_versions.unique().collectFile(name: 'pipeline_versions.yml', storeDir:"${basedir}/")
 
-    // calculate proportion mapped and duplication rate
+    // calculate proportion mapped, duplication rate, expected breadth
     ch_final
     .map{ meta -> meta+[
             "ProportionMapped": ( (meta.ReadsExtracted as int)==0 || (meta.ReadsMapped as int)== 0) ? 0 : ((meta.ReadsMapped as int)/(meta.ReadsExtracted as int)).trunc(4),
             "DuplicationRate":  ( (meta.ReadsDeduped as int)  ==0 || (meta.ReadsMapped as int)== 0) ? 0 : ((meta.ReadsMapped as int)/(meta.ReadsDeduped   as int)).trunc(4),
-            "ReadsFinal": meta.ReadsBedfiltered == '-' ? meta.ReadsDeduped as int : meta.ReadsBedfiltered as int
+            "ReadsFinal": meta.ReadsBedfiltered == '-' ? meta.ReadsDeduped as int : meta.ReadsBedfiltered as int,
         ]
     }
     .unique{meta -> meta.RG+meta.Species+meta.Reference}
@@ -83,7 +83,8 @@ workflow write_reports {
     'map'    : 'ReadsMapped\tProportionMapped',
     'dedup'  : 'ReadsDeduped\tDuplicationRate\tCoveredBP',
     'bed'    : 'ReadsBedfiltered\tPostBedCoveredBP',
-    'frags'  : 'MeanFragmentLength\tMeanFragmentLength(3term)'
+    'frags'  : 'MeanFragmentLength\tMeanFragmentLength(3term)',
+    'breadth': 'Coverage\tBreadth\tExpectedBreadth\tProportionExpectedBreadth'
     ]
 
     def getVals = {String header, meta, res=[] ->
@@ -104,7 +105,8 @@ workflow write_reports {
         header_map['bed'],
         'FamPercentage',
         header_map['deam'],
-        header_map['frags']
+        header_map['frags'],
+        header_map['breadth']
         ].join('\t'), storeDir:"${basedir}/", newLine:true, sort:true
     ){[
         it.RG,
@@ -115,9 +117,10 @@ workflow write_reports {
         getVals(header_map['map'],     it),
         getVals(header_map['dedup'],   it),
         getVals(header_map['bed'],     it),
-        it.FamPercentage ?: '-',
+        it.FamPercentage,
         getVals(header_map['deam'],    it),
-        getVals(header_map['frags'],   it)
+        getVals(header_map['frags'],   it),
+        getVals(header_map['breadth'], it)
         ].join('\t')
     }
     .subscribe {

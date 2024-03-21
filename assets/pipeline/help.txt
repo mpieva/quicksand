@@ -37,7 +37,7 @@ process arguments:
   --bamfilter_length_cutoff     N    Length cutoff for extracted bam (default: 35)
   --bamfilter_quality_cutoff    N    Quality filter for extracted bam (default: 25)
   --krakenuniq_min_kmers        N    Filter: minimal required unique kmers (krakenuniq) assigned to a family (default: 129)
-  --krakenuniq_min_reads        N    Filter: minimal required number of reads assigend to a family by krakenuniq (default: 3)
+  --krakenuniq_min_reads        N    Filter: minimal required number of reads assigned to a family by krakenuniq (default: 3)
   --compression_level           N    Set BGZF compression level (default: 0)
 
 
