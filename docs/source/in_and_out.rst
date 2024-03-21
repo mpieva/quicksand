@@ -189,10 +189,20 @@ genome was fixed. The proportion mapped is the proportion of mapped to extracted
 
 .. rst-class:: description
 TSV FILE. Contains for each readgroup and family the number of unique reads mapped to the reference genome, the duplication rate
-and the number of basepairs covered in the reference genome.::
+and information from the :code:`samtools coverage` command::
 
-    Order     Family      Species       Reference  ReadsDeduped  DuplicationRate  CoveredBP
-    Primates  Hominidae   Homo_sapiens  fixed      98            2.31             4216
+    Order: The taxonomic order
+    Family: The taxonomic family
+    Species: The taxonomic species used as reference for mapping
+    Reference: The reference type: either 'best' or 'fixed'
+    ReadsDeduped: The number of unique reads
+    DuplicationRate: The duplication rate of the unique reads
+    CoveredBP: 'covbases' of the samtools coverage command: The number of covered bases in the reference genome
+    Coverage: 'meandepth' of the samtools coverage command: The mean depth of coverage
+    Breadth: 'coverage' of the samtools coverage command (by 100): the proportion of covered bases in the reference genome
+    ExpectedBreadth: Expected breadth based on the inStrain formula: expected_breadth = 1-e^(-0.833*coverage). See
+        https://instrain.readthedocs.io/en/latest/important_concepts.html
+    ProportionExpectedBreadth: The proportion of Breadth / ExpectedBreadth
 
 .. rst-class:: file
 *$\{RG\}_03_bedfiltered.tsv*
