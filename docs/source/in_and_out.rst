@@ -66,6 +66,7 @@ layed out as follows::
     ├── work
     │    └── ...
     ├── cc_estimates.tsv
+    ├── filtered_report_{N}p_{N}b.tsv
     └── final_report.tsv
 
 
@@ -227,6 +228,13 @@ final_report.tsv
 The final report contains all the columns presented above. In Addition, the final report contains a column :code:`FamPercentage` which provides the relative
 proportion of *final reads* (after deduplication or bedfiltering) of the assigned family in the readgroup. If there are several lines for one family and readgroup (e.g. after a rerun or multiple fixed references)
 the highest number of final reads is used as the baseline for the other entries of the same family
+
+filtered_report.tsv
+~~~~~~~~~~~~~~~~
+
+The filtered report contains all the columns from the final_report. However, the report is filtered by the two values :code:`FamPercentage` and :code:`ProportionExpectedBreadth` as
+provided by the flags :code:`--reportfilter_percentage` and :code:`--reportfilter_breadth` (both default to 0.5).
+
 
 | The :file:`cc_estimates.tsv` files contains information about index-hopping and cross contamintaion
 | The :file:`nextflow` directory contains information about the run, like the commandline used and the config-files provided

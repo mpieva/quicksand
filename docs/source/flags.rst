@@ -250,6 +250,26 @@ Optional flags
 
           --bamfilter_quality_cutoff 25
 
+  * - --reportfilter_percentage
+    - N
+    - | For the creation of the filtered_report.tsv file
+      | Filter family assignments from the final_report.tsv that have a FamPercentage value of less or equal than N percent (default: 0.5).
+      ::
+
+          Example:
+
+          --reportfilter_percentage 0.5
+
+  * - --reportfilter_breadth
+    - N
+    - | For the creation of the filtered_report.tsv file
+      | Filter family assignments from the final_report.tsv that have a ProportionExpectedBreadth value of less or equal than N (default: 0.5).
+      ::
+
+          Example:
+
+          --reportfilter_breadth 0.8
+
   * - --compression_level
     - [0-9]
     - | For the BAM output processes

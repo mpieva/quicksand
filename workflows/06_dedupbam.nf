@@ -42,10 +42,10 @@ workflow dedupbam {
             [
                 meta+[
                         "CoveredBP": covered_bases.trim() as int,
-                        "Coverage": coverage,
-                        "Breadth": breadth,
-                        'ExpectedBreadth': expected_breadth.trunc(2),
-                        'ProportionExpectedBreadth': (breadth / expected_breadth).trunc(2)
+                        "Coverage": coverage.trunc(2),
+                        "Breadth": breadth.trunc(3),
+                        'ExpectedBreadth': expected_breadth.trunc(3),
+                        'ProportionExpectedBreadth': (breadth / expected_breadth).trunc(3)
                     ],
                 bam
             ]

@@ -128,6 +128,43 @@ workflow write_reports {
     }
 
     ch_final
+    .filter{ it.FamPercentage >= params.reportfilter_percentage  }
+    .filter{ it.ProportionExpectedBreadth >= params.reportfilter_breadth }
+    .collectFile( name:"filtered_report_${params.reportfilter_percentage}p_${params.reportfilter_breadth}b.tsv",
+        seed:[
+        'RG',
+        header_map['split'],
+        header_map['kraken'],
+        header_map['extract'],
+        header_map['tax'],
+        header_map['map'],
+        header_map['dedup'],
+        header_map['bed'],
+        'FamPercentage',
+        header_map['deam'],
+        header_map['frags'],
+        header_map['breadth']
+        ].join('\t'), storeDir:"${basedir}/", newLine:true, sort:true
+    ){[
+        it.RG,
+        getVals(header_map['split'],   it),
+        getVals(header_map['kraken'],  it),
+        getVals(header_map['extract'], it),
+        getVals(header_map['tax'],     it),
+        getVals(header_map['map'],     it),
+        getVals(header_map['dedup'],   it),
+        getVals(header_map['bed'],     it),
+        it.FamPercentage,
+        getVals(header_map['deam'],    it),
+        getVals(header_map['frags'],   it),
+        getVals(header_map['breadth'], it)
+        ].join('\t')
+    }
+    .subscribe {
+        println "[quicksand]: Filtered report saved"
+    }
+
+    ch_final
     .collectFile(
         storeDir: "${basedir}/stats", newLine:true,
         seed:[
@@ -163,13 +200,15 @@ workflow write_reports {
         storeDir: "${basedir}/stats", newLine:true,
         seed: [
         header_map['tax'],
-        header_map['dedup']
+        header_map['dedup'],
+        header_map['breadth']
         ].join('\t')
     ){[
         "${it.RG}_02_deduped.tsv",
             [
             getVals(header_map['tax'],   it),
-            getVals(header_map['dedup'], it)
+            getVals(header_map['dedup'], it),
+            getVals(header_map['breadth'], it)
             ].join('\t')
         ]
     }
