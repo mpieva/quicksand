@@ -1,9 +1,8 @@
+![MIT License](https://img.shields.io/github/license/mpieva/quicksand?style=for-the-badge)
+![DOI](https://img.shields.io/badge/DOI-10.5281/zenodo.11106450-ff69b4?style=for-the-badge&link=https://zenodo.org/doi/10.5281/zenodo.11106450)
+
 <h1 style="border:0px;padding-bottom:0px;margin-bottom:0px">quicksand</h1>
 <p style="color:grey;border-bottom:1px solid lightgrey">quick analysis of sedimentary ancient DNA</p>
-
-![Singularity](https://img.shields.io/badge/run_with-Singularity-ff69b4?style=for-the-badge)
-![Docker](https://img.shields.io/badge/run_with-Docker-0db7ed?style=for-the-badge)
-![MIT License](https://img.shields.io/github/license/mpieva/quicksand?style=for-the-badge)
 
 See the [documentation](https://quicksand.readthedocs.io/en/latest/in_and_out.html) for a comprehensive documentation of the pipeline.
 
