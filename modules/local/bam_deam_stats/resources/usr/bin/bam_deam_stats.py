@@ -15,7 +15,7 @@ def binomial_ci(x, n, alpha=0.05):
     return f"{round(lower*100,1):.1f},{round(upper*100,1):.1f}"
 
 
-def main(bamfile, stats_only=False):
+def main(bamfile, stats_only=False, doublestranded=False):
     #store all reference bases
     all_first = []
     all_last = []
@@ -43,14 +43,18 @@ def main(bamfile, stats_only=False):
         out1term = pysam.AlignmentFile('output.deaminated1.bam', 'wb', template=infile)
         out3term = pysam.AlignmentFile('output.deaminated3.bam', 'wb', template=infile)
 
-    #main loop
+    #
+    # main loop
+    #
+
+    # get the mean sequence lenghts on the fly
     lengths_all = []
     lengths_deam = []
+
+    # now iterate the bamfile
     for read in infile:
         # get read and ref sequences, reverse complement if necessary
         seq = read.query_sequence
-        lengths_all.append(len(seq))
-
         ref = ''.join([str(z).replace('None','-') for x,y,z in read.get_aligned_pairs(with_seq=True) if x != None])
 
         if read.is_reverse:
@@ -58,15 +62,25 @@ def main(bamfile, stats_only=False):
             seq = read.get_forward_sequence()
 
         rlen = len(ref)-1 #0based required
+        lengths_all.append(rlen + 1) #real lenght required
 
         all_first.append(ref[0].upper())
         all_last.append(ref[-1].upper())
 
-        # check if ct substitutions in the first or last 3 postions and save indices
-        mism = [
-            n for n,x in enumerate(ref)
-            if ((x, seq[n]) == ('c','T')) and (n<=2 or n>=rlen-2)
-        ]
+        # check if C>T (or G>A) substitutions in the first or last 3 postions and save indices
+        if not doublestranded:
+            mism = [
+                n for n,x in enumerate(ref)
+                if ((x, seq[n]) == ('c','T')) and (n<=2 or n>=rlen-2)
+            ]
+        else:
+            mism = [
+                n for n,x in enumerate(ref)
+                if (
+                    ((x, seq[n]) == ('c','T') and n<=2) or # check C>T in 5'
+                    ((x, seq[n]) == ('g','A') and n>=rlen-2) # check G>A in 3'
+                )
+            ]
 
         # skip non-damaged reads
         if len(mism) == 0:
@@ -97,7 +111,7 @@ def main(bamfile, stats_only=False):
             if not only_stats:
                 out1term.write(read)
         if deam53 or deam33:
-            lengths_deam.append(len(seq)) #deaminated fragment length
+            lengths_deam.append(rlen+1) #deaminated fragment length
             n_deam_3 += 1
             if not only_stats:
                 out3term.write(read)
@@ -113,8 +127,9 @@ def main(bamfile, stats_only=False):
     ## Calculate the stats
 
     all_5c = all_first.count('C')
-    all_3c = all_last.count('C')
-    all_5c_cond3 = cond5_last.count('C')
+    all_3c = all_last.count('C') if not doublestranded else all_last.count('G')
+
+    all_5c_cond3 = cond5_last.count('C') if not doublestranded else cond5_last.count('G')
     all_3c_cond5 = cond3_first.count('C')
 
     #calculate deamination percentage
@@ -172,10 +187,11 @@ def main(bamfile, stats_only=False):
 
 if __name__ == "__main__":
     bamfile = sys.argv[1]
-    only_stats = False
-    try:
-        if sys.argv[2]=='only_stats':
-            only_stats = True
-    except IndexError:
-        pass
-    main(bamfile, only_stats)
+    only_stats = 'only_stats' in sys.argv
+    doublestranded = 'doublestranded' in sys.argv
+
+    # only_stats - dont write deaminated reads to file
+    # doublestranded - use G>A rates at 5' end instead of C>T as in singlestranded library prep
+    #
+
+    main(bamfile, only_stats, doublestranded)

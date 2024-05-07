@@ -32,6 +32,7 @@ optional arguments:
                         - ! this decision also influences the --fixed file !
 
 process arguments:
+  --doublestranded                   Report A>G rates at 3' end of sequences instead of C>T rates
   --bamfilterflag               N    The bitwise filterflag used by samtools to filter the input bam files (default: 1)
                                        - 0: no filter, 1: filter paired, 4: filter unmapped, 5: filter both
   --bamfilter_length_cutoff     N    Length cutoff for extracted bam (default: 35)
