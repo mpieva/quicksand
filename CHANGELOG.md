@@ -7,7 +7,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## Unpublished
 
-- Nothing to see here
+### Changes
+
+- Add a `--doublestranded` flag to adjust damage pattern analysis to the ones observed in data created from double stranded libraries.
+  - Changes the `bam_deam_stats.py` and the `mask_deamination.py` scripts to look at 3' G to A substitutions instead of the C to T changes as done before.
+  - Nothing changes for default runs
 
 ## [v2.1] - 2024-03-21
 
