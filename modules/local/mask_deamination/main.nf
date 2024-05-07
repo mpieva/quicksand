@@ -11,8 +11,8 @@ process MASK_DEAMINATION{
 
     script:
     """
-    mask_qual_scores.py ${bam}
-    mask_qual_scores.py ${bam1}
-    mask_qual_scores.py ${bam3}
+    mask_qual_scores.py ${bam} ${params.doublestranded ? 'doublestranded' : ''}
+    mask_qual_scores.py ${bam1} ${params.doublestranded ? 'doublestranded' : ''}
+    mask_qual_scores.py ${bam3} ${params.doublestranded ? 'doublestranded' : ''}
     """
 }
