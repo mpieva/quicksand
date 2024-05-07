@@ -93,9 +93,15 @@ for families with a fixed reference genome (see :code:`--fixed` flag)
 DNA Deamination Stats
 """""""""""""""""""""
 
-In the last step of the pipeline, the deduplicated sequences are checked for C to T substitutions compared to the reference genome.
-Ancient DNA exhibits C to T substitutions at the 3’ and 5’ ends of DNA fragments, a degradation pattern used to identify ancient DNA.
-Families whose sequences show more than 10% of terminal C bases in the reference genome replaced by a T are flagged as ancient (++) in the final report.
+In the last step of the pipeline, the deduplicated sequences are checked for DNA damage patters, by counting base substitutions in the analyzed sequences
+compared to the reference genomes the sequences are mapped against.
+
+Ancient DNA exhibits C to T substitutions at both the 3’ and 5’ ends of the molecule, a degradation pattern used to identify ancient DNA.
+By default quicksand counts C to T substitutions on both ends of the DNA sequences, as obtained by data that went through a single stranded
+library preparation. Use the :code:`--doublestranded` flag to count the G to A substitutions at the 5' end of the DNA sequences instead,
+as observed in libraries prepared with a double-stranded protocol.
+
+Taxonomic families whose sequences show more than 10% of terminal base substitutions are flagged as ancient (++) in the final report.
 
 Fixed References
 -----------------

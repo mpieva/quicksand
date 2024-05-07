@@ -188,6 +188,16 @@ Optional flags
 
           --taxlvl o
 
+  * - --doublestranded
+    -
+    - | Count C to T at the 5' and G to A substitutions at the 3' end of mapped sequences,
+      | Default: Count C to T substitutions on 5' and 3' ends.
+      ::
+
+          Example:
+
+          --doublestranded
+
 
 **Process parameters**
 
