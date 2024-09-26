@@ -61,7 +61,7 @@ http://ftp.eva.mpg.de/neandertal/Hohlenstein-Stadel/BAM/mtDNA/HST.raw_data.ALL.b
 quicksand is executed directly from github, no local build is required. With the databases and the testdata downloaded, run the pipeline.
 
 ```bash
-nextflow run mpieva/quicksand -r v2.1 \
+nextflow run mpieva/quicksand -r v2.2 \
   --db        refseq/kraken/Mito_db_kmer22/ \
   --genomes   refseq/genomes/ \
   --bedfiles  refseq/masked/ \

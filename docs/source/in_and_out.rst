@@ -24,10 +24,10 @@ as readgroups::
 Output
 ------
 
-quicksand writes all output files to the **quicksand_v2.1** directory. Within this directory the files are
+quicksand writes all output files to the **quicksand_v2.2** directory. Within this directory the files are
 layed out as follows::
 
-    quicksand_v2.1
+    quicksand_v2.2
     ├── out
     │    └── {taxon}
     │         ├── 1-extracted
