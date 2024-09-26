@@ -8,7 +8,7 @@ required arguments:
   Or:
   --split      DIR    Directory with already split files
                         - Filenames should be: 'RG.{bam, fastq, fastq.gz, fq.gz, fq}'
-                        - Note: Files will be interpreted as SR (merged), PE reads get filtered out by default, PE fastq files are imported to bam as SR
+                        - Note: Files will be interpreted as SR (merged), PE reads get filtered out by default. To process PE fastq files, set the --bamfilterflag to 0
   And:
   --db         DIR    Path to kraken database directory
   --genomes    DIR    Path to directory containing the reference genomes for alignment
