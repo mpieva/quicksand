@@ -280,14 +280,12 @@ workflow {
     ch_versions = ch_versions.mix( mapbam.out.versions )
 
     mapped = mapbam.out.bam
+
     mapped.branch{
         dedup: it[0].ReadsMapped > 0
         nodedup: true
     }
     .set{ mapped }
-
-    ch_empty = mapped.nodedup.map{ it[0] }
-    ch_final.mix( ch_empty ).set{ ch_final }
 
     //
     // 6. Dedup the mapped bam
@@ -309,7 +307,9 @@ workflow {
     // if default.best is empty it would throw an index error,
     // best: reduce the 1 "best" hit per family
 
-    best = deduped.best
+    deduped.best.mix( mapped.nodedup ).set{ best }
+
+    best = best
         .map{meta,bam -> [meta.id, meta.Family, meta.CoveredBP, meta, bam]}
         .toSortedList({ a,b -> a[0]+a[1] <=> b[0]+b[1] ?: a[2] <=> b[2]})
         .flatten()
@@ -317,6 +317,7 @@ workflow {
         .groupTuple(by:[0,1])   //[[rg, fam, [covered_bp < .. < covered_bp][meta,meta,meta],[bam,bam,bam]]
         .map{n -> [n[3][-1], n[4][-1]]} // from the highest, the [meta, bam]
 
+    best.view()
     //
     // 7. Run Intersect Bed
     //

@@ -11,7 +11,7 @@ workflow write_reports {
     //
     //
 
-    // write the reports to file...
+    // write the versions to file...
     ch_versions.unique().collectFile(name: 'pipeline_versions.yml', storeDir:"${basedir}/")
 
     // calculate proportion mapped, duplication rate, expected breadth
