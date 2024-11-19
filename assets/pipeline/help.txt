@@ -1,4 +1,4 @@
-Usage: nextflow run mpieva/quicksand -r v2.2 {--bam PATH --rg PATH | --split DIR} --db PATH --genome PATH --bedfiles PATH [options] -profile singularity
+Usage: nextflow run mpieva/quicksand -r v2.3 {--bam PATH --rg PATH | --split DIR} --db PATH --genome PATH --bedfiles PATH [options] -profile singularity
 
 required arguments:
   Either:

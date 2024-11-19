@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [v2.3] - 2024-11-19
+
+### Bugfixes
+
+- Remove the default read filters in the `samtools coverage` function. (This caused results with ReadsDeduped > 0 but CoveredBP 0).
+- Remove bug in the `final_report.tsv` report generation, the bug kept duplicated families (from Kraken) with MappedReads 0 in the report.
+- Update default values in the report to match the format of the `final_report.tsv` (e.g. 0.0 instead of 0)  
+
 ## [v2.2] - 2024-09-26
 
 ### Changes
@@ -12,6 +20,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Add a `--doublestranded` flag to adjust damage pattern analysis to the ones observed in data created from double stranded libraries.
   - Changes the `bam_deam_stats.py` and the `mask_deamination.py` scripts to look at 3' G to A substitutions instead of the C to T changes as done before.
   - Nothing changes for default runs
+
+### Bugfixes 
+
 - Fix a bug in the processing of paired fastq-files.
   - removes the "1" flag from the resulting bam files (make sure to merge your reads before quicksand!)
 
