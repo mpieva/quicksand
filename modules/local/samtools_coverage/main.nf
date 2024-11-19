@@ -13,7 +13,7 @@ process SAMTOOLS_COVERAGE {
 
     script:
     """
-    samtools coverage -H ${bam} | cut -f 5-7
+    samtools coverage -H ${bam} --ff UNMAP | cut -f 5-7
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":

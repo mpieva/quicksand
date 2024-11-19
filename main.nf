@@ -317,7 +317,6 @@ workflow {
         .groupTuple(by:[0,1])   //[[rg, fam, [covered_bp < .. < covered_bp][meta,meta,meta],[bam,bam,bam]]
         .map{n -> [n[3][-1], n[4][-1]]} // from the highest, the [meta, bam]
 
-    best.view()
     //
     // 7. Run Intersect Bed
     //
