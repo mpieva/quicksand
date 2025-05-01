@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [WIP]
+
+### Changes
+
+- Publish the "KrakenUniq parsed report" in the 'stats' directory
+
+### Bugfixes
+
+- Fix config-error for profile docker, causing images with ENTRYPOINT statement to fail
+
 ## [v2.3] - 2024-11-19
 
 ### Bugfixes
