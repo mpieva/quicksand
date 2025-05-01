@@ -26,6 +26,9 @@ optional arguments:
                             - Extraction of deaminated reads
                             - Creation of mpileup files for deaminated sequences
                         - Please add an Order or Family name in the Taxon column, depending on `--taxlvl` o or f
+  
+  --fixed_bedfiltering   Dont skip bedfiltering for fixed references
+  
   --taxlvl     VAL    ['f' or 'o'] The taxonomic level of kraken assignments used for extracting reads (default: f).
                         - e.g. if 'o' is picked, reads assigned to 'Primates' will be mapped to 'Homo_sapiens' reference genomes instead of only the 'Hominidae' reads
                         - the 'best' reference genomes are still picked by the best guess per family

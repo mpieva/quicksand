@@ -321,7 +321,8 @@ workflow {
     // 7. Run Intersect Bed
     //
 
-    bedfilterbam( best, bedfiles )
+    bedfilterbam( best, bedfiles, ch_fixed, deduped.fixed )
+    
     best = bedfilterbam.out.bam
     ch_versions = ch_versions.mix(bedfilterbam.out.versions)
 
@@ -329,7 +330,12 @@ workflow {
     // 8. Run Deamination workflow
     //
 
-    deamination_stats( best, deduped.fixed )
+    // if --fixed and --fixed_bedfiltering is used in combination, the 'fixed' entries are now mixed
+    // in the bedfilterbam.out.bam channel (otherwise, use the deduped.fixed)
+
+    ch_fixed_for_deam = params.fixed_bedfiltering ? best.filter{meta, bam -> meta.Reference == 'fixed' } : deduped.fixed 
+
+    deamination_stats( best.filter{meta, bam -> meta.Reference == 'best' }, ch_fixed_for_deam )
 
     // get the meta-table from the "best"-libraries
     best = deamination_stats.out.best.map{ it[0] }
