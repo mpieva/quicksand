@@ -1,21 +1,18 @@
 ![MIT License](https://img.shields.io/github/license/mpieva/quicksand?style=for-the-badge)
 ![DOI](https://img.shields.io/badge/DOI-10.5281/zenodo.11106450-ff69b4?style=for-the-badge&link=https://zenodo.org/doi/10.5281/zenodo.11106450)
 
-<h1 style="border:0px;padding-bottom:0px;margin-bottom:0px">quicksand</h1>
-<p style="color:grey;border-bottom:1px solid lightgrey">quick analysis of sedimentary ancient DNA</p>
+# quicksand
 
-See the [documentation](https://quicksand.readthedocs.io/en/latest/in_and_out.html) for a comprehensive documentation of the pipeline.
+See [readthedocs](https://quicksand.readthedocs.io/en/latest/in_and_out.html) for the full documentation of the pipeline.
 
 ## Description
 
-quicksand is a bioinformatic pipeline for the analysis and taxonomic binning of (target enriched) ancient, mitochondrial, sedimentary DNA. quicksand uses [krakenuniq](https://doi.org/10.1186/s13059-018-1568-0) for metagenomic classification, [BWA](https://github.com/mpieva/network-aware-bwa) for the mapping of DNA sequences and analyses mapped sequences for DNA deamination patterns.
-
-Optimized for speed and portablity, quicksand is written in [Nextflow](https://doi.org/10.1038/nbt.3820) and requires either [Singularity](https://doi.org/10.1371/journal.pone.0177459) or [Docker](https://www.docker.com/).
+quicksand (**quick** analysis of **s**edimentary **an**cient **D**NA) is an open-source [Nextflow](https://doi.org/10.1038/nbt.3820) pipeline designed for rapid and accurate taxonomic classification of mammalian mitochondrial DNA (mtDNA) in aDNA samples. quicksand combines fast alignment-free classification using [KrakenUniq](https://doi.org/10.1186/s13059-018-1568-0) with downstream mapping ([BWA](https://github.com/mpieva/network-aware-bwa)), post-classification filtering, and ancient DNA authentication. quicksand is optimized for speed and portablity and requires either [Singularity](https://doi.org/10.1371/journal.pone.0177459) or [Docker](https://www.docker.com/).
 
 ## Workflow
 
 <p align=center>
-    <img src="assets/docs/v1.2.png" alt="Graphical representation of the pipeline workflow" width='800px'>
+    <img src="assets/docs/workflow_v2.3.png" alt="Graphical representation of the pipeline workflow" width='800px'>
 </p>
 
 ## Quickstart
@@ -29,23 +26,31 @@ To run the pipeline, please install
 
 ### Input
 
-The pipeline accepts demultiplexed, adapter-trimmed and overlap-merged bam and fastq files. Put all files in one directory, name the files `DIR/{READGROUP}.{bam, fastq}`. Provide the directory with the `--split` flag
+The input for quicksand is a directory with user-supplied files in BAM or FASTQ format. Adapter-trimming, overlap-merging and sequence demultiplexing need to be performed by the user prior to running quicksand. Provide the directory with the `--split` flag
 
-### Download Datastructure
+### Reference Database
 
-To run quicksand a kraken database for metagenomics classification, the reference genomes for mapping and a set of bed-files are required for the run of the pipeline.
+The required KrakenUniq database, the reference genomes for mapping and the bed-files for low-complexity filtering are available on the MPI EVA FTP Servers. Custom versions of the reference material can be created with the [quicksand-build pipeline](https://github.com/mpieva/quicksand-build)
 
-For the most recent RefSeq releases please download the quicksand-datastructure
-here:
+#### Test Database
+
+For the quickstart of quicksand, create a fresh database containing only the Hominidae mtDNA reference genomes (runtime: ~3-5 minutes)
+
+```bash
+nextflow run mpieva/quicksand-build -r v3.0 \
+  --include  Hominidae \
+  --outdir   refseq \
+  -profile   singularity
+```
+
+#### Full Database
+
+ To download the full reference database, use this command:
 
 ```bash
 latest=$(curl http://ftp.eva.mpg.de/quicksand/LATEST)
 wget -r -np -nc -nH --cut-dirs=3 --reject="*index.html*" -q --show-progress -P refseq http://ftp.eva.mpg.de/quicksand/build/$latest
 ```
-
-This step takes a while! Make yourself a coffee and relax
-
-For a custom creation of the datastructure see the [quicksand-build pipeline](https://github.com/mpieva/quicksand-build)
 
 ### Download Test-data
 
@@ -58,7 +63,7 @@ http://ftp.eva.mpg.de/neandertal/Hohlenstein-Stadel/BAM/mtDNA/HST.raw_data.ALL.b
 
 ### Run quicksand
 
-quicksand is executed directly from github, no local build is required. With the databases and the testdata downloaded, run the pipeline.
+quicksand is executed directly from github. With the databases created and the testdata downloaded, run the pipeline as follows:
 
 ```bash
 nextflow run mpieva/quicksand -r v2.3 \
