@@ -79,7 +79,7 @@ for row in open(report,'r'):
 
 
 # Write the report
-print('Family','Order','BestTaxID','FamReads','SpeciesKmers','KmerCoverage','KmerDupRate', sep='\t', file=sys.stdout)
+print('Family','Order','BestTaxID','FamReads','Kmers','KmerCoverage','KmerDupRate', sep='\t', file=sys.stdout)
 for node in family_nodes:
     best = node.best_child
     order = node.order
@@ -88,4 +88,12 @@ for node in family_nodes:
     if node.reads < min_reads or node.kmers < min_kmers:
         continue
 
-    print(node.name,order,best.taxid,node.reads,best.kmers,best.coverage,best.dup, sep='\t', file=sys.stdout)
+    print(
+        node.name,
+        order,
+        best.taxid,
+        node.reads,
+        f"{best.kmers} ({node.kmers})",
+        f"{best.coverage} ({node.coverage})",
+        f"{best.dup} ({node.dup})", 
+        sep='\t', file=sys.stdout)

@@ -11,6 +11,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 - Publish the "KrakenUniq parsed report" in the 'stats' directory
 - Add an R-friendly version of the final summary report (column names w/o special characters)
+- In the final_report, replace `SpeciesKmers` name with `Kmers` and include the "best" and "(family)" level stats. E.g. "4 (129)"
+- for the `KmerCoverage` and `KmerDupRate` columns, also combine "best" and "(family)"    
 
 ### Bugfixes
 
