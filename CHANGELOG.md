@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ### Changes
 
 - Publish the "KrakenUniq parsed report" in the 'stats' directory
+- Add an R-friendly version of the final summary report (column names w/o special characters)
 
 ### Bugfixes
 

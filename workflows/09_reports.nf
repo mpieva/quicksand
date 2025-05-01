@@ -87,6 +87,12 @@ workflow write_reports {
     'breadth': 'Coverage\tBreadth\tExpectedBreadth\tProportionExpectedBreadth'
     ]
 
+    // because people use R, include a report with better header names
+    header_map_R = [
+    'deam'   : 'Ancientness\tReadsDeam_1term\tReadsDeam_3term\tDeam5_95ci\tDeam3_95ci\tDeam5Cond_95ci\tDeam3Cond_95ci',
+    'frags'  : 'MeanFragmentLength\tMeanFragmentLength_3term',
+    ]
+
     def getVals = {String header, meta, res=[] ->
         header.split('\t').each{res << meta[it]}
         res.join('\t')
@@ -124,7 +130,43 @@ workflow write_reports {
         ].join('\t')
     }
     .subscribe {
-        println "[quicksand]: Summary reports saved"
+        println "[quicksand]: Final summary report saved (final_report.tsv)"
+    }
+
+    // because people use R, include a report with R-friendly header names
+    ch_final
+    .collectFile( name:"R_final_report.tsv",
+        seed:[
+        'RG',
+        header_map['split'],
+        header_map['kraken'],
+        header_map['extract'],
+        header_map['tax'],
+        header_map['map'],
+        header_map['dedup'],
+        header_map['bed'],
+        'FamPercentage',
+        header_map_R['deam'],
+        header_map_R['frags'],
+        header_map['breadth']
+        ].join('\t'), storeDir:"${basedir}", newLine:true, sort:true
+    ){[
+        it.RG,
+        getVals(header_map['split'],   it),
+        getVals(header_map['kraken'],  it),
+        getVals(header_map['extract'], it),
+        getVals(header_map['tax'],     it),
+        getVals(header_map['map'],     it),
+        getVals(header_map['dedup'],   it),
+        getVals(header_map['bed'],     it),
+        it.FamPercentage,
+        getVals(header_map['deam'],    it),
+        getVals(header_map['frags'],   it),
+        getVals(header_map['breadth'], it)
+        ].join('\t')
+    }
+    .subscribe {
+        println "[quicksand]: Final summary report for R saved (R_final_report.tsv)"
     }
 
     ch_final
@@ -159,9 +201,6 @@ workflow write_reports {
         getVals(header_map['frags'],   it),
         getVals(header_map['breadth'], it)
         ].join('\t')
-    }
-    .subscribe {
-        println "[quicksand]: Filtered report saved"
     }
 
     ch_final
