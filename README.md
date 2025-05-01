@@ -24,15 +24,24 @@ To run the pipeline, please install
 - [Nextflow](https://www.nextflow.io/docs/latest/getstarted.html) v22.10 or larger
 - [Singularity](https://sylabs.io/singularity/) or [Docker](https://www.docker.com/)
 
-### Input
+### Prepare Input
 
 The input for quicksand is a directory with user-supplied files in BAM or FASTQ format. Adapter-trimming, overlap-merging and sequence demultiplexing need to be performed by the user prior to running quicksand. Provide the directory with the `--split` flag
 
-### Reference Database
+#### Download Test-file
+
+As a test file, download the Hohlenstein-Stadel mtDNA (please see the [README](http://ftp.eva.mpg.de/neandertal/Hohlenstein-Stadel/README) for more information)
+
+```bash
+wget -P split \
+http://ftp.eva.mpg.de/neandertal/Hohlenstein-Stadel/BAM/mtDNA/HST.raw_data.ALL.bam
+```
+
+### Create Reference Database
 
 The required KrakenUniq database, the reference genomes for mapping and the bed-files for low-complexity filtering are available on the MPI EVA FTP Servers. Custom versions of the reference material can be created with the [quicksand-build pipeline](https://github.com/mpieva/quicksand-build)
 
-#### Test Database
+#### Create Test Database
 
 For the quickstart of quicksand, create a fresh database containing only the Hominidae mtDNA reference genomes (runtime: ~3-5 minutes)
 
@@ -43,22 +52,13 @@ nextflow run mpieva/quicksand-build -r v3.0 \
   -profile   singularity
 ```
 
-#### Full Database
+#### Download Full Database
 
  To download the full reference database, use this command:
 
 ```bash
 latest=$(curl http://ftp.eva.mpg.de/quicksand/LATEST)
 wget -r -np -nc -nH --cut-dirs=3 --reject="*index.html*" -q --show-progress -P refseq http://ftp.eva.mpg.de/quicksand/build/$latest
-```
-
-### Download Test-data
-
-To run quicksand with real data, download the Hohlenstein-Stadel mtDNA (please see the [README](http://ftp.eva.mpg.de/neandertal/Hohlenstein-Stadel/README) for more information) as input
-
-```bash
-wget -P split \
-http://ftp.eva.mpg.de/neandertal/Hohlenstein-Stadel/BAM/mtDNA/HST.raw_data.ALL.bam
 ```
 
 ### Run quicksand
