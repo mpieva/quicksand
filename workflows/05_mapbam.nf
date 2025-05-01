@@ -54,6 +54,7 @@ workflow mapbam {
             // For the best-branch
             // prepare the genomesdir to match family/species
 
+
             genomesdir.map{ genome ->
                 def fam = genome.getParent().getName()
                 def matcher = genome.name =~ /(.+)\.fasta/
