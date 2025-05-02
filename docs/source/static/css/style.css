@@ -1,3 +1,9 @@
+.document{
+    width: 1400px !important;
+}
+.body{
+    max-width: 1400px !important;
+}
 .description{
     margin-top: 0px;
 }

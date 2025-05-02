@@ -8,11 +8,13 @@ Configuration
 Config-file
 -----------
 
-| **create a custom config file**
-| Since most of the required flags won't change across runs - like the :code:`--db` or the :code:`--genomes` flag, it is possible to create a custom :file:`nextflow.config` file
-| to define these parameters as default values for the pipeline.
-| Create a config-file :file:`nextflow.config` as outlined below and hand it over to the pipeline with the :code:`-c` flag:
+| **Create a custom config file**
+| Most of the required flags won't change across quicksand processings, like the :code:`--db` or the :code:`--genomes` flag.
+| To re-use parameters and other configs across runs, create a config-file e.g. :file:`quicksand.config` as described below and hand it over to the pipeline with the :code:`-c` flag:
 ::
+
+    //
+    // just put all the parameters that are used by default here
 
     params {
         db         = "path/to/kraken/Mito_db_kmer22"
@@ -20,20 +22,22 @@ Config-file
         bedfiles   = "path/to/masked/"
     }
 
-    //add singularity-parameters to the pipeline
+    //add singularity by default to the pipeline
     //bind: add shared drives (if necessary)
     //cacheDir: where to download the container
 
     singularity{
+        enabled = true
+        autoMounts = true
         runOptions = "--bind /mnt/"
         cacheDir   = "path/to/singularity/"
     }
 
 Please see the available configuration options in the `nextflow documentation <https://www.nextflow.io/docs/latest/config.html#scope-singularity>`_
 
-And run the pipeline::
+And run quicksand::
 
-    nextflow run mpieva/quicksand -c nextflow.config --split path/to/split -profile singularity
+    nextflow run mpieva/quicksand -c nextflow.config [...] -profile singularity
 
 Environmental variables
 -----------------------
@@ -51,8 +55,7 @@ The following nextflow specific ENV variables can be set::
 Intermediate files
 ------------------
 
-To run all processes separate from each other Nextflow creates intermediate files and directories
-that are stored in the :file:`work` directory. You can delete the folder after the run::
+Nextflow stores intermediate files and directories in the :file:`work` directory. You can delete the folder after the run::
 
     rm -fr work/
 

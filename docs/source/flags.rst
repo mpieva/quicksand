@@ -5,19 +5,21 @@ Flags
 Required flags
 --------------
 
-| **Datastructure flags**
+| **Reference Database**
+
+These flags are related to the `quicksand-build <https://github.com/mpieva/quicksand-build>`_ output.
 
 .. list-table::
-  :widths: 10 10 60
+  :widths: 20 10 60
   :header-rows: 1
 
   * - Flag
-    - Input type
+    - Type
     - Description
 
   * - --db
     - PATH
-    - The **directory** containing the preindexed :file:`Kraken` or :file:`KrakenUniq` database (see: :ref:`quicksand_build-page`)::
+    - A **directory** containing the preindexed :file:`Kraken` or :file:`KrakenUniq` database::
 
         Input:
 
@@ -35,8 +37,8 @@ Required flags
 
   * - --genomes
     - PATH
-    - | The **directory** containing the indexed FASTA-FILES of the reference genomes that were used to build
-      | the kraken database. Format :file:`PATH/$\\{family\\}/$\\{species\\}.fasta` (see: :ref:`quicksand_build-page`)
+    - | A **directory** containing the indexed FASTA-FILES of the reference genomes used to build
+      | the KrakenUniq database. Format :file:`genomes/$\\{family\\}/$\\{species\\}.fasta`
       ::
 
           Input:
@@ -54,8 +56,8 @@ Required flags
 
   * - --bedfiles
     - PATH
-    - | The **directory** containing the dustmasked BED-FILES of the reference genomes FASTA-FILES
-      | Format :file:`DIR/$\\{species\\}_masked.bed` (see: :ref:`quicksand_build-page`)
+    - | A **directory** containing dustmasked BED-FILES for all the reference genomes
+      | Format :file:`masked/$\\{species\\}_masked.bed`
       ::
 
           Input:
@@ -73,23 +75,24 @@ Required flags
 
 | **Input flags**
 
+The input for quicksand is a directory with user-supplied files in BAM or FASTQ format. Adapter-trimming, overlap-merging and sequence 
+demultiplexing need to be performed by the user prior to running quicksand. However, quicksand also implements a BAM demultiplexing software. 
+This software is working for the bam-files provided by the `MPI EVA Core Unit <https://www.eva.mpg.de/de/genetics/index/>`_. 
 
-quicksand contains an optional demultiplexing preprocessing. However, it is an inhouse demultiplexer working only on bam-files
-provided by the `MPI EVA Core Unit <https://www.eva.mpg.de/de/genetics/index/>`_. For the processing of data coming from the
-MPI EVA run quicksand with the :code:`--bam PATH` and :code:`--rg PATH` flags as alternative to the :code:`--split PATH` parameter.
+In these cases, quicksand can be used with the :code:`--bam PATH` and :code:`--rg PATH` flags as alternative to the :code:`--split PATH` parameter.
 
 .. list-table::
-  :widths: 10 10 60
+  :widths: 20 10 60
   :header-rows: 1
 
   * - Flag
-    - Input type
+    - Type
     - Description
 
   * - --split
     - PATH
-    - | Standard input
-      | A **directory** containing the demultiplexed, adapter trimmed (and overlap-merged) input files
+    - | Default input method!
+      | A **directory** containing demultiplexed, adapter trimmed (and overlap-merged) BAM or FASTQ files
       ::
 
           Input:
@@ -107,8 +110,8 @@ MPI EVA run quicksand with the :code:`--bam PATH` and :code:`--rg PATH` flags as
 
   * - --bam
     - PATH
-    - | Use together with the :code:`--rg` flag
-      | The multiplexed BAM-FILE, as provided by the `MPI EVA Core Unit <https://www.eva.mpg.de/de/genetics/index/>`_ containing
+    - | Use in combination with the :code:`--rg` flag
+      | A multiplexed BAM-FILE, as provided by the `MPI EVA Core Unit <https://www.eva.mpg.de/de/genetics/index/>`_ containing
       | adapter-trimmed and overlap-merged sequencing reads
       ::
 
@@ -118,7 +121,7 @@ MPI EVA run quicksand with the :code:`--bam PATH` and :code:`--rg PATH` flags as
 
   * - --rg
     - PATH
-    - | Use together with the :code:`--bam` flag
+    - | Use in combination with the :code:`--bam` flag
       | A TSV-FILE, containing library information for the demultiplexing step.
       | Provide the readgroups and respective primer combinations contained in the BAM FILE
       ::
@@ -138,36 +141,48 @@ Optional flags
 --------------
 
 .. list-table::
-  :widths: 10 10 60
+  :widths: 20 10 60
   :header-rows: 1
 
   * - Flag
-    - Input type
+    - Type
     - Description
 
   * - --fixed
     - PATH
     - | Provide a TSV file
-      | Map :file:`extractedReads` to the specified genome for given families instead of the one determinded by quicksand.
-      | The tag is used as 'Species' name in the reports and the filenames.
+      | Map :file:`extractedReads` (binned sequences) of detected families to the reference genomes listed, instead of the ones determinded by quicksand.
+      | The 'Tag' is used as 'Species' name in the final summary reports and filenames.
       ::
 
           Input (fixed.tsv):
 
-          Family    Species(tag)  Genome
+          Family    Species/Tag  Genome
           Hominidae Homo_sapiens  /path/to/seq.fa
+          Hominidae Other_cool_hominin  /path/to/other_cool_hominin.fa
 
           Example:
 
           --fixed Path/to/fixed.tsv
 
+  * - --fixed_bedfiltering
+    - -
+    - | Use in combination with the `--fixed` flag
+      | Set this flag to run dustmasking and bedfiltering for the `--fixed` references as well. 
+      | 
+      ::
+
+          Example:
+
+          --fixed Path/to/fixed.tsv --fixed_bedfiltering
+
   * - --rerun
     - -
-    - | Run the pipeline in an already processed folder
+    - | Rerun quicksand in an already processed folder
       | Works together with the :code:`--fixed` flag
-      | Map already extracted reads of families or orders to all the species assigned in the
-      | :code:`--fixed` references file.
-      | These records are **added** to the final_report file
+      | Map already binned reads of families/orders to the reference genomes listed in the
+      | :code:`--fixed` TSV file.
+      | The analysis records are **added** to the existing final_report file
       ::
 
           Example:
@@ -177,11 +192,8 @@ Optional flags
   * - --taxlvl
     - [o,f]
     - | Default: f
-      | Change taxon level (family or order level) of binned sequences after KrakenUniq.
-      | Binned reads are still mapped against the genomes of each `families` reference genome.
+      | Change the taxonomic level for binning sequences after KrakenUniq classification (family or order level).
       |
-      | Example: Map all reads assigned to Primates to the Homo_sapiens genome
-      | **Note:** For the order-level bins, Binned reads are mapped several times to different (family) genomes.
       ::
 
           Example:
@@ -190,8 +202,8 @@ Optional flags
 
   * - --doublestranded
     -
-    - | Count C to T at the 5' and G to A substitutions at the 3' end of mapped sequences,
-      | Default: Count C to T substitutions on 5' and 3' ends.
+    - | Count C-to-T substitutions at the 5' and G-to-A substitutions at the 3' end sequence alignments,
+      | Default: Count C-to-T substitutions on both the 5' and 3' ends.
       ::
 
           Example:
@@ -202,18 +214,18 @@ Optional flags
 **Process parameters**
 
 .. list-table::
-  :widths: 10 10 60
+  :widths: 20 10 60
   :header-rows: 1
 
   * - Flag
-    - Input type
+    - Type
     - Description
 
   * - --bamfilterflag
     - N
-    - | For initial bam file filtering
-      | Filter the file based on the provided SAMTOOLS FLAG (default: 1 = filter paired reads).
-      | see `HERE <https://broadinstitute.github.io/picard/explain-flags.html>`_ to find a desired filterflag
+    - | For initial BAM-file filtering
+      | Filter each BAM-file based on the provided SAMTOOLS FLAG (default: 1 = filter paired reads).
+      | see `HERE <https://broadinstitute.github.io/picard/explain-flags.html>`_ to find desired filterflags
       ::
 
           Example:
@@ -222,7 +234,7 @@ Optional flags
 
   * - --bamfilter_length_cutoff
     - N
-    - | For initial bam file filtering
+    - | For initial BAM-file filtering
       | Filter out reads below the given length cutoff (default: 35).
       ::
 
@@ -232,8 +244,8 @@ Optional flags
 
   * - --krakenuniq_min_kmers
     - N
-    - | For metagenomic classification
-      | Remove families from the KrakenUniq classification results with a kmer-count of less than N (default: 129).
+    - | For removal of KrakenUniq background-identifications
+      | Remove families from the KrakenUniq classification results with an unique kmer-count of less than N (default: 129).
       ::
 
           Example:
@@ -242,7 +254,7 @@ Optional flags
 
   * - --krakenuniq_min_reads
     - N
-    - | For metagenomic classification
+    - | For removal of KrakenUniq background-identifications
       | Remove families from the KrakenUniq classification results with less than N reads assigned (default: 3).
       ::
 
@@ -252,8 +264,8 @@ Optional flags
 
   * - --bamfilter_quality_cutoff
     - N
-    - | For after the mapping step
-      | Filter out reads with a mapping quality below the given quality cutoff (default: 25).
+    - | Filter BAM files adter the BWA mapping step
+      | Remove mapped sequences with a mapping quality below the given quality cutoff (default: 25).
       ::
 
           Example:
@@ -311,5 +323,5 @@ Profiles
     - Use Docker as container software
 
   * - debug
-    - Keep intermediate files in the :file:`work` directory
+    - dont delete intermediate files in the :file:`work` directory after successful quicksand execution
 

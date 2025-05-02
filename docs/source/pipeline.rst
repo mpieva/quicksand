@@ -7,141 +7,116 @@ Pipeline
 	:alt: Graphical overview of the quicksand and quicksand-build pipeline
 
 
-This page provides an overview of the workflows implemented in the quicksand pipeline, as illustrated in the figure above.
-
-While the quicksand pipeline is dedicated to processing DNA sequencing data, the quicksand-build pipeline is used for customizing the underlying databases.
-Outputs from the quicksand-build pipeline, like the kraken-database, the reference genomes and the :file:`bed` files for masking non-informative positions are prerequisites for quicksand.
-
-For a detailed overview of the quicksand-build pipeline, see the :ref:`quicksand_build-page` page.
-
+This page gives an overview of the workflow implemented in quicksand, as illustrated in the figure above.
 
 Workflow
 --------
 
-Quicksand is a nextflow [1]_ pipeline, developed for the analysis of target-enriched sedimentary ancient DNA.
+quicksand (quick analysis of sedimentary ancient DNA) is an open-source Nextflow [1]_ pipeline designed for 
+rapid and accurate taxonomic classification of mammalian mitochondrial DNA (mtDNA) in aDNA samples. 
+quicksand combines fast alignment-free classification using KrakenUniq [2]_ with downstream mapping (BWA [3]_), post-classification filtering, and ancient 
+DNA authentication. quicksand is optimized for speed and portablity and requires either Singularity or Docker.
 
-The basic workflow of the quicksand pipline comprises multiple subworkflows: filtering, metagenomic classification, mapping/deduplication, and basic DNA damage analysis
-of the alignments. quicksand generates taxonomic profiles for each of the analyzed input files, along with the binned bam files for each step.
+The input for quicksand is a directory with user-supplied files in BAM or FASTQ format. 
+Adapter-trimming, overlap-merging and sequence demultiplexing need to be performed by the user prior to running quicksand. 
 
-The pipeline requires as input demultiplexed, adapter-trimmed and overlap-merged DNA sequences.
+The required KrakenUniq database, the reference genomes for mapping and the bed-files for low-complexity filtering are available on the 
+MPI EVA FTP Servers. Custom versions of the reference material can be created with the quicksand-build pipeline
+(see :ref:`_quickstart-page`)
 
 Filtering
 """""""""
 
-In the filtering stage, quicksand takes measures to ensure a smooth execution of the pipeline. It also removes sequences from the files that are non-mappable
-because of their sequence length, as specified by the :code:`--bamfilter_length_cutoff` threshold (default: 35bp).
+Before classification, quicksand removes sequences from the files that are too short for mapping (default: 35bp). 
+This threshold is set with the :code:`--bamfilter_length_cutoff N` flag.
 
-If the input comprises :file:`fastq` files, they undergo conversion to unpaired and unmapped :file:`bam` files, a necessary step for subsequent processes.
-Input :file:`bam` files are filtered by default to eliminate paired-end reads.
+In addition, sequences are filtered by their respective BAM filterflag (`See here <https://broadinstitute.github.io/picard/explain-flags.html>`_). By default,
+unpaired sequences are removed from each input file (flag: 1). The value is set with the :code:`--bamfilterflag N` flag.
 
 
-Metagenomics classification
-""""""""""""""""""""""""""""
+Taxonomic classification
+""""""""""""""""""""""""
 
-Sequences are classified by the metagenomic classifier KrakenUniq [2]_. which operates as a kmer-based classifier.
-In simple terms, each sequence is broken into smaller chunks of length k (kmers). These informative kmers are then matched against a database to
-identify the taxa associated with each kmer.
+Sequences are then classified by the alignment-free classifier KrakenUniq. For the analysis of ancient mitochondrial DNA (mtDNA), 
+quicksand uses a KrakenUniq database created from all mtDNA genomes published in NCBI RefSeq, indexed with a kmer-size of 22.
 
-.. image:: images/kmer_example.png
-	:width: 800
-	:align: center
-	:alt: Example for how the KrakenUniq classifier works.
+To remove background-identifications, family-assignments are removed from downstream-analyses if they fall below a minimum number of 
+sequences per family (:code:`--krakenuniq_min_reads N`, default: 3) and a minimum number of unique kmers per family
+(:code:`--krakenuniq_min_kmers N`, default: 129).
 
-The example above illustrates how kmer-based classification works. Imagine a sentence on a page and the task to find the book it's from.
-Each word corresponds to a kmer, so all words are checked in a database and linked to books where the word appears in. Common words that appear
-in all books are removed, leaving only `informative` words for the classification. Relating the found references in a tree, allows for the
-assignment of sentences to a node in the given tree.
+For each family passing these filters, sequences are binned and written to file. 
+Then, a “best” reference for that family is selected for the upcoming mapping step
+based on the number of unique kmers in the lower hierarchies. quicksand implements a naive decision tree, following the path of the highest kmer counts down the 
+taxonomic tree from the family to the species level.
 
-For the analysis of mitochondrial DNA sequences quicksand uses KrakenUniq with a database created from the non-redundant mtDNA NCBI RefSeq release
-with a kmer size of 22.
-
-KrakenUniq is fast and allows for a sorting of all input sequences into taxonomic families. To avoid false-positive assignments, families are
-removed from the results if they fall below the minimum number of reads per family (:code:`--krakenuniq_min_reads`) and the minimum number of family-kmers (:code:`--krakenuniq_min_kmers`).
-For each family reported by KrakenUniq, the node with the highest number of assigned unique kmers is picked as the reference-node for that family.
-
-.. image:: images/kraken_parse.png
-	:width: 800
-	:align: center
-	:alt: Example for picking a reference node from the kraken-report.
-
-the example shows how the report is parsed. For the Hyaenidae family, the Hyaena node is picked as reference even though a species level
-assignment is present for another genus.
-
-For the mapping step, all sequences assigned to a particular family (or order) are gathered into a new :file:`bam` file.
-One can choose whether this gathering happens on the family or order level by using the :code:`--taxlvl` flag.
+To bin sequences on the order- instead of the family-level, quicksand can be run with the :code:`--taxlvl o` flag.
 
 Mapping and Deduplication
 """""""""""""""""""""""""
 
-The sequences extracted for each family or order are mapped against all the reference genomes of species belonging to the reference-node found with KrakenUniq
-for the given family or order. For instance, in the example above, they are mapped against all Hyaena species in RefSeq.
+The binned family or order-level sequences are then mapped against all the "best" reference genomes found before.
 
-For mapping quicksand utilizes the `network-aware fork <https://github.com/mpieva/network-aware-bwa>`_ of BWA [3]_ with
-ancient parameters (:code:`n 0.01 -o 2 -l 16500`).
+For mapping quicksand uses the `network-aware fork <https://github.com/mpieva/network-aware-bwa>`_ of BWA with
+"ancient" parameters (:code:`n 0.01 -o 2 -l 16500`).
 
-For the downstream processes, unmapped sequences and sequences with a mean mapping quality of less than the specified :code:`--bamfilter_quality_cutoff` (default: 25)
-are removed from the alignment.
+For the downstream processes, unmapped sequences and sequences with a that show a mapping quality of less than the 
+specified :code:`--bamfilter_quality_cutoff N` (default: 25) are removed from the alignment.
 
-In each alignment, exact sequence duplicates are collapsed into unique sequences using `bam-rmdup <https://github.com/mpieva/biohazard-tools>`_.
-This process relies on shared start and end coordinates in the alignment. For cases where the reference-node is rank genus or higher, the
-most representative species is chosen by comparing all the alignments. The species with the highest numbers of basepairs covered in the alignment
-is picked as *best* species for the next steps.
+In each alignment, sequence duplicates are collapsed into unique molecules using `bam-rmdup <https://github.com/mpieva/biohazard-tools>`_.
+This process relies on shared start and end coordinates in the alignment. If multiple reference genomes were found for mapping, only a single 
+"best" genome is selected for downstream processes, based on the highest number of covered basepairs in the alignment.
 
-The deduped alignments are then depleted of reads that overlap sites marked as non-informative by dustmasker [4]_. That step is skipped
-for families with a fixed reference genome (see :code:`--fixed` flag)
+The deduplicated alignments are then depleted of reads that overlap sites marked as non-informative by dustmasker [4]_.
 
 DNA Deamination Stats
 """""""""""""""""""""
 
-In the last step of the pipeline, the deduplicated sequences are checked for DNA damage patters, by counting base substitutions in the analyzed sequences
-compared to the reference genomes the sequences are mapped against.
+Finally, the deduplicated alignments are analyzed for DNA deamination patterns by counting C-to-T substitutions in the aligned sequences
+compared to the reference genome.
 
-Ancient DNA exhibits C to T substitutions at both the 3’ and 5’ ends of the molecule, a degradation pattern used to identify ancient DNA.
-By default quicksand counts C to T substitutions on both ends of the DNA sequences, as obtained by data that went through a single stranded
-library preparation. Use the :code:`--doublestranded` flag to count the G to A substitutions at the 5' end of the DNA sequences instead,
+Deamination is a chemical process that removes amino groups from DNA bases over time, causing cytosine (C) to uracil (U) conversion, 
+especially at the terminal positions of DNA strands. When sequenced, uracil is paired with thymine (T) and these modifications appear 
+as C-to-T (or G-to-A) substitutions, characteristic for aDNA sequences.
+
+By default quicksand counts C-to-T substitutions on both ends of the DNA sequences, as obtained for data that went through a single-stranded
+library preparation. Use the :code:`--doublestranded` flag to count the G-to-A substitutions at the 5' instead,
 as observed in libraries prepared with a double-stranded protocol.
 
-Taxonomic families whose sequences show more than 10% of terminal base substitutions are flagged as ancient (++) in the final report.
+The significance of the deamination signals are indicated as follows:
+
+(++) C-to-T substitutions frequencies on both ends of sequences are significantly higher than 10% (i.e., the lower limit of the 95% 
+binomial confidence exceeds 10%). Sequences in this category are considered to originate at least partly from authentic aDNA. 
+
+(+) C-to-T substitution frequencies on either the 5’ or 3’ end of sequences (but not both) are significantly higher than 10%. 
+These values could mean low to medium damage, as expected from Holocene samples or not sufficiently significant evidence for the 
+presence of authentic older aDNA. It is used to indicate that aDNA may be present and that the analysis may be under-powered. 
+
+(-) C-to-T substitutions frequencies at neither the 5’ nor the 3’ end significantly exceed 10%, indicating that evidence for the 
+presence of aDNA is lacking for the respective family.
 
 Fixed References
 -----------------
 
-quicksand operates on the family-level and reduces the reads assigned by KrakenUniq to
-one family to the sequences mapped to a single *best* reference. The :code:`fixed` references are used
-to **specify** one or multiple reference genomes instead.
+In a default run, sequences are mapped to a single final reference genome per detected family. 
+However, users may require alignments to one or multiple specific reference genomes per family. To address this, quicksand allows users 
+to pre-set references for mapping after the KrakenUniq classification with the :code:`--fixed TSV` flag.
 
-Throughout the run quicksand distinguishes between families with 'best' and 'fixed' references. fixed references are genomes specified with the :code:`--fixed`
-flag, which assigns a specific reference genome for certain families. This overwrites the KrakenUniq reference-node.
-Families with a fixed reference undergo a special treatment, skipping the bedtools intersect filter and going through additional analyses described below.
-
-.. image:: images/fixed_best.png
-	:width: 800
-	:align: center
-	:alt: A comparison between the 'best' and the 'fixed' workflows.
-
-The image above shows the differences in the workflows. For the Hominidae reads found by KrakenUniq a reference is either picked by the pipeline (best) based
-on the number of unique kmers as described above, or provided with a file and the :code:`--fixed` flag. Fixed references are not reduced to a single species per family.
-
-Extract Ancient Sequences
-""""""""""""""""""""""""""
-
-For families with a fixed reference genome deaminated sequences are extracted. Then the quality score of the first and last 3 base pairs is masked by
-setting the quality score to 0, and mpileup files are created.
+When such pre-set (“fixed”) references are used, quicksand skips low-complexity filtering (unless the `--fixed_bedfiltering` flag is set) 
+and adds an additional step in the workflow, in which putatively deaminated sequences are saved to a separate file.
 
 Rerun
 ------
 
 The :code:`--rerun` flag provides an
 alternative entry-point into the the pipeline and starts the workflow *after* the KrakenUniq step. The :code:`--rerun` flag works only
-together with the :code:`--fixed` flag. In this mode, quicksand takes the extracted reads and reanalyzes them with the
-genomes specified.
+together with the :code:`--fixed` flag. In this mode, quicksand takes the binned reads and remappes them with to the genomes specified.
 
 .. image:: images/rerun.png
 	:width: 800
 	:align: center
 	:alt: A comparison between the 'best' and the 'fixed' workflows.
 
-During a rerun, quicksand imports the final report and overwrites it at the end. Only families are reanalyzed for which an extracted-reads file exists.
+During a rerun, quicksand imports the final report file and overwrites it at the end. Only families are reanalyzed for which binned reads exist already.
 
 References
 """"""""""

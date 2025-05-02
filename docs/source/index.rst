@@ -16,4 +16,5 @@ Table of content
    configuration
    flags
    in_and_out
+   filters
    examples
