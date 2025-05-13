@@ -24,6 +24,8 @@ To run the pipeline, please install
 - [Nextflow](https://www.nextflow.io/docs/latest/getstarted.html) v22.10 or larger
 - [Singularity](https://sylabs.io/singularity/) or [Docker](https://www.docker.com/)
 
+**Note:** To run nextflow+singularity, your kernel needs to support user-namespaces (see [here](https://github.com/apptainer/singularity/issues/5240#issuecomment-618405898) or [here](https://github.com/apptainer/singularity/issues/6341)).
+
 ### Prepare Input
 
 The input for quicksand is a directory with user-supplied files in BAM or FASTQ format. Adapter-trimming, overlap-merging and sequence demultiplexing need to be performed by the user prior to running quicksand. Provide the directory with the `--split` flag
@@ -54,7 +56,7 @@ nextflow run mpieva/quicksand-build -r v3.0 \
 
 #### Download Full Database
 
- To download the full reference database, use this command:
+ To download the full reference database (~60GB), use this command:
 
 ```bash
 latest=$(curl http://ftp.eva.mpg.de/quicksand/LATEST)
@@ -66,6 +68,9 @@ wget -r -np -nc -nH --cut-dirs=3 --reject="*index.html*" -q --show-progress -P r
 quicksand is executed directly from github. With the databases created and the testdata downloaded, run the pipeline as follows:
 
 ```bash
+# set this if you encounter a heap-space error to increase the memory that is used by nextflow
+export NXF_OPTS="-Xms10g -Xmx15g" # increase or decrease the numbers as required
+
 nextflow run mpieva/quicksand -r v2.3 \
   --db        refseq/kraken/Mito_db_kmer22/ \
   --genomes   refseq/genomes/ \
