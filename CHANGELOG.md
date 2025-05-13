@@ -5,12 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
-## [WIP]
+## [v2.4]
 
 ### Changes
 
 - Publish the "KrakenUniq parsed report" in the 'stats' directory
-- Add an R-friendly version of the final summary report (column names w/o special characters)
+- Add an R-friendly version of the final summary report (column names w/o special characters, `R_final_report.tsv`)
 - In the final_report, replace `SpeciesKmers` name with `Kmers` and include the "best" and "(family)" level stats. E.g. "4 (129)"
 - for the `KmerCoverage` and `KmerDupRate` columns, also combine "best" and "(family)"
 - Add a `--fixed_bedfiltering` flag to run dustmasking and bedfiltering also for fixed references (off by default)    
