@@ -44,6 +44,8 @@ layed out as follows::
     │              │     └── {RG}.{family}.{species}.bam
     │              ├── 3-deduped
     │              │     └── {RG}.{family}.{species}_deduped.bam
+    │              ├── 3-bedfiltered #(if --fixed_bedfiltering)
+    │              │     └── {RG}.{family}.{species}_deduped_bedfiltered.bam
     │              ├── 5-deaminated
     │              │     ├── {RG}.{family}.{species}_deduped_deaminated_1term.bam
     │              │     └── {RG}.{family}.{species}_deduped_deaminated_3term.bam
@@ -66,7 +68,8 @@ layed out as follows::
     ├── work
     │    └── ...
     ├── cc_estimates.tsv
-    ├── filtered_report_{N}p_{N}b.tsv
+    ├── filtered_report_{N}p_{N}b.tsv # final_report.tsv with applied filters
+    ├── R_final_report.tsv # final_report.tsv, but with R-friendly headers
     └── final_report.tsv
 
 

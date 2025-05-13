@@ -48,7 +48,7 @@ The following nextflow specific ENV variables can be set::
     NXF_WORK                 <path> Corresponds to the -w flag
     NXF_OPTS                 <ARGS> Hand args over to the Java Virtual Machine.
                              In case of a heap-space error, assign more space with the
-                             Arguments: "-Xms128g -Xmx128g" (allocates 128GB heap-space for the run)
+                             Arguments: "-Xms10g -Xmx20g" (allocates 128GB heap-space for the run)
 
 .. _work:
 
