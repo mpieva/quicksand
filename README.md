@@ -30,6 +30,9 @@ To run the pipeline, please install
 
 The input for quicksand is a directory with user-supplied files in BAM or FASTQ format. Adapter-trimming, overlap-merging and sequence demultiplexing need to be performed by the user prior to running quicksand. Provide the directory with the `--split` flag
 
+> [!CAUTION]
+> Each file should correspond to a single sequence-library. The processing of merged libraries with quicksand can lead to sequence loss because of sequence-deduplication with bam-rmdup 
+
 #### Download Test-file
 
 As a test file, download the Hohlenstein-Stadel mtDNA (please see the [README](http://ftp.eva.mpg.de/neandertal/Hohlenstein-Stadel/README) for more information)
