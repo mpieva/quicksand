@@ -19,19 +19,22 @@ quicksand (**quick** analysis of **s**edimentary **an**cient **D**NA) is an open
 
 ### Requirements
 
-To run the pipeline, please install
+To run Nextflow, you need a POSIX-compatible system (e.g., Linux or macOS). quicksand was developed and tested on Linux (x86_64 architecture)
+
+To run quicksand, please install
 
 - [Nextflow](https://www.nextflow.io/docs/latest/getstarted.html) v22.10 or larger
 - [Singularity](https://sylabs.io/singularity/) or [Docker](https://www.docker.com/)
 
-**Note:** To run nextflow+singularity, your kernel needs to support user-namespaces (see [here](https://github.com/apptainer/singularity/issues/5240#issuecomment-618405898) or [here](https://github.com/apptainer/singularity/issues/6341)).
+**Note:** To run quicksand in singularity, your kernel needs to support user-namespaces (see [here](https://github.com/apptainer/singularity/issues/5240#issuecomment-618405898) or [here](https://github.com/apptainer/singularity/issues/6341)).
+
 
 ### Prepare Input
 
 The input for quicksand is a directory with user-supplied files in BAM or FASTQ format. Adapter-trimming, overlap-merging and sequence demultiplexing need to be performed by the user prior to running quicksand. Provide the directory with the `--split` flag
 
 > [!CAUTION]
-> Each file should correspond to a single sequence-library. The processing of merged libraries with quicksand can lead to sequence loss because of sequence-deduplication with bam-rmdup 
+> Each input-file should correspond to a single sequence-library. The processing of merged libraries with quicksand can lead to sequence loss because of the PCR-deduplication step with bam-rmdup 
 
 #### Download Test-file
 
@@ -85,6 +88,24 @@ nextflow run mpieva/quicksand -r v2.4 \
 ### Output
 
 Please see the [documentation](https://quicksand.readthedocs.io/en/latest/in_and_out.html) for a comprehensive description of the output!
+
+### Common Errors
+A collection of common nextflow-errors and how to solve them
+
+#### Heap Space
+```
+ -- Check '.nextflow.log' file for details
+ERROR ~ Java heap space
+
+ -- Check '.nextflow.log' file for details
+ERROR ~ Execution aborted due to an unexpected error
+```
+
+Heap space errors can occur if nextflow itself requires more memory than provided by default (e.g. when screening too many samples in parallel). You can increase the heap-space as needed (e.g., to 5gb) with 
+
+```
+export NXF_OPTS="-Xms5g -Xmx5g"
+``` 
 
 ## References
 
