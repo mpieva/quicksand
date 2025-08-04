@@ -113,7 +113,7 @@ export NXF_OPTS="-Xms5g -Xmx5g"
 If you use quicksand in your research, please cite the quicksand-preprint as follows:
 
 > Szymanski, Merlin, Johann Visagie, Frederic Romagne, Matthias Meyer, and Janet Kelso. 2025.
-> “Quick Analysis of Sedimentary Ancient DNA Using Quicksand”,
+> “quick analysis of sedimentary ancient DNA using quicksand”,
 > [https://doi.org/10.1101/2025.08.01.668088](https://doi.org/10.1101/2025.08.01.668088).
 
 This pipeline uses code inspired by the [nf-core](https://nf-co.re) initative, reused here under the [MIT license](https://github.com/nf-core/tools/blob/master/LICENSE).
