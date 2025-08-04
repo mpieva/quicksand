@@ -1,5 +1,5 @@
 ![MIT License](https://img.shields.io/github/license/mpieva/quicksand?style=for-the-badge)
-![DOI](https://img.shields.io/badge/DOI-10.5281/zenodo.11106450-ff69b4?style=for-the-badge&link=https://zenodo.org/doi/10.5281/zenodo.11106450)
+[![DOI](https://img.shields.io/badge/DOI-10.5281/zenodo.11106450-ff69b4?style=for-the-badge)](https://zenodo.org/doi/10.5281/zenodo.11106450)
 
 # quicksand
 
@@ -107,12 +107,16 @@ Heap space errors can occur if nextflow itself requires more memory than provide
 export NXF_OPTS="-Xms5g -Xmx5g"
 ``` 
 
-## References
+## References and Citation
+
+If you use quicksand in your research, please cite the quicksand-preprint as follows:
+
+> Szymanski, Merlin, Johann Visagie, Frederic Romagne, Matthias Meyer, and Janet Kelso. 2025.
+> “Quick Analysis of Sedimentary Ancient DNA Using Quicksand”,
+> [https://doi.org/10.1101/2025.08.01.668088](https://doi.org/10.1101/2025.08.01.668088).
 
 This pipeline uses code inspired by the [nf-core](https://nf-co.re) initative, reused here under the [MIT license](https://github.com/nf-core/tools/blob/master/LICENSE).
 
-> The nf-core framework for community-curated bioinformatics pipelines.
->
-> Philip Ewels, Alexander Peltzer, Sven Fillinger, Harshil Patel, Johannes Alneberg, Andreas Wilm, Maxime Ulysse Garcia, Paolo Di Tommaso & Sven Nahnsen.
->
-> Nat Biotechnol. 2020 Feb 13. doi: 10.1038/s41587-020-0439-x.
+> Ewels, Philip A., Alexander Peltzer, Sven Fillinger, Harshil Patel, Johannes Alneberg, Andreas Wilm, Maxime Ulysse Garcia, Paolo Di Tommaso, and Sven Nahnsen. 2020.
+> “The Nf-core Framework for Community-curated Bioinformatics Pipelines”.
+> Nature Biotechnology 38 (3): 276–78. [https://doi.org/10.1038/s41587-020-0439-x](https://doi.org/10.1038/s41587-020-0439-x).
