@@ -54,7 +54,7 @@ The required KrakenUniq database, the reference genomes for mapping and the bed-
 For the quickstart of quicksand, create a fresh database containing only the Hominidae mtDNA reference genomes (runtime: ~3-5 minutes)
 
 ```bash
-nextflow run mpieva/quicksand-build -r v3.0 \
+nextflow run mpieva/quicksand-build -r v3.1 \
   --include  Hominidae \
   --outdir   refseq \
   -profile   singularity
@@ -82,7 +82,7 @@ nextflow run mpieva/quicksand -r v2.4 \
   --genomes   refseq/genomes/ \
   --bedfiles  refseq/masked/ \
   --split     split/ \
-  -profile    singularity
+  -profile    singularity #mind the single dash!
 ```
 
 ### Output
