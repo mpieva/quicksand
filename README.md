@@ -68,6 +68,7 @@ nextflow run mpieva/quicksand-build -r v3.1 \
 latest=$(curl http://ftp.eva.mpg.de/quicksand/LATEST)
 wget -r -np -nc -nH --cut-dirs=3 --reject="*index.html*" -q --show-progress -P refseq http://ftp.eva.mpg.de/quicksand/build/$latest
 ```
+**Warning:** This can take several hours! For testing quicksand its recommended to just build a small database (see above)
 
 ### Run quicksand
 
