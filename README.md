@@ -1,5 +1,5 @@
 ![MIT License](https://img.shields.io/github/license/mpieva/quicksand?style=for-the-badge)
-![DOI](https://img.shields.io/badge/DOI-10.5281/zenodo.11106450-ff69b4?style=for-the-badge&link=https://zenodo.org/doi/10.5281/zenodo.11106450)
+[![DOI](https://img.shields.io/badge/DOI-10.5281/zenodo.11106450-ff69b4?style=for-the-badge)](https://zenodo.org/doi/10.5281/zenodo.11106450)
 
 # quicksand
 
@@ -54,7 +54,7 @@ The required KrakenUniq database, the reference genomes for mapping and the bed-
 For the quickstart of quicksand, create a fresh database containing only the Hominidae mtDNA reference genomes (runtime: ~3-5 minutes)
 
 ```bash
-nextflow run mpieva/quicksand-build -r v3.0 \
+nextflow run mpieva/quicksand-build -r v3.1 \
   --include  Hominidae \
   --outdir   refseq \
   -profile   singularity
@@ -68,6 +68,7 @@ nextflow run mpieva/quicksand-build -r v3.0 \
 latest=$(curl http://ftp.eva.mpg.de/quicksand/LATEST)
 wget -r -np -nc -nH --cut-dirs=3 --reject="*index.html*" -q --show-progress -P refseq http://ftp.eva.mpg.de/quicksand/build/$latest
 ```
+**Warning:** This can take several hours! For testing quicksand its recommended to just build a small database (see above)
 
 ### Run quicksand
 
@@ -82,7 +83,7 @@ nextflow run mpieva/quicksand -r v2.4 \
   --genomes   refseq/genomes/ \
   --bedfiles  refseq/masked/ \
   --split     split/ \
-  -profile    singularity
+  -profile    singularity #mind the single dash!
 ```
 
 ### Output
@@ -107,12 +108,16 @@ Heap space errors can occur if nextflow itself requires more memory than provide
 export NXF_OPTS="-Xms5g -Xmx5g"
 ``` 
 
-## References
+## References and Citation
+
+If you use quicksand in your research, please cite the quicksand-preprint as follows:
+
+> Szymanski, Merlin, Johann Visagie, Frederic Romagne, Matthias Meyer, and Janet Kelso. 2025.
+> “quick analysis of sedimentary ancient DNA using quicksand”,
+> [https://doi.org/10.1101/2025.08.01.668088](https://doi.org/10.1101/2025.08.01.668088).
 
 This pipeline uses code inspired by the [nf-core](https://nf-co.re) initative, reused here under the [MIT license](https://github.com/nf-core/tools/blob/master/LICENSE).
 
-> The nf-core framework for community-curated bioinformatics pipelines.
->
-> Philip Ewels, Alexander Peltzer, Sven Fillinger, Harshil Patel, Johannes Alneberg, Andreas Wilm, Maxime Ulysse Garcia, Paolo Di Tommaso & Sven Nahnsen.
->
-> Nat Biotechnol. 2020 Feb 13. doi: 10.1038/s41587-020-0439-x.
+> Ewels, Philip A., Alexander Peltzer, Sven Fillinger, Harshil Patel, Johannes Alneberg, Andreas Wilm, Maxime Ulysse Garcia, Paolo Di Tommaso, and Sven Nahnsen. 2020.
+> “The Nf-core Framework for Community-curated Bioinformatics Pipelines”.
+> Nature Biotechnology 38 (3): 276–78. [https://doi.org/10.1038/s41587-020-0439-x](https://doi.org/10.1038/s41587-020-0439-x).
