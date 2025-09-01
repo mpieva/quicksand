@@ -154,7 +154,9 @@ if(! standard_run){
                 'Species':sp,
                 'Reference':'fixed',
                 'id':meta.RG,
-                'Taxon':tax
+                'Taxon':tax,
+                'ReadsBedfiltered':'-',
+                'PostBedCoveredBP':'-'
             ],
             file(bam),
             file(genome)

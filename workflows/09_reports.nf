@@ -171,7 +171,7 @@ workflow write_reports {
 
     ch_final
     .filter{ it.FamPercentage >= params.reportfilter_percentage  }
-    .filter{ it.ProportionExpectedBreadth >= params.reportfilter_breadth }
+    .filter{ it.ProportionExpectedBreadth as float >= params.reportfilter_breadth } // as int is only necessary in the --rerun mode
     .collectFile( name:"filtered_report_${params.reportfilter_percentage}p_${params.reportfilter_breadth}b.tsv",
         seed:[
         'RG',
