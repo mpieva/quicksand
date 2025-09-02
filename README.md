@@ -38,11 +38,11 @@ The input for quicksand is a directory with user-supplied files in BAM or FASTQ 
 
 #### Download Test-file
 
-As a test file, download the Hohlenstein-Stadel mtDNA (please see the [README](http://ftp.eva.mpg.de/neandertal/Hohlenstein-Stadel/README) for more information)
+As a test file, download a mammalian mtDNA capture library from Denisova Cave Layer 20 (published in Zavala et al. 2021)
 
 ```bash
 wget -P split \
-http://ftp.eva.mpg.de/neandertal/Hohlenstein-Stadel/BAM/mtDNA/HST.raw_data.ALL.bam
+ftp://ftp.sra.ebi.ac.uk/vol1/run/ERR564/ERR5640810/A20896.bam
 ```
 
 ### Create Reference Database
@@ -51,11 +51,13 @@ The required KrakenUniq database, the reference genomes for mapping and the bed-
 
 #### Create Test Database
 
-For the quickstart of quicksand, create a fresh database containing only the Hominidae mtDNA reference genomes (runtime: ~3-5 minutes)
+For the quickstart of quicksand, create a small test-database containing only the Hominidae, Bovidae and Hyaenidea mtDNA reference genomes (~150 genomes, runtime: ~3-5 minutes, size ~5GB).
+
+(to reduce database size and runtime, use only `--include Hominidae`)
 
 ```bash
 nextflow run mpieva/quicksand-build -r v3.1 \
-  --include  Hominidae \
+  --include  Hominidae,Bovidae,Hyaenidae \
   --outdir   refseq \
   -profile   singularity
 ```
@@ -72,7 +74,7 @@ wget -r -np -nc -nH --cut-dirs=3 --reject="*index.html*" -q --show-progress -P r
 
 ### Run quicksand
 
-quicksand is executed directly from github. With the databases created and the testdata downloaded, run the pipeline as follows:
+quicksand is executed directly from github. With the test-database created and the test-file downloaded, run the pipeline as follows:
 
 ```bash
 # set this if you encounter a heap-space error to increase the memory that is used by nextflow
@@ -85,6 +87,10 @@ nextflow run mpieva/quicksand -r v2.4 \
   --split     split/ \
   -profile    singularity #mind the single dash!
 ```
+
+> [!NOTE]
+> Using the test-database with limited reference genomes should not be used for real samples, as the limited references attract false-positive sequences from close families (e.g. Canidae get assigned to Hyaenidae). Please see (or follow) the [examples](https://quicksand.readthedocs.io/en/latest/examples.html) section in the quicksand documentation to explore different settings and use-cases of quicksand.
+
 
 ### Output
 
