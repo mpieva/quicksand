@@ -11,8 +11,8 @@ quicksand (**quick** analysis of **s**edimentary **an**cient **D**NA) is an open
 
 ## Workflow
 
-<p align=center style="background-color:white;">
-    <img src="assets/docs/workflow_v2.3.png" alt="Graphical representation of the pipeline workflow" width='800px'>
+<p align=center>
+    <img src="assets/docs/workflow_v2.3.jpg" alt="Graphical representation of the pipeline workflow" width='800px'>
 </p>
 
 ## Quickstart
