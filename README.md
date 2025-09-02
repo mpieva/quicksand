@@ -89,8 +89,7 @@ nextflow run mpieva/quicksand -r v2.4 \
 ```
 
 > [!NOTE]
-> Using the test-database with limited reference genomes should not be used for real samples, as the limited references attract false-positive sequences from close families (e.g. Canidae get assigned to Hyaenidae). Please see (or follow) the [examples](https://quicksand.readthedocs.io/en/latest/examples.html) section in the quicksand documentation to explore different settings and use-cases of quicksand.
-
+> The test-database with limited reference genomes should _not_ be used for real samples, as the limited references attract false-positive sequences from close (but missing) families (e.g. Canidae get assigned to Hyaenidae). Please see the [examples section](https://quicksand.readthedocs.io/en/latest/examples.html) in the quicksand documentation to explore different settings and use-cases of quicksand.
 
 ### Output
 
