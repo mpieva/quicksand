@@ -88,7 +88,44 @@ nextflow run mpieva/quicksand -r v2.4 \
 
 ### Output
 
-Please see the [documentation](https://quicksand.readthedocs.io/en/latest/in_and_out.html) for a comprehensive description of the output!
+Please see the [documentation](https://quicksand.readthedocs.io/en/latest/in_and_out.html) for a comprehensive description of the output files and structure!
+
+The main summary table (`final_report.tsv`) contains one line per input file and detected family (passing the `--krakenuniq_min_kmers` and `--krakenuniq_min_reads` cutoff). The following columns are reported:
+
+- **RG:** Name of the file analyzed
+- **ReadsRaw:** Raw number of sequences in the file (paired reads only counted once)
+- **ReadsFiltered** Number of sequences after filtering for `--bamfilterflag`
+- **ReadsLengthfiltered:** Number of sequences after additonal filtering for sequence length (`--bamfilter_length_cutoff`)
+- **Kmers:** KrakenUniq: Number of unique kmers used for classification (format: "best" and "(family)") 
+- **KmerCoverage:** KrakenUniq: Kmer coverage for that classification (format: "best" and "(family)")
+- **KmerDupRate:** KrakenUniq: Kmer duplication rate for that classification (format: "best" and "(family)")
+- **ExtractLVL:** "f" (family) or "o" (order), set by `--taxlvl`
+- **ReadsExtracted:** Number of sequences assigned by KrakenUniq
+- **Order:** Detected Order
+- **Family:** Detected Family
+- **Species:** The reference-genome used for the mapping of 'ReadsExtracted'
+- **Reference:** "best" or "fixed" (`--fixed`)
+- **ReadsMapped:** Number of sequences mapped, passing the mapping quality-cutoff(`--mapbwa_quality_cutoff`)
+- **ProportionMapped:** ReadsMapped / ReadsExtracted 
+- **ReadsDeduped:** Number of unique sequences (removed PCR duplicates) 
+- **DuplicationRate:** ReadsMapped / ReadsDeduped
+- **CoveredBP:** `covbases` stat of the `samtools coverage` command. The number of bases covered in the reference genome by mapped sequences (max: ~17000)
+- **ReadsBedfiltered:** Number of unique sequences after applying low-complexity bed-filtering
+- **PostBedCoveredBP:** Number of bases covered in the reference genome by bedfiltered sequences
+- **FamPercentage:** Percentage of unique sequences in the alignment from the total number of unique sequences in the sample (For PSF-filter)
+- **Ancientness:** "-", "+" or "++". Significance level of the C-to-T or G-to-A deamination rate in the alignment (for G-to-A, use `--doublestranded`)   
+- **ReadsDeam(1term):** Number of unique sequences with a C-to-T or G-to-A substitution in the _terminal_ base positions (for G-to-A, use `--doublestranded`)
+- **ReadsDeam(3term):** Number of unique sequences with a C-to-T or G-to-A substitution in the _terminal three_ positions (for G-to-A, use `--doublestranded`)
+- **Deam5(95ci):** The _terminal_ C-to-T substitution-rate (and the 95% confidence interval) for the 5' end
+- **Deam3(95ci):** The _terminal_ C-to-T or G-to-A substitution-rate (and the 95% confidence interval) for the 3' end (for G-to-A, use `--doublestranded`)
+- **Deam5Cond(95ci):** The _terminal_ C-to-T substitution-rate (and the 95% confidence interval) for the 5' end, conditioned on a substitution at the opposite end 
+- **Deam3Cond(95ci):** The _terminal_ C-to-T (or G-to-A) substitution-rate (and the 95% confidence interval) for the 3' end, conditioned on a substitution at the opposite end
+- **MeanFragmentLength:** Mean fragment length of all unique sequences
+- **MeanFragmentLength(3term):** Mean fragment length of all 'ancient' sequences
+- **Coverage:** `meandepth` of the `samtools coverage` command. Corresponds to the depth of coverage in the alignment.
+- **Breadth:** `coverage` of the `samtools coverage` command / 100: The proportion of bases covered by mapped sequences in the reference genome
+- **ExpectedBreadth:** Expected breadth based on 'Coverage'. Calculated using the formula: ExpectedBreadth = 1 - e^(-0.833 × Coverage)
+- **ProportionExpectedBreadth:** Breadth / ExpectedBreadth (For PEB-filter)
 
 ### Common Errors
 A collection of common nextflow-errors and how to solve them
