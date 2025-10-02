@@ -298,6 +298,10 @@ workflow {
 
     deduped = dedupbam.out.bam
 
+    // copy the meta of the deduped channel before reduction to the 'best' 
+    // to output the stats of all mappings and deduplications in the stats directory!
+    ch_deduped_for_stats = deduped.map{meta,bam -> meta }
+
     // split between 'fixed' and 'best'
 
     deduped.branch{
@@ -353,5 +357,5 @@ workflow {
     // 9. Write the output files
     //
 
-    write_reports( ch_final, ch_versions )
+    write_reports( ch_final, ch_deduped_for_stats, ch_versions )
 }

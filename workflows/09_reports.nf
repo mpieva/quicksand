@@ -1,5 +1,6 @@
 workflow write_reports {
     take: ch_final
+    take: ch_deduped_for_stats
     take: ch_versions
     main:
 
@@ -24,6 +25,16 @@ workflow write_reports {
     }
     .unique{meta -> meta.RG+meta.Species+meta.Reference}
     .set{ ch_final }
+
+    // do the same for the mapping and deduplication stats
+    ch_deduped_for_stats
+    .map{ meta -> meta+[
+            "ProportionMapped": ( (meta.ReadsExtracted as int)==0 || (meta.ReadsMapped as int)== 0) ? 0 : ((meta.ReadsMapped as int)/(meta.ReadsExtracted as int)).trunc(4),
+            "DuplicationRate":  ( (meta.ReadsDeduped as int)  ==0 || (meta.ReadsMapped as int)== 0) ? 0 : ((meta.ReadsMapped as int)/(meta.ReadsDeduped   as int)).trunc(4),
+        ]
+    }
+    .unique{meta -> meta.RG+meta.Species+meta.Reference}
+    .set{ ch_deduped_for_stats }
 
     //
     // calculate the FamPercentage
@@ -99,21 +110,28 @@ workflow write_reports {
     }
 
     ch_final
-    .collectFile( name:"final_report.tsv",
+    .collectFile( 
+        name:"final_report.tsv",
         seed:[
-        'RG',
-        header_map['split'],
-        header_map['kraken'],
-        header_map['extract'],
-        header_map['tax'],
-        header_map['map'],
-        header_map['dedup'],
-        header_map['bed'],
-        'FamPercentage',
-        header_map['deam'],
-        header_map['frags'],
-        header_map['breadth']
-        ].join('\t'), storeDir:"${basedir}/", newLine:true, sort:true
+            'RG',
+            header_map['split'],
+            header_map['kraken'],
+            header_map['extract'],
+            header_map['tax'],
+            header_map['map'],
+            header_map['dedup'],
+            header_map['bed'],
+            'FamPercentage',
+            header_map['deam'],
+            header_map['frags'],
+            header_map['breadth']
+        ].join('\t'), 
+        storeDir:"${basedir}/", 
+        newLine:true, 
+        sort: { line ->
+            def cols = line.split('\t')
+            cols[0]+cols[9]+cols[10]  // RG, Order, Family
+        }
     ){[
         it.RG,
         getVals(header_map['split'],   it),
@@ -127,7 +145,7 @@ workflow write_reports {
         getVals(header_map['deam'],    it),
         getVals(header_map['frags'],   it),
         getVals(header_map['breadth'], it)
-        ].join('\t')
+      ].join('\t')
     }
     .subscribe {
         println "[quicksand]: Final summary report saved (final_report.tsv)"
@@ -135,21 +153,28 @@ workflow write_reports {
 
     // because people use R, include a report with R-friendly header names
     ch_final
-    .collectFile( name:"R_final_report.tsv",
+    .collectFile( 
+        name:"R_final_report.tsv",
         seed:[
-        'RG',
-        header_map['split'],
-        header_map['kraken'],
-        header_map['extract'],
-        header_map['tax'],
-        header_map['map'],
-        header_map['dedup'],
-        header_map['bed'],
-        'FamPercentage',
-        header_map_R['deam'],
-        header_map_R['frags'],
-        header_map['breadth']
-        ].join('\t'), storeDir:"${basedir}", newLine:true, sort:true
+            'RG',
+            header_map['split'],
+            header_map['kraken'],
+            header_map['extract'],
+            header_map['tax'],
+            header_map['map'],
+            header_map['dedup'],
+            header_map['bed'],
+            'FamPercentage',
+            header_map_R['deam'],
+            header_map_R['frags'],
+            header_map['breadth']
+            ].join('\t'), 
+        storeDir:"${basedir}", 
+        newLine:true, 
+        sort: { line ->
+            def cols = line.split('\t')
+            cols[0]+cols[9]+cols[10]  // RG, Order, Family
+        }
     ){[
         it.RG,
         getVals(header_map['split'],   it),
@@ -172,21 +197,28 @@ workflow write_reports {
     ch_final
     .filter{ it.FamPercentage >= params.reportfilter_percentage  }
     .filter{ it.ProportionExpectedBreadth as float >= params.reportfilter_breadth } // as int is only necessary in the --rerun mode
-    .collectFile( name:"filtered_report_${params.reportfilter_percentage}p_${params.reportfilter_breadth}b.tsv",
+    .collectFile( 
+        name:"filtered_report_${params.reportfilter_percentage}p_${params.reportfilter_breadth}b.tsv",
         seed:[
-        'RG',
-        header_map['split'],
-        header_map['kraken'],
-        header_map['extract'],
-        header_map['tax'],
-        header_map['map'],
-        header_map['dedup'],
-        header_map['bed'],
-        'FamPercentage',
-        header_map['deam'],
-        header_map['frags'],
-        header_map['breadth']
-        ].join('\t'), storeDir:"${basedir}/", newLine:true, sort:true
+            'RG',
+            header_map['split'],
+            header_map['kraken'],
+            header_map['extract'],
+            header_map['tax'],
+            header_map['map'],
+            header_map['dedup'],
+            header_map['bed'],
+            'FamPercentage',
+            header_map['deam'],
+            header_map['frags'],
+            header_map['breadth']
+            ].join('\t'), 
+        storeDir:"${basedir}/", 
+        newLine:true, 
+        sort: { line ->
+            def cols = line.split('\t')
+            cols[0]+cols[9]+cols[10]  // RG, Order, Family
+        }
     ){[
         it.RG,
         getVals(header_map['split'],   it),
@@ -205,7 +237,7 @@ workflow write_reports {
 
     ch_final
     .collectFile(
-        storeDir: "${basedir}/stats", newLine:true,
+        storeDir: "${basedir}/stats", newLine:true, sort:true,
         seed:[
         header_map['tax'],
         header_map['deam']
@@ -220,7 +252,7 @@ workflow write_reports {
 
     ch_final
     .collectFile(
-        storeDir: "${basedir}/stats", newLine:true,
+        storeDir: "${basedir}/stats", newLine:true, sort: true,
         seed: [
         header_map['tax'],
         header_map['bed']
@@ -234,9 +266,9 @@ workflow write_reports {
         ]
     }
 
-    ch_final
+    ch_deduped_for_stats
     .collectFile(
-        storeDir: "${basedir}/stats", newLine:true,
+        storeDir: "${basedir}/stats", newLine:true, sort:true,
         seed: [
         header_map['tax'],
         header_map['dedup'],
@@ -252,9 +284,9 @@ workflow write_reports {
         ]
     }
 
-    ch_final
+    ch_deduped_for_stats
     .collectFile(
-        storeDir: "${basedir}/stats", newLine:true,
+        storeDir: "${basedir}/stats", newLine:true, sort:true,
         seed: [
         header_map['tax'],
         header_map['map']

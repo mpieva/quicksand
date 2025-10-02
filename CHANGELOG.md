@@ -9,9 +9,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Changes
 
+- Make the ordering in the reports consistent --> RG, Order, Family
+
 ### Bigfixes
 
-- Fix a minor bug when re-running a quicksand analysis with the --rerun flag  
+- Fix a minor bug when re-running a quicksand analysis with the --rerun flag. The bedfilter-stats were duplicated from the respective 'best' entry and not set to '-' 
+- #14: output stats for _all_ mappings done in the `stats/SAMPLE_01_mapped.tsv` and `stats/SAMPLE_02_deduped.tsv`. Only the 'best' mappings were shown before. 
 
 ## [v2.4]
 
