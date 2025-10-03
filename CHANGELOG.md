@@ -5,13 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
-## WIP
+## [WIP]
 
 ### Changes
 
 - Make the ordering in the reports consistent --> RG, Order, Family
 
-### Bigfixes
+### Bugfixes
 
 - Fix a minor bug when re-running a quicksand analysis with the --rerun flag. The bedfilter-stats were duplicated from the respective 'best' entry and not set to '-' 
 - #14: output stats for _all_ mappings done in the `stats/SAMPLE_01_mapped.tsv` and `stats/SAMPLE_02_deduped.tsv`. Only the 'best' mappings were shown before. 

@@ -15,7 +15,7 @@ def binomial_ci(x, n, alpha=0.05):
     return f"{round(lower*100,1):.1f},{round(upper*100,1):.1f}"
 
 
-def main(bamfile, stats_only=False, doublestranded=False):
+def main(bamfile, positions, stats_only=False, doublestranded=False):
     #store all reference bases
     all_first = []
     all_last = []
@@ -25,12 +25,14 @@ def main(bamfile, stats_only=False, doublestranded=False):
     cond3_first = []
 
     n_deam_1 = 0
+    # parameter name is 3, but could be more, depending on the 'positions' parameter
     n_deam_3 = 0
+
     #count the individual events
     #first or last base deaminated
     n_deam51 = 0
     n_deam31 = 0
-    #first or last 3 bases deaminated
+    #first or last N bases deaminated
     n_deam53 = 0
     n_deam33 = 0
     #first and last base deaminated
@@ -68,17 +70,18 @@ def main(bamfile, stats_only=False, doublestranded=False):
         all_last.append(ref[-1].upper())
 
         # check if C>T (or G>A) substitutions in the first or last 3 postions and save indices
+        pos_index = positions-1
         if not doublestranded:
             mism = [
                 n for n,x in enumerate(ref)
-                if ((x, seq[n]) == ('c','T')) and (n<=2 or n>=rlen-2)
+                if ((x, seq[n]) == ('c','T')) and (n<=pos_index or n>=rlen-pos_index)
             ]
         else:
             mism = [
                 n for n,x in enumerate(ref)
                 if (
-                    ((x, seq[n]) == ('c','T') and n<=2) or # check C>T in 5'
-                    ((x, seq[n]) == ('g','A') and n>=rlen-2) # check G>A in 3'
+                    ((x, seq[n]) == ('c','T') and n<=pos_index) or # check C>T in 5'
+                    ((x, seq[n]) == ('g','A') and n>=rlen-pos_index) # check G>A in 3'
                 )
             ]
 
@@ -90,8 +93,8 @@ def main(bamfile, stats_only=False, doublestranded=False):
 
         deam51 = 0 in mism
         deam31 = rlen in mism
-        deam53 = any(x<=2 for x in mism)
-        deam33 = any(x>=rlen-2 for x in mism)
+        deam53 = any(x<=pos_index for x in mism)
+        deam33 = any(x>=rlen-pos_index for x in mism)
         cond = deam51 and deam31
 
         n_deam51 += int(deam51)
@@ -162,9 +165,9 @@ def main(bamfile, stats_only=False, doublestranded=False):
     #And the report
     #print header
     print(
-        "Ancientness", "ReadsDeam(1term)","ReadsDeam(3term)",
+        "Ancientness", "ReadsDeam(1term)",f"ReadsDeam({positions}term)",
         "Deam5(95ci)", "Deam3(95ci)", "Deam5Cond(95ci)",
-        "Deam3Cond(95ci)","MeanFragmentLength","MeanFragmentLength(3term)", sep='\t',file=sys.stdout
+        "Deam3Cond(95ci)","MeanFragmentLength",f"MeanFragmentLength({positions}term)", sep='\t',file=sys.stdout
         )
 
     def pprint(var):
@@ -182,11 +185,12 @@ def main(bamfile, stats_only=False, doublestranded=False):
         f"{pprint(p_deam31_cond)} ({p_deam31_cond_95ci})",
         pprint(avg_fraglen), pprint(avg_fraglen_deam),
         sep='\t', file=sys.stdout
-        )
+    )
 
 
 if __name__ == "__main__":
     bamfile = sys.argv[1]
+    positions = int(sys.argv[2])
     only_stats = 'only_stats' in sys.argv
     doublestranded = 'doublestranded' in sys.argv
 
@@ -194,4 +198,4 @@ if __name__ == "__main__":
     # doublestranded - use G>A rates at 5' end instead of C>T as in singlestranded library prep
     #
 
-    main(bamfile, only_stats, doublestranded)
+    main(bamfile, positions, only_stats, doublestranded)
