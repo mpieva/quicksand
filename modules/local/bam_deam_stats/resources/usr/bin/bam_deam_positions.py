@@ -54,11 +54,11 @@ def summarize_arrays_np(arrays):
     counts_non_none = mask.sum(axis=0)
 
     # Avoid division by zero
-    percentages = np.where(counts_non_none > 0, np.round((counts_ones / counts_non_none)*100, 3), None)
+    percentages = np.where(counts_non_none > 0, np.round((counts_ones / counts_non_none)*100, 3), "N/A")
     
     # Confidence intervals (position-wise using list comprehension)
     ci = [
-        binomial_ci(x, n) if n > 0 else None
+        binomial_ci(x, n) if n > 0 else "N/A,N/A"
         for x, n in zip(counts_ones, counts_non_none)
     ]
 
@@ -100,24 +100,24 @@ def main(bamfile):
         G_A.append(substitution_to_list(ref,seq,'G','A'))
 
     ## Write the stats to file
+    if len(C_T) > 0:
+        with open('substitutions.tsv', 'w') as outfile:
+            print('Sub', '\t'.join([str(x) for x in range(1,11)]), '\t'.join([str(-1*x) for x in range(10,0,-1)]), sep='\t', file=outfile)
+            print('C->T', '\t'.join([str(x) for x in summarize_arrays_np(C_T)[0]]), sep='\t', file=outfile)
+            print('C->G', '\t'.join([str(x) for x in summarize_arrays_np(C_G)[0]]), sep='\t', file=outfile)
+            print('C->A', '\t'.join([str(x) for x in summarize_arrays_np(C_A)[0]]), sep='\t', file=outfile)
+            print('G->T', '\t'.join([str(x) for x in summarize_arrays_np(G_T)[0]]), sep='\t', file=outfile)
+            print('G->C', '\t'.join([str(x) for x in summarize_arrays_np(G_C)[0]]), sep='\t', file=outfile)
+            print('G->A', '\t'.join([str(x) for x in summarize_arrays_np(G_A)[0]]), sep='\t', file=outfile)
 
-    with open('substitutions.tsv', 'w') as outfile:
-        print('Sub', '\t'.join([str(x) for x in range(1,11)]), '\t'.join([str(-1*x) for x in range(10,0,-1)]), sep='\t', file=outfile)
-        print('C->T', '\t'.join([str(x) for x in summarize_arrays_np(C_T)[0]]), sep='\t', file=outfile)
-        print('C->G', '\t'.join([str(x) for x in summarize_arrays_np(C_G)[0]]), sep='\t', file=outfile)
-        print('C->A', '\t'.join([str(x) for x in summarize_arrays_np(C_A)[0]]), sep='\t', file=outfile)
-        print('G->T', '\t'.join([str(x) for x in summarize_arrays_np(G_T)[0]]), sep='\t', file=outfile)
-        print('G->C', '\t'.join([str(x) for x in summarize_arrays_np(G_C)[0]]), sep='\t', file=outfile)
-        print('G->A', '\t'.join([str(x) for x in summarize_arrays_np(G_A)[0]]), sep='\t', file=outfile)
-
-    with open('confidence.tsv', 'w') as outfile:
-        print('Sub', '\t'.join([str(x) for x in range(1,11)]), '\t'.join([str(-1*x) for x in range(10,0,-1)]), sep='\t', file=outfile)
-        print('C->T', '\t'.join([str(x) for x in summarize_arrays_np(C_T)[1]]), sep='\t', file=outfile)
-        print('C->G', '\t'.join([str(x) for x in summarize_arrays_np(C_G)[1]]), sep='\t', file=outfile)
-        print('C->A', '\t'.join([str(x) for x in summarize_arrays_np(C_A)[1]]), sep='\t', file=outfile)
-        print('G->T', '\t'.join([str(x) for x in summarize_arrays_np(G_T)[1]]), sep='\t', file=outfile)
-        print('G->C', '\t'.join([str(x) for x in summarize_arrays_np(G_C)[1]]), sep='\t', file=outfile)
-        print('G->A', '\t'.join([str(x) for x in summarize_arrays_np(G_A)[1]]), sep='\t', file=outfile)
+        with open('confidence.tsv', 'w') as outfile:
+            print('Sub', '\t'.join([str(x) for x in range(1,11)]), '\t'.join([str(-1*x) for x in range(10,0,-1)]), sep='\t', file=outfile)
+            print('C->T', '\t'.join([str(x) for x in summarize_arrays_np(C_T)[1]]), sep='\t', file=outfile)
+            print('C->G', '\t'.join([str(x) for x in summarize_arrays_np(C_G)[1]]), sep='\t', file=outfile)
+            print('C->A', '\t'.join([str(x) for x in summarize_arrays_np(C_A)[1]]), sep='\t', file=outfile)
+            print('G->T', '\t'.join([str(x) for x in summarize_arrays_np(G_T)[1]]), sep='\t', file=outfile)
+            print('G->C', '\t'.join([str(x) for x in summarize_arrays_np(G_C)[1]]), sep='\t', file=outfile)
+            print('G->A', '\t'.join([str(x) for x in summarize_arrays_np(G_A)[1]]), sep='\t', file=outfile)
 
 if __name__ == "__main__":
     bamfile = sys.argv[1]   
