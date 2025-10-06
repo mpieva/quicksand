@@ -8,6 +8,7 @@ process BAM_DEAM_STATS{
 
     output:
     tuple val(meta), path('ancient_stats.tsv')                                                , emit: tsv
+    tuple val(meta), path('substitutions.tsv'), path('confidence.tsv')                        , emit: positions
     tuple val(meta), path("output.deaminated1.bam"), path("output.deaminated3.bam"), path(bam), emit: bam
 
     script:
@@ -17,5 +18,6 @@ process BAM_DEAM_STATS{
     touch output.deaminated3.bam
 
     bam_deam_stats.py ${bam} $args > ancient_stats.tsv
+    bam_deam_positions.py ${bam}
     """
 }

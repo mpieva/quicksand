@@ -80,7 +80,7 @@ quicksand is executed directly from github. With the test-database created and t
 # set this if you encounter a heap-space error to increase the memory that is used by nextflow
 export NXF_OPTS="-Xms10g -Xmx15g" # increase or decrease the numbers as required
 
-nextflow run mpieva/quicksand -r v2.4 \
+nextflow run mpieva/quicksand -r v2.5 \
   --db        refseq/kraken/Mito_db_kmer22/ \
   --genomes   refseq/genomes/ \
   --bedfiles  refseq/masked/ \

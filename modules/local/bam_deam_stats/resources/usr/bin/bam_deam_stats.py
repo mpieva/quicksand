@@ -15,7 +15,7 @@ def binomial_ci(x, n, alpha=0.05):
     return f"{round(lower*100,1):.1f},{round(upper*100,1):.1f}"
 
 
-def main(bamfile, positions, stats_only=False, doublestranded=False):
+def main(bamfile, positions=3, stats_only=False, doublestranded=False):
     #store all reference bases
     all_first = []
     all_last = []
@@ -190,12 +190,10 @@ def main(bamfile, positions, stats_only=False, doublestranded=False):
 
 if __name__ == "__main__":
     bamfile = sys.argv[1]
-    positions = int(sys.argv[2])
     only_stats = 'only_stats' in sys.argv
     doublestranded = 'doublestranded' in sys.argv
 
     # only_stats - dont write deaminated reads to file
     # doublestranded - use G>A rates at 5' end instead of C>T as in singlestranded library prep
-    #
-
-    main(bamfile, positions, only_stats, doublestranded)
+    
+    main(bamfile, stats_only=only_stats, doublestranded=doublestranded)

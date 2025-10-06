@@ -5,11 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
-## [WIP]
+## [v2.5]
 
 ### Changes
 
 - Make the ordering in the reports consistent --> RG, Order, Family
+- Add a step in the analysis of deamination patterns: bam_deam_positions 
+    - Create a table that shows substitutions-rates for the first 10 and last 10 positions of each alignment.
+    - Create a table that shows the 95% confidence-intervals for the first and last 10 positions of each alignment
+    - the are saved to the `stats/` directory under `{RG}_04_deamination_positions/`
 
 ### Bugfixes
 
