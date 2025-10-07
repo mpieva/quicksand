@@ -2,6 +2,7 @@ include { BAM_DEAM_STATS as BAM_DEAM_BEST  } from '../modules/local/bam_deam_sta
 include { BAM_DEAM_STATS as BAM_DEAM_FIXED } from '../modules/local/bam_deam_stats'
 include { MASK_DEAMINATION                 } from '../modules/local/mask_deamination'
 include { SAMTOOLS_MPILEUP                 } from '../modules/local/samtools_mpileup'
+include { PLOT_DEAM                        } from '../modules/local/pandas_plot_deam'
 
 workflow deamination_stats {
     take: best
@@ -22,6 +23,8 @@ workflow deamination_stats {
         }
         .set{ best }
 
+        ch_positions = BAM_DEAM_BEST.out.positions
+
         // Now for the fixed
 
         BAM_DEAM_FIXED( fixed )
@@ -40,10 +43,17 @@ workflow deamination_stats {
         }
         .set{ fixed }
 
+        ch_positions = ch_positions.mix(BAM_DEAM_FIXED.out.positions)
+        
+        // Plot deamination rates
+        PLOT_DEAM(ch_positions)
+
+        // And continue with the fixed files...
+
         MASK_DEAMINATION( fixed )
 
         //
-        // And create Mpileups
+        // Create Mpileups
         //
 
         SAMTOOLS_MPILEUP( MASK_DEAMINATION.out.bam )
