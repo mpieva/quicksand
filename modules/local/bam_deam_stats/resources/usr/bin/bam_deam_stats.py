@@ -15,7 +15,7 @@ def binomial_ci(x, n, alpha=0.05):
     return f"{round(lower*100,1):.1f},{round(upper*100,1):.1f}"
 
 
-def main(bamfile, positions=3, stats_only=False, doublestranded=False):
+def main(bamfile, threshold=threshold, positions=3, stats_only=False, doublestranded=False):
     #store all reference bases
     all_first = []
     all_last = []
@@ -155,9 +155,9 @@ def main(bamfile, positions=3, stats_only=False, doublestranded=False):
     try:
         test51,test31 = float(p_deam51_95ci.split(',')[0]),float(p_deam31_95ci.split(',')[0])
         if test51 and test31:
-            if test51 > 9.5 or test31 > 9.5:
+            if test51 > threshold or test31 > threshold:
                 ancientness = '+'
-            if test51 > 9.5 and test31 > 9.5:
+            if test51 > threshold and test31 > threshold:
                 ancientness = '++'
     except ValueError:
         pass
@@ -190,10 +190,11 @@ def main(bamfile, positions=3, stats_only=False, doublestranded=False):
 
 if __name__ == "__main__":
     bamfile = sys.argv[1]
+    threshold = float(sys.argv[2])
     only_stats = 'only_stats' in sys.argv
     doublestranded = 'doublestranded' in sys.argv
 
     # only_stats - dont write deaminated reads to file
     # doublestranded - use G>A rates at 5' end instead of C>T as in singlestranded library prep
     
-    main(bamfile, stats_only=only_stats, doublestranded=doublestranded)
+    main(bamfile, threshold=threshold, stats_only=only_stats, doublestranded=doublestranded)
