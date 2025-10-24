@@ -272,6 +272,17 @@ Optional flags
 
           --bamfilter_quality_cutoff 25
 
+  * - --ancientness_threshold
+    - N
+    - | Threshold for reporting 'Ancientness' values of '++' or '+' (default: 9.5)
+      |    (++): Substitution frequencies on both ends of sequences are significantly higher than N %
+      |     (+): Substitution frequencies on either the 5’ or the 3’ end of sequences are significantly higher than N %
+      ::
+
+          Example:
+
+          --ancientness_threshold 5
+
   * - --reportfilter_percentage
     - N
     - | For the creation of the filtered_report.tsv file

@@ -15,7 +15,7 @@ def binomial_ci(x, n, alpha=0.05):
     return f"{round(lower*100,1):.1f},{round(upper*100,1):.1f}"
 
 
-def main(bamfile, threshold=threshold, positions=3, stats_only=False, doublestranded=False):
+def main(bamfile, threshold=9.5, positions=3, stats_only=False, doublestranded=False):
     #store all reference bases
     all_first = []
     all_last = []

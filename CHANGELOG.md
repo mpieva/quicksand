@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
     - Create a table that shows substitutions-rates for the first 10 and last 10 positions of each alignment.
     - Create a table that shows the 95% confidence-intervals for the first and last 10 positions of each alignment
     - the are saved to the `stats/` directory under `{RG}_04_deamination_positions/`
+- Add the `--ancientness_threshold` flag to specify the threshold used for reporting ancientness levels ('++' and '+')
 
 ### Bugfixes
 

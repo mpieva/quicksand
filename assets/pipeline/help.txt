@@ -42,6 +42,9 @@ process arguments:
   --bamfilter_quality_cutoff    N    Quality filter for extracted bam (default: 25)
   --krakenuniq_min_kmers        N    Filter: minimal required unique kmers (krakenuniq) assigned to a family (default: 129)
   --krakenuniq_min_reads        N    Filter: minimal required number of reads assigned to a family by krakenuniq (default: 3)
+  --ancientness_threshold       N    Threshold for reporting 'Ancientness' values of '++' or '+' (default: 9.5)
+                                        - (++): Substitution frequencies on both ends of sequences are significantly higher than N %
+                                        -  (+): Substitution frequencies on either the 5’ or the 3’ end of sequences are significantly higher than N %
   --reportfilter_percentage     N    For the 'filtered_report.tsv', Specify a FamPercentage threshold
   --reportfilter_breadth        N    For the 'filtered_report.tsv', Specify a ProportionExpectedBreadth threshold
 
