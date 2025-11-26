@@ -1,5 +1,5 @@
 ![MIT License](https://img.shields.io/github/license/mpieva/quicksand?style=for-the-badge)
-[![DOI](https://img.shields.io/badge/DOI-10.5281/zenodo.11106450-ff69b4?style=for-the-badge)](https://zenodo.org/doi/10.5281/zenodo.11106450)
+[![DOI](https://img.shields.io/badge/DOI-10.1093%2Fmolbev%2Fmsaf305-teal?style=for-the-badge)](https://doi.org/10.1093/molbev/msaf305)
 
 # quicksand
 
@@ -70,7 +70,7 @@ nextflow run mpieva/quicksand-build -r v3.1 \
 latest=$(curl http://ftp.eva.mpg.de/quicksand/LATEST)
 wget -r -np -nc -nH --cut-dirs=3 --reject="*index.html*" -q --show-progress -P refseq http://ftp.eva.mpg.de/quicksand/build/$latest
 ```
-**Warning:** This can take several hours! For testing quicksand its recommended to just build a small database (see above)
+This can take several hours! For testing quicksand its recommended to build a small database (see above)
 
 ### Run quicksand
 
@@ -87,9 +87,6 @@ nextflow run mpieva/quicksand -r v2.5 \
   --split     split/ \
   -profile    singularity #mind the single dash!
 ```
-
-> [!NOTE]
-> The test-database with limited reference genomes should _not_ be used for real samples, as the limited references attract false-positive sequences from close (but missing) families (e.g. Canidae get assigned to Hyaenidae). Please see the [examples section](https://quicksand.readthedocs.io/en/latest/examples.html) in the quicksand documentation to explore different settings and use-cases of quicksand.
 
 ### Output
 
@@ -139,24 +136,21 @@ A collection of common nextflow-errors and how to solve them
 ```
  -- Check '.nextflow.log' file for details
 ERROR ~ Java heap space
-
- -- Check '.nextflow.log' file for details
-ERROR ~ Execution aborted due to an unexpected error
 ```
-
 Heap space errors can occur if nextflow itself requires more memory than provided by default (e.g. when screening too many samples in parallel). You can increase the heap-space as needed (e.g., to 5gb) with 
-
 ```
 export NXF_OPTS="-Xms5g -Xmx5g"
 ``` 
 
-## References and Citation
+## Citation
 
-If you use quicksand in your research, please cite the quicksand-preprint as follows:
+If you use quicksand in your research, please cite the quicksand publication as follows:
 
-> Szymanski, Merlin, Johann Visagie, Frederic Romagne, Matthias Meyer, and Janet Kelso. 2025.
-> “quick analysis of sedimentary ancient DNA using quicksand”,
-> [https://doi.org/10.1101/2025.08.01.668088](https://doi.org/10.1101/2025.08.01.668088).
+> Szymanski, Merlin, Johann Visagie, Frederic Romagne, Matthias Meyer, and Janet Kelso. \
+> “**quick** analysis of **s**edimentary **an**cient **D**NA using _quicksand_”, Molecular Biology and Evolution, 2025. \
+> [https://doi.org/10.1093/molbev/msaf305](https://doi.org/10.1093/molbev/msaf305).
+
+## Honorable Mentions
 
 This pipeline uses code inspired by the [nf-core](https://nf-co.re) initative, reused here under the [MIT license](https://github.com/nf-core/tools/blob/master/LICENSE).
 
