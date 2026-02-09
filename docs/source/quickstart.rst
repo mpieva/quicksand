@@ -41,16 +41,16 @@ MPI EVA FTP Servers. Custom versions of the reference material can be created wi
 
 For quickstarting quicksand, create a fresh database containing only the Hominidae mtDNA reference genomes (runtime: ~3-5 minutes)::
 
-nextflow run mpieva/quicksand-build -r v3.0 \
-  --include  Hominidae \
-  --outdir   refseq \
-  -profile   singularity
+  nextflow run mpieva/quicksand-build -r v3.0 \
+    --include  Hominidae \
+    --outdir   refseq \
+    -profile   singularity
 
 
 Alternatively, download the most full datastructure from the MPI EVA FTP SERVERS (~50 GB)::
 
-    latest=$(curl http://ftp.eva.mpg.de/quicksand/LATEST)
-    wget -r -np -nc -nH --cut-dirs=3 --reject="*index.html*" -q --show-progress -P refseq http://ftp.eva.mpg.de/quicksand/build/$latest
+   latest=$(curl http://ftp.eva.mpg.de/quicksand/LATEST)
+   wget -r -np -nc -nH --cut-dirs=3 --reject="*index.html*" -q --show-progress -P refseq http://ftp.eva.mpg.de/quicksand/build/$latest
 
 
 Run quicksand
