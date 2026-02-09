@@ -28,26 +28,36 @@ The input for quicksand is a directory with user-supplied files in BAM or FASTQ 
 Adapter-trimming, overlap-merging and sequence demultiplexing need to be performed by the user prior to running quicksand. 
 Provide the directory with the :code:`--split DIR` flag. 
 
-As input for the quickstart, download the Hominin "Hohlenstein-Stadel" mtDNA [1]_ into a directory `split`::
+As a test file, download a mammalian mtDNA capture library from Denisova Cave Layer 20 (published in `Zavala et al. 2021 <https://doi.org/10.1038/s41586-021-03675-0>`_) into a directory `split`::
 
-	wget -q --show-progress -P split http://ftp.eva.mpg.de/neandertal/Hohlenstein-Stadel/BAM/mtDNA/HST.raw_data.ALL.bam
+	wget -P split \
+    ftp://ftp.sra.ebi.ac.uk/vol1/run/ERR564/ERR5640810/A20896.bam
+
+
+Create test-database
+--------------------
+
+Create a small test-database containing only the Hominidae, Bovidae and Hyaenidea mtDNA reference genomes (~150 genomes, runtime: ~3-5 minutes, size ~5GB)::
+
+    nextflow run mpieva/quicksand-build -r v3.1 \
+        --include  Hominidae,Bovidae,Hyaenidae \
+        --outdir   refseq \
+        -profile   singularity
 
 
 Download the database
 ---------------------
 
-The required KrakenUniq database, the reference genomes for mapping and the bed-files for low-complexity filtering are available on the 
-MPI EVA FTP Servers. Custom versions of the reference material can be created with the quicksand-build pipeline
+For real analyses (or the :ref:`examples-page` page), download or create a complete dataset 
 
-For quickstarting quicksand, create a fresh database containing only the Hominidae mtDNA reference genomes (runtime: ~3-5 minutes)::
+A custom versions of the **full reference material** can be created with the quicksand-build pipeline (warning: requires at least 100GB of RAM)::
 
-  nextflow run mpieva/quicksand-build -r v3.0 \
-    --include  Hominidae \
+  nextflow run mpieva/quicksand-build -r v3.1 \
     --outdir   refseq \
     -profile   singularity
 
 
-Alternatively, download the most full datastructure from the MPI EVA FTP SERVERS (~50 GB)::
+Alternatively, download the most full datastructure (refseq release 221) from the MPI EVA FTP SERVERS (~50 GB)::
 
    latest=$(curl http://ftp.eva.mpg.de/quicksand/LATEST)
    wget -r -np -nc -nH --cut-dirs=3 --reject="*index.html*" -q --show-progress -P refseq http://ftp.eva.mpg.de/quicksand/build/$latest

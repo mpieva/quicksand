@@ -20,8 +20,7 @@ Additional columns provided in the report for quality control include the Kraken
 Download quicksand-database
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Please see the :ref:`quickstart-page` section to download a test-dataset (:code:`split`)
-and the required datastructure (:code:`refseq`).
+Please see the :ref:`quickstart-page` section to download the required reference datastructure (:code:`refseq`).
 
 quicksand was developed and tested using a database built from the mammalian mtDNA genomes in RefSeq. 
 For broader usability, the database provided on the FTP server was built from the full RefSeq release 221, including non-mammalian mtDNA genomes. 
@@ -296,9 +295,9 @@ of which only the Hyaenidae meets the default thresholds of 129 unique kmers and
 +----------+-------+--------+------------------+
 
 To override the default filters and process *all* potential mammalian families, repeat the quicksand-run with the flags :code:`--krakenuniq_min_kmers 11` and
-:code:`--krakenuniq_min_reads 2` to apply more permissive KrakenUniq filter thresholds::
-​
-    # rename the folder, to not overwrite it​
+:code:`--krakenuniq_min_reads 2`.
+This is done to apply more permissive KrakenUniq filter thresholds::
+    
     mv quicksand_v2.5/ quicksand_v2.5.old/
     
     nextflow run mpieva/quicksand \
@@ -506,8 +505,8 @@ and 6.4x for levels 121, 122, and 126, respectively.
 Haplogroup calling with HaploGrep 3 (`Schönherr et al., 2023 <https://doi.org/10.1093/nar/gkad284>`_) requires an mtDNA
 consensus sequence based on alignment to the rCRS. However, the “best” reference genome for the Hominidae family in default
 quicksand runs is often the Denisovan or Neanderthal mtDNA genome. This occurs because Neanderthals and Denisovans are classified as subspecies of modern
-humans in the NCBI taxonomy (https://www.ncbi.nlm.nih.gov/Taxonomy/Browser/wwwtax.cgi?command=show&mod
-e=tree&id=9606). Consequently, if KrakenUniq matches kmers to both the modern human and Neanderthal/Denisovan mtDNA genomes, the ‘best’ assignment is placed
+humans in the NCBI taxonomy (https://www.ncbi.nlm.nih.gov/Taxonomy/Browser/wwwtax.cgi?command=show&mode=tree&id=9606). 
+Consequently, if KrakenUniq matches kmers to both the modern human and Neanderthal/Denisovan mtDNA genomes, the ‘best’ assignment is placed
 at the subspecies (Neanderthal/Denisovan) level rather than at the *Homo* node.
 
 This issue can be avoided by running quicksand with a set of predefined (“fixed”) reference genomes for selected families, either directly or 
@@ -630,7 +629,7 @@ In addition, Cricetidae (best reference: Microtus ilaeus) is detected with Ancie
 +------------+-----------+-------------+--------------+--------------------------------+--------+---------+-------------+-------+----------+-------+
 | Bovidae    | 1783      | 1224 (6616) | 2.69 (2.33)  | Bison_bonasus                  | 839    | 570     | ++          | 6.18  | 1.84     | 0.989 |
 +------------+-----------+-------------+--------------+--------------------------------+--------+---------+-------------+-------+----------+-------+
-| Cricetidae | 259238    | 253 (1845)  | 1.38 (613.0) | Microtus_ilaeus                | 99     | 66      | +           | 0.71  | 0.21     | 1.093 |
+| Cricetidae | 259238    | 253 (1845)  | 1.38 (613.0) | Microtus_ilaeus                | 99     | 66      | \+          | 0.71  | 0.21     | 1.093 |
 +------------+-----------+-------------+--------------+--------------------------------+--------+---------+-------------+-------+----------+-------+
 | Hominidae  | 1080      | 27 (7082)   | 1.3 (2.35)   | Homo_sapiens_subsp._'Denisova' | 911    | 644     | ++          | 7.10  | 1.94     | 1.001 |
 +------------+-----------+-------------+--------------+--------------------------------+--------+---------+-------------+-------+----------+-------+
