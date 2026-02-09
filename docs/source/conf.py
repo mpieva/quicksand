@@ -18,7 +18,7 @@
 # -- Project information -----------------------------------------------------
 
 project = 'quicksand'
-copyright = '2024, Merlin Szymanski'
+copyright = '2026, Merlin Szymanski'
 author = 'Merlin Szymanski'
 
 # The full version, including alpha/beta/rc tags
