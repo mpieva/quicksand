@@ -39,6 +39,13 @@ class Node:
             return self.name
         else:
             return self.parent.order if self.parent else None
+    
+    @property
+    def family(self):
+        if self.level == 'family':
+            return self.name
+        else:
+            return self.parent.family if self.parent else None
 
     @property
     def best_child(self):
@@ -56,6 +63,7 @@ parents = {
     }
 
 family_nodes = []
+genus_nodes = []
 
 for row in open(report,'r'):
     try:
@@ -76,10 +84,13 @@ for row in open(report,'r'):
 
     if level=='family':
         family_nodes.append(node)
+    
+    if level=='genus':
+        genus_nodes.append(node)
 
 
 # Write the report
-print('Family','Order','BestTaxID','FamReads','Kmers','KmerCoverage','KmerDupRate', sep='\t', file=sys.stdout)
+print('Level','Genus','Family','Order','BestTaxID','NodeReads','Kmers','KmerCoverage','KmerDupRate', sep='\t', file=sys.stdout)
 for node in family_nodes:
     best = node.best_child
     order = node.order
@@ -89,7 +100,43 @@ for node in family_nodes:
         continue
 
     print(
+        'f',
+        "",
         node.name,
+        order,
+        best.taxid,
+        node.reads,
+        f"{best.kmers} ({node.kmers})",
+        f"{best.coverage} ({node.coverage})",
+        f"{best.dup} ({node.dup})", 
+        sep='\t', file=sys.stdout)
+
+   # repeat for the order-level 
+    print(
+        'o',
+        "",
+        node.name,
+        order,
+        best.taxid,
+        node.reads,
+        f"{best.kmers} ({node.kmers})",
+        f"{best.coverage} ({node.coverage})",
+        f"{best.dup} ({node.dup})", 
+        sep='\t', file=sys.stdout)
+
+for node in genus_nodes:
+    best = node.best_child
+    family = node.family
+    order = node.order
+
+    ## Now apply the filters ##
+    if node.reads < min_reads or node.kmers < min_kmers:
+        continue
+
+    print(
+        'g',
+        node.name,
+        family,
         order,
         best.taxid,
         node.reads,

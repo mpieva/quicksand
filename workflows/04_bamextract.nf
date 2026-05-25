@@ -14,6 +14,7 @@ workflow bamextract {
 
         // for order-lvl: only extract each order once
         translate = translate.unique()
+        
         GATHER_TAXON(translate)
 
         //

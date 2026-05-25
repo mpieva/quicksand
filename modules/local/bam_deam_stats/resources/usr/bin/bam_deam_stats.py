@@ -41,7 +41,7 @@ def main(bamfile, threshold=9.5, positions=3, stats_only=False, doublestranded=F
     #open the files
     infile = pysam.AlignmentFile(bamfile, 'rb')
 
-    if not only_stats:
+    if not stats_only:
         out1term = pysam.AlignmentFile('output.deaminated1.bam', 'wb', template=infile)
         out3term = pysam.AlignmentFile('output.deaminated3.bam', 'wb', template=infile)
 
@@ -74,14 +74,14 @@ def main(bamfile, threshold=9.5, positions=3, stats_only=False, doublestranded=F
         if not doublestranded:
             mism = [
                 n for n,x in enumerate(ref)
-                if ((x, seq[n]) == ('c','T')) and (n<=pos_index or n>=rlen-pos_index)
+                if ((x, seq[n]) == ('c','T')) and (n<=pos_index or n>=rlen-positions)
             ]
         else:
             mism = [
                 n for n,x in enumerate(ref)
                 if (
                     ((x, seq[n]) == ('c','T') and n<=pos_index) or # check C>T in 5'
-                    ((x, seq[n]) == ('g','A') and n>=rlen-pos_index) # check G>A in 3'
+                    ((x, seq[n]) == ('g','A') and n>=rlen-positions) # check G>A in 3'
                 )
             ]
 
@@ -94,7 +94,7 @@ def main(bamfile, threshold=9.5, positions=3, stats_only=False, doublestranded=F
         deam51 = 0 in mism
         deam31 = rlen in mism
         deam53 = any(x<=pos_index for x in mism)
-        deam33 = any(x>=rlen-pos_index for x in mism)
+        deam33 = any(x>=rlen-positions for x in mism)
         cond = deam51 and deam31
 
         n_deam51 += int(deam51)
@@ -111,19 +111,19 @@ def main(bamfile, threshold=9.5, positions=3, stats_only=False, doublestranded=F
         #write read to the file(s)
         if deam51 or deam31:
             n_deam_1 += 1
-            if not only_stats:
+            if not stats_only:
                 out1term.write(read)
         if deam53 or deam33:
             lengths_deam.append(rlen+1) #deaminated fragment length
             n_deam_3 += 1
-            if not only_stats:
+            if not stats_only:
                 out3term.write(read)
 
     avg_fraglen = statistics.mean(lengths_all) if len(lengths_all) > 0 else 'N/A'
     avg_fraglen_deam = statistics.mean(lengths_deam) if len(lengths_deam) > 0 else 'N/A'
 
     infile.close()
-    if not only_stats:
+    if not stats_only:
         out1term.close()
         out3term.close()
 

@@ -31,7 +31,7 @@ workflow mapbam {
             //now split the main channel into best and fixed
             bwa_in
             .branch{
-                fixed: it[0].Family in famList
+                fixed: params.taxlvl=='o' ? it[0].Family in famList : it[0].Taxon in famList // for extract lvl 0 -> still use family for the fixed references
                 best: true
             }
             .set{bwa_in}
@@ -40,7 +40,7 @@ workflow mapbam {
             // replace assignments in the fixed branch
             bwa_in.fixed
             .map{ meta, bam ->
-                [meta.Family, meta, bam ]
+                [ params.taxlvl=='o' ? meta.Family : meta.Taxon, meta, bam ]
             }
             .combine( ch_fixed, by:0 )
             .map{ fam, meta, bam, info -> //this is where the replacement happens
@@ -49,6 +49,7 @@ workflow mapbam {
                 ]
             }
             .unique{ it[0] } // replacing all family assignments to the same reference can cause duplicated entries!
+            .view()
             .set{fixed}
 
             // For the best-branch

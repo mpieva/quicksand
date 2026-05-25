@@ -86,7 +86,7 @@ workflow write_reports {
     //
 
     header_map = [
-    'tax'    : 'Order\tFamily\tSpecies\tReference',
+    'tax'    : 'Order\tFamily\tGenus\tSpecies\tReference',
     'split'  : 'ReadsRaw\tReadsFiltered\tReadsLengthfiltered',
     'kraken' : 'Kmers\tKmerCoverage\tKmerDupRate',
     'deam'   : 'Ancientness\tReadsDeam(1term)\tReadsDeam(3term)\tDeam5(95ci)\tDeam3(95ci)\tDeam5Cond(95ci)\tDeam3Cond(95ci)',

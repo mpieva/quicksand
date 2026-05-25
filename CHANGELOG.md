@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [v2.6]
+
+### Updates
+- Add the `--taxlvl g` flag to run quicksand for genus-level assignments
+
+### Changes
+- Update the 'parsed_report' to include the genus, family and order-level summaries
+- Update the 'final_report' to include a 'Genus' column
+  - The Genus column is empty for family- and order-level assignments
+
+### BugFixes
+- Minor: Fix --rerun flag for file-names that contain an underscore 
+- Major: Fix bam-deam script: it didn't count the 3rd position on the 3' end of sequences for 3-term deamination stats (calculation and extraction)
+
 ## [v2.5]
 
 ### Changes

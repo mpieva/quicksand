@@ -40,10 +40,11 @@ workflow krakenrun {
             .map{meta, report ->
                 [[meta.id, report[['g':'Genus', 'f':'Family', 'o':'Order'][params.taxlvl]]], meta, report] // extract the 'taxon' from the parsed report
             }
+            .filter{it[2]['Level']==params.taxlvl} // here, restrict the parsed report to the required hierarchy
             .set{assignments}
 
         // parse and filter the translate-file
-        // so that we later only extract bamfiles from families
+        // so that we later only extract bamfiles from families/genera
         // that pass min-reads and min-kmers
         translate = RUN_KRAKENUNIQ.out.translate
         translate.map{ meta, translate ->

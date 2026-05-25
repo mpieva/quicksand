@@ -114,12 +114,12 @@ ch_fixed = params.fixed ?
 
 // if rerun,
 // we need new entry points, so load the final_report
-// and the extracted bam files
+// and find the extracted bam files
 //
 
 ch_report = params.rerun ? Channel.fromPath("${outdir}/final_report.tsv", type:'file').splitCsv(sep:'\t', header:true) : Channel.empty()
 ch_report
-    .map{row -> [[ row.ExtractLVL == 'f' ? row.Family : row.Order, row.RG], row]} // get the right taxon
+    .map{row -> [[ ['g':row.Genus, 'f':row.Family, 'o':row.Order][row.ExtractLVL], row.RG], row]} // get the right taxon
     .unique{ it[0] }
     .set{ ch_report_for_rerun }
 
@@ -127,7 +127,7 @@ outdir = params.rerun ? Channel.fromPath("${outdir}/out/*/1-extracted/*.bam", ty
     [
         [
             bam.getParent().getParent().name, // taxon name
-            bam.baseName.split('_')[0] // The id
+            bam.baseName.split('_extractedReads')[0] // The id
         ],
         bam // the extracted reads file
     ]
@@ -139,7 +139,7 @@ if(! standard_run){
     // combine extracted bam with entries in report
     ch_report_for_rerun.combine(outdir, by:0)
     .map{ key, meta, bam ->
-        [key[0], meta, bam]
+        [['g':meta.Genus, 'f':meta.Family, 'o':meta.Order][params.taxlvl ?: meta.ExtractLVL], meta, bam] // get the required column for the level of the rerun
     }
     .set{ ch_report_for_rerun }
 
@@ -316,12 +316,12 @@ workflow {
     deduped.best.mix( mapped.nodedup ).set{ best }
 
     best = best
-        .map{meta,bam -> [meta.id, meta.Family, meta.CoveredBP, meta, bam]}
-        .toSortedList({ a,b -> a[0]+a[1] <=> b[0]+b[1] ?: a[2] <=> b[2]})
+        .map{meta,bam -> [meta.id, meta.Genus, meta.Family, meta.CoveredBP, meta, bam]} // for taxlvl f, Genus should be empty!
+        .toSortedList({ a,b -> a[0]+a[1]+a[2] <=> b[0]+b[1]+a[2] ?: a[3] <=> b[3]}) // if id, genus and family are the same, go by coeredBP
         .flatten()
-        .collate(5)
-        .groupTuple(by:[0,1])   //[[rg, fam, [covered_bp < .. < covered_bp][meta,meta,meta],[bam,bam,bam]]
-        .map{n -> [n[3][-1], n[4][-1]]} // from the highest, the [meta, bam]
+        .collate(6)
+        .groupTuple(by:[0,1,2])   //[[rg, genus, fam, [covered_bp < .. < covered_bp][meta,meta,meta],[bam,bam,bam]]
+        .map{n -> [n[4][-1], n[5][-1]]} // from the highest, the [meta, bam]
 
     //
     // 7. Run Intersect Bed
