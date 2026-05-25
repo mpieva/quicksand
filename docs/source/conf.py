@@ -22,8 +22,8 @@ copyright = '2026, Merlin Szymanski'
 author = 'Merlin Szymanski'
 
 # The full version, including alpha/beta/rc tags
-release = 'v2.5'
-version = 'v2.5'
+release = 'v2.6'
+version = 'v2.6'
 
 # -- General configuration ---------------------------------------------------
 

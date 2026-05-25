@@ -68,7 +68,7 @@ Run quicksand
 
 quicksand is executed directly from github. With the databases created and the testdata downloaded, run the pipeline as follows::
 
-    nextflow run mpieva/quicksand -r v2.5 \
+    nextflow run mpieva/quicksand -r v2.6 \
       -profile   singularity \
       --db       refseq/kraken/Mito_db_kmer22 \
       --genomes  refseq/genomes/ \
@@ -76,7 +76,7 @@ quicksand is executed directly from github. With the databases created and the t
       --split    split/
 
 
-The output of quicksand can be found in the directory **quicksand_v2.5/**
+The output of quicksand can be found in the directory **quicksand_v2.6/**
 
 See the :code:`final_report.tsv` and :code:`filtered_report_0.5p_0.5b.tsv` for a summary of the results.
 

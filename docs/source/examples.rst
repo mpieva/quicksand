@@ -74,7 +74,7 @@ required library file into a fresh input directory::
 Then run quicksand with the default parameters::
 
     nextflow run mpieva/quicksand \
-        -r v2.5 \
+        -r v2.6 \
         --split split/ \
         --db ../refseq/kraken/Mito_db_kmer22/ \
         --genomes ../refseq/genomes/ \
@@ -82,9 +82,9 @@ Then run quicksand with the default parameters::
         -profile singularity
 
 
-After completion, the final summary report is saved as :code:`quicksand_v2.5/final_report.tsv`. In total, 22 mammalian families are reported
+After completion, the final summary report is saved as :code:`quicksand_v2.6/final_report.tsv`. In total, 22 mammalian families are reported
 of which 20 show :code:`Ancientness` levels of + or ++ (see Table below). Nine mammalian families pass the default PSF and PEB filter thresholds (see
-:code:`quicksand_v2.5/filtered_report_0.5p_0.5b.tsv`).
+:code:`quicksand_v2.6/filtered_report_0.5p_0.5b.tsv`).
 
 +-----------------+--------------------------------+-------+-------+----------+-------+
 | Family          | Best Reference                 | Reads | PSF   | Coverage | PEB   |
@@ -159,7 +159,7 @@ required library file into a fresh input directory::
 Then run quicksand with the default parameters::
 
     nextflow run mpieva/quicksand \
-        -r v2.5 \
+        -r v2.6 \
         --split split/ \
         --db ../refseq/kraken/Mito_db_kmer22/ \
         --genomes ../refseq/genomes/ \
@@ -167,8 +167,8 @@ Then run quicksand with the default parameters::
         -profile singularity
 
 
-After completion, the final summary report is saved as :code:`quicksand_v2.5/final_report.tsv`. A total of 15 mammalian families are
-detected (Table below). Only the Hominidae family passes the default PSF and PEB filter thresholds (:code:`quicksand_v2.5/filtered_report_0.5p_0.5b.tsv`).
+After completion, the final summary report is saved as :code:`quicksand_v2.6/final_report.tsv`. A total of 15 mammalian families are
+detected (Table below). Only the Hominidae family passes the default PSF and PEB filter thresholds (:code:`quicksand_v2.6/filtered_report_0.5p_0.5b.tsv`).
 
 +-----------------+--------------------------------+-------+-------+----------+-------+
 | Family          | Best Reference                 | Reads | PSF   | Coverage | PEB   |
@@ -240,7 +240,7 @@ required library file into a fresh input directory::
 Then run quicksand with the default parameters::
 
     nextflow run mpieva/quicksand \
-        -r v2.5 \
+        -r v2.6 \
         --split split/ \
         --db ../refseq/kraken/Mito_db_kmer22/ \
         --genomes ../refseq/genomes/ \
@@ -248,9 +248,9 @@ Then run quicksand with the default parameters::
         -profile singularity
 
 
-After completion, the final summary report is saved as :ref:`quicksand_v2.5/final_report.tsv`. A single mammalian family, the Hyaenidea is
+After completion, the final summary report is saved as :ref:`quicksand_v2.6/final_report.tsv`. A single mammalian family, the Hyaenidea is
 detected with 33 sequences (Table below), showing an Ancientness level of ++ and passing both the default PSF and PEB filter thresholds
-(:code:`quicksand_v2.5/filtered_report_0.5p_0.5b.tsv`).
+(:code:`quicksand_v2.6/filtered_report_0.5p_0.5b.tsv`).
 
 +-----------+-----------------+-------+-------+----------+-------+
 | Family    | Best Reference  | Reads | PSF   | Coverage | PEB   |
@@ -267,7 +267,7 @@ thresholds for the number of unique kmers can be lowered for a more sensitive sc
 to mapping and downstream evaluation.
 
 quicksand saves the KrakenUniq report for each sample, which can be examined to identify families that would be included if the filter thresholds 
-were lowered. In this library, the report (:code:`quicksand_v2.5/stats/R5723.kraken.report`) lists 10 mammalian family assignments, 
+were lowered. In this library, the report (:code:`quicksand_v2.6/stats/R5723.kraken.report`) lists 10 mammalian family assignments, 
 of which only the Hyaenidae meets the default thresholds of 129 unique kmers and 3 sequences (Table below).
 
 +----------+-------+--------+------------------+
@@ -298,10 +298,10 @@ To override the default filters and process *all* potential mammalian families, 
 :code:`--krakenuniq_min_reads 2`.
 This is done to apply more permissive KrakenUniq filter thresholds::
     
-    mv quicksand_v2.5/ quicksand_v2.5.old/
+    mv quicksand_v2.6/ quicksand_v2.6.old/
     
     nextflow run mpieva/quicksand \
-        -r v2.5 \
+        -r v2.6 \
         --split split/ \
         --db ../refseq/kraken/Mito_db_kmer22/ \
         --genomes ../refseq/genomes/ \
@@ -439,7 +439,7 @@ Then, download the required 32 library files into a new input directory for para
 Then, run quicksand using the default parameters and the :code:`--doublestranded` flag::
 
     quicksand run mpieva/quicksand \
-    -r v2.5 \
+    -r v2.6 \
     --split split \
     --genomes refseq/genomes \
     --db refseq/kraken/Mito_db_kmer22 \
@@ -449,7 +449,7 @@ Then, run quicksand using the default parameters and the :code:`--doublestranded
 
 
 After completion, the summary report contains the results for all 32 libraries. Applying the default filters (PSF of 0.5 and PEB of 0.5;
-:code:`quicksand_v2.5/filtered_report_0.5p_0.5b.tsv`), recovers the same mammalian taxa reported by Gelabert et al. (Table below). 
+:code:`quicksand_v2.6/filtered_report_0.5p_0.5b.tsv`), recovers the same mammalian taxa reported by Gelabert et al. (Table below). 
 
 Interestingly, we detect ancient DNA from several bird families across multiple samples: Accipitridae (11 samples), Columbidae (6), Falconidae (2), 
 Phasianidae (3), and Strigidae (11), as well as ancient fish mtDNA (Salmonidae) in 14 samples, consistent with archaeological
@@ -513,7 +513,7 @@ This issue can be avoided by running quicksand with a set of predefined (“fixe
 in a second step using the :code:`--rerun` flag. 
 
 In “rerun” mode, quicksand skips the preprocessing and KrakenUniq classification and starts from the ExtractedReads for the selected “fixed” families (e.g.,
-:code:`quicksand_v2.5/out/Hominidae/1-extracted/*.bam`). quicksand then processes these sequences using the fixed reference genomes and updates the final
+:code:`quicksand_v2.6/out/Hominidae/1-extracted/*.bam`). quicksand then processes these sequences using the fixed reference genomes and updates the final
 summary reports to include the statistics for the additional mappings. 
 
 This example shows the combined use of the :code:`--fixed` with the :code:`--rerun` flag.
@@ -537,29 +537,29 @@ Prepare the fixed.tsv input file::
 Repeat the quicksand run with the :code:`--rerun` and :code:`--fixed` options, as well as the :code:`--doublestranded` flag::
 
     quicksand run mpieva/quicksand \
-        -r v2.5 \
+        -r v2.6 \
         --fixed fixed.tsv \
         --rerun \
         --doublestranded \
         -profile singularity
 
 The mapped and deduplicated bam-files can be found in the freshly created :code:`fixed` subdirectory of the family specific output-folder
-(:code:`quicksand_v2.5/out/Hominidae/fixed/3-deduped/`). Construct a FASTA consensus sequence from the rCRS-mapped and deduplicated sequences 
+(:code:`quicksand_v2.6/out/Hominidae/fixed/3-deduped/`). Construct a FASTA consensus sequence from the rCRS-mapped and deduplicated sequences 
 of each sample using ANGSD v0.940 (`Korneliussen et al. 2014 <https://doi.org/10.1186/s12859-014-0356-4>`_), with the most common allele option 
 (:code:`-doFasta 2` and :code:`-doCounts 1` flags), trimming the first and last base of each sequence to mitigate aDNA damage effects (:code:`-trim 1`).
 
 Index the sample BAM-files::
 
-    samtools index quicksand_v2.5/out/Hominidae/fixed/3-deduped/ERR13916465.Hominidae.rCRS_deduped.bam​
-    samtools index quicksand_v2.5/out/Hominidae/fixed/3-deduped/ERR13916462.Hominidae.rCRS_deduped.bam
-    samtools index quicksand_v2.5/out/Hominidae/fixed/3-deduped/ERR13916454.Hominidae.rCRS_deduped.bam
+    samtools index quicksand_v2.6/out/Hominidae/fixed/3-deduped/ERR13916465.Hominidae.rCRS_deduped.bam​
+    samtools index quicksand_v2.6/out/Hominidae/fixed/3-deduped/ERR13916462.Hominidae.rCRS_deduped.bam
+    samtools index quicksand_v2.6/out/Hominidae/fixed/3-deduped/ERR13916454.Hominidae.rCRS_deduped.bam
 
 
 Create FASTA consensus sequences::
 
-    angsd -out ERR13916465.fasta -i quicksand_v2.5/out/Hominidae/fixed/3-deduped/ERR13916465.Hominidae.rCRS_deduped.bam -doFasta 2 -doCounts 1 -trim 1
-    angsd -out ERR13916462.fasta -i quicksand_v2.5/out/Hominidae/fixed/3-deduped/ERR13916462.Hominidae.rCRS_deduped.bam -doFasta 2 -doCounts 1 -trim 1
-    angsd -out ERR13916454.fasta -i quicksand_v2.5/out/Hominidae/fixed/3-deduped/ERR13916454.Hominidae.rCRS_deduped.bam -doFasta 2 -doCounts 1 -trim 1
+    angsd -out ERR13916465.fasta -i quicksand_v2.6/out/Hominidae/fixed/3-deduped/ERR13916465.Hominidae.rCRS_deduped.bam -doFasta 2 -doCounts 1 -trim 1
+    angsd -out ERR13916462.fasta -i quicksand_v2.6/out/Hominidae/fixed/3-deduped/ERR13916462.Hominidae.rCRS_deduped.bam -doFasta 2 -doCounts 1 -trim 1
+    angsd -out ERR13916454.fasta -i quicksand_v2.6/out/Hominidae/fixed/3-deduped/ERR13916454.Hominidae.rCRS_deduped.bam -doFasta 2 -doCounts 1 -trim 1
 
 
 Next, use the HaploGrep 3 web tool (https://haplogrep.i-med.ac.at/) to assign human mtDNA haplogroups to each sample (Table below).
@@ -607,7 +607,7 @@ required library file into a fresh input directory::
 Then run quicksand with the default parameters and the :code:`--doublestranded` flag::
 
     quicksand run mpieva/quicksand \
-        -r v2.5 \
+        -r v2.6 \
         --split split \
         --genomes ../refseq/genomes \
         --db ../refseq/kraken/Mito_db_kmer22 \
@@ -615,7 +615,7 @@ Then run quicksand with the default parameters and the :code:`--doublestranded` 
         --doublestranded \
         -profile singularity
 
-After completion, the final summary report is saved as :code:`quicksand_v2.5/final_report.tsv`. quicksand detects 1,237 families, of which
+After completion, the final summary report is saved as :code:`quicksand_v2.6/final_report.tsv`. quicksand detects 1,237 families, of which
 382 have at least one mapped sequence, and 14 pass the PSF and PEB filter thresholds. Five *mammalian* families are detected: Canidae (best reference: Canis
 lupus), Bovidae (best reference: Bison bonasus), Hominidae (best reference: Homo sapiens subsp. ‘Denisova’), and Cervidae (best reference: Cervus canadensis), 
 with Ancientness ratings of ++ and mtDNA coverages of 2.96x, 1.84x, 1.94x, and 0.37x, respectively. 
@@ -643,7 +643,7 @@ As shown in Table, the Cricetidae stands out with 259,238 sequences classified b
 1,845 unique kmers and exhibit a very high kmer duplication rate compared to the other families (613). Particularly telling is that only 99 of the 
 259,238 sequences successfully map to the best reference genome (Mapped). This combination of data indicates that sequences in the dataset containing a 
 highly repetitive motif are being assigned to Cricetidae. Visual inspection of the sequences assigned to Cricetidae 
-(:code:`quicksand_v2.5/out/Cricetidae/1-extracted/ERR6024164_extractedReads-Cricetidae.bam`) shows that most classified sequences are identical in length
+(:code:`quicksand_v2.6/out/Cricetidae/1-extracted/ERR6024164_extractedReads-Cricetidae.bam`) shows that most classified sequences are identical in length
 (96 bp) and end with the same or highly similar sequence followed by a poly-G tail (ACTCCAGTCACCAGGAGGATCTCGTATGCCGTCTTCTGCTTGAAAA–PolyG), consistent with 
 technical artifacts such as non-adapter-clipped reads. Although the 99 mapped Cricetidae sequences pass the PSF and PEB quicksand filters and appear 
 authentic, this family-level assignment should be interpreted with caution. 
