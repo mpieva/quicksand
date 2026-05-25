@@ -190,9 +190,9 @@ Optional flags
           --fixed Path/to/fixed.tsv --rerun
 
   * - --taxlvl
-    - [o,f]
+    - [g, f, o]
     - | Default: f
-      | Change the taxonomic level for binning sequences after KrakenUniq classification (family or order level).
+      | Change the taxonomic level for binning sequences after KrakenUniq classification (genus, family or order level).
       |
       ::
 

@@ -62,8 +62,8 @@ def outdir = "quicksand_${workflow.manifest.version}"
 
 if(standard_run){
 
-    if(params.taxlvl !in ['f','o']){
-        exit_with_error_msg("ArgumentError","taxlvl must be one of [o, f] not ${params.taxlvl}")
+    if(params.taxlvl !in ['g','f','o']){
+        exit_with_error_msg("ArgumentError","taxlvl must be one of [g, f, o] not ${params.taxlvl}")
     }
     if(!params.genomes){ exit_missing_required('--genomes') }
     if(!params.db){   exit_missing_required('--db')      }

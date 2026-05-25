@@ -49,7 +49,7 @@ Then, a “best” reference for that family is selected for the upcoming mappin
 based on the number of unique kmers in the lower hierarchies. quicksand implements a naive decision tree, following the path of the highest kmer counts down the 
 taxonomic tree from the family to the species level.
 
-To bin sequences on the order- instead of the family-level, quicksand can be run with the :code:`--taxlvl o` flag.
+To bin sequences on the genus or order- instead of the family-level, quicksand can be run with the :code:`--taxlvl g` or :code:`--taxlvl o` flag.
 
 Mapping and Deduplication
 """""""""""""""""""""""""

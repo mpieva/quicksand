@@ -38,7 +38,7 @@ workflow krakenrun {
         parsed_report.assigned
             .transpose()
             .map{meta, report ->
-                [[meta.id, report[['f':'Family','o':'Order'][params.taxlvl]]], meta, report] // extract the 'taxon' from the parsed report
+                [[meta.id, report[['g':'Genus', 'f':'Family', 'o':'Order'][params.taxlvl]]], meta, report] // extract the 'taxon' from the parsed report
             }
             .set{assignments}
 

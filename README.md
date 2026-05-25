@@ -101,7 +101,7 @@ The main summary table (`final_report.tsv`) contains one line per input file and
 - **Kmers:** KrakenUniq: Number of unique kmers used for classification (format: "best" and "(family)") 
 - **KmerCoverage:** KrakenUniq: Kmer coverage for that classification (format: "best" and "(family)")
 - **KmerDupRate:** KrakenUniq: Kmer duplication rate for that classification (format: "best" and "(family)")
-- **ExtractLVL:** "f" (family) or "o" (order), set by `--taxlvl`
+- **ExtractLVL:** "g" (genus), "f" (family) or "o" (order), set by `--taxlvl` 
 - **ReadsExtracted:** Number of sequences assigned by KrakenUniq
 - **Order:** Detected Order
 - **Family:** Detected Family
