@@ -49,7 +49,6 @@ workflow mapbam {
                 ]
             }
             .unique{ it[0] } // replacing all family assignments to the same reference can cause duplicated entries!
-            .view()
             .set{fixed}
 
             // For the best-branch
