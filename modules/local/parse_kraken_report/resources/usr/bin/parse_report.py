@@ -18,7 +18,7 @@ min_reads = int(sys.argv[3])
 # The "easy" approach would be to take the lowest assigned node (species1)
 # However, its more likely, that the read belongs to (a species from) genus1
 # so we need to find in each node the path with the highest remaining kmer-count
-# For the bwa-step later, we use only order, family, genus, species, subspecies
+# For the bwa-step later, we use only order, family, genus, species
 # So ignore the intermediate clades!
 
 class Node:
@@ -27,7 +27,7 @@ class Node:
         self.name = name
         self.level = level
         self.taxid = taxid
-        self.coverage = coverage
+        self.coverage = float(coverage)
         self.kmers = int(kmers)
         self.dup = float(dup)
         self.reads = int(reads)
@@ -47,19 +47,22 @@ class Node:
         else:
             return self.parent.family if self.parent else None
 
+    #@property
+    #def best_child(self):
+    #    return  max(self.children, key=lambda x: x.kmers).best_child if len(self.children) > 0  else self
+    
     @property
     def best_child(self):
-        return  max(self.children, key=lambda x: x.kmers).best_child if len(self.children) > 0  else self
+        return max(self.children, key=lambda x: x.coverage).best_child if len(self.children) > 0 else self
 
 
-hierarchie = ['order','family','genus','species','subspecies']
+hierarchie = ['order','family','genus','species']
 
 parents = {
     'order':None,
     'family':None,
     'genus':None,
     'species':None,
-    'subspecies':None
     }
 
 family_nodes = []
