@@ -101,14 +101,14 @@ The main summary table (`final_report.tsv`) contains one line per input file and
 - **ReadsRaw:** Raw number of sequences in the file (paired reads only counted once)
 - **ReadsFiltered** Number of sequences after filtering for `--bamfilterflag`
 - **ReadsLengthfiltered:** Number of sequences after additonal filtering for sequence length (`--bamfilter_length_cutoff`)
-- **Kmers:** KrakenUniq: Number of unique kmers used for classification (format: "best" and "(family)") 
-- **KmerCoverage:** KrakenUniq: Kmer coverage for that classification (format: "best" and "(family)")
-- **KmerDupRate:** KrakenUniq: Kmer duplication rate for that classification (format: "best" and "(family)")
+- **Kmers:** KrakenUniq: Number of unique kmers used for classification (format: "best node"" and "(family)") 
+- **KmerCoverage:** KrakenUniq: Kmer coverage for that classification (format: "best node" and "(family)"). The 'best'
+- **KmerDupRate:** KrakenUniq: Kmer duplication rate for that classification (format: "best node" and "(family)")
 - **ExtractLVL:** "g" (genus), "f" (family) or "o" (order), set by `--taxlvl` 
 - **ReadsExtracted:** Number of sequences assigned by KrakenUniq
 - **Order:** Detected Order
 - **Family:** Detected Family
-- **Species:** The reference-genome used for the mapping of 'ReadsExtracted'
+- **Species:** The (best or fixed) reference-genome used for the mapping of 'ReadsExtracted'
 - **Reference:** "best" or "fixed" (`--fixed`)
 - **ReadsMapped:** Number of sequences mapped, passing the mapping quality-cutoff(`--mapbwa_quality_cutoff`)
 - **ProportionMapped:** ReadsMapped / ReadsExtracted 
