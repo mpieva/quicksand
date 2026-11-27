@@ -83,7 +83,7 @@ export NXF_OPTS="-Xms10g -Xmx15g" # increase or decrease the numbers as required
 # on nextflow version 26.X. set the config parser version (see https://github.com/nf-core/sarek/issues/2207)
 export NXF_SYNTAX_PARSER=v1
 
-nextflow run mpieva/quicksand -r v2.6 \
+nextflow run mpieva/quicksand -r v2.7 \
   --db        refseq/kraken/Mito_db_kmer22/ \
   --genomes   refseq/genomes/ \
   --bedfiles  refseq/masked/ \
