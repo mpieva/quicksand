@@ -39,7 +39,7 @@ Create test-database
 
 Create a small test-database containing only the Hominidae, Bovidae and Hyaenidea mtDNA reference genomes (~150 genomes, runtime: ~3-5 minutes, size ~5GB)::
 
-    nextflow run mpieva/quicksand-build -r v3.1 \
+    nextflow run mpieva/quicksand-build -r v3.3 \
         --include  Hominidae,Bovidae,Hyaenidae \
         --outdir   refseq \
         -profile   singularity
@@ -52,7 +52,7 @@ For real analyses (or the :ref:`examples-page` page), download or create a compl
 
 A custom versions of the **full reference material** can be created with the quicksand-build pipeline (warning: requires at least 100GB of RAM)::
 
-  nextflow run mpieva/quicksand-build -r v3.1 \
+  nextflow run mpieva/quicksand-build -r v3.3 \
     --outdir   refseq \
     -profile   singularity
 

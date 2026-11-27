@@ -56,7 +56,7 @@ For the quickstart of quicksand, create a small test-database containing only th
 (to reduce database size and runtime, use only `--include Hominidae`)
 
 ```bash
-nextflow run mpieva/quicksand-build -r v3.1 \
+nextflow run mpieva/quicksand-build -r v3.3 \
   --include  Hominidae,Bovidae,Hyaenidae \
   --outdir   refseq \
   -profile   singularity
