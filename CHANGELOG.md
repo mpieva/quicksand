@@ -6,11 +6,16 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [v2.7]
+### Bugfixes
+- fix sorting bug in best reference selection
 
 ### Updates
 - This version changes the way the "best" species is parsed from the KrakenUniq report
   - Use higher kmer-coverage instead of the number of unique kmers (accounts for differences in the genome-size)
   - Remove the subspecies-hierarchy and always use species-level as best reference. A single kmer on the subspecies level was enough to push the assignment further down, so quicksand was almost "always" finding a subspecies, which lead to confusion.
+  - adding custom genomes as subspecies (in quicksand-build) will therefore always map to all added custom genomes and select a best reference based on the mappings (coveredBP)
+- Add a database check to the setup to check that all species in the names and nodes.dmp have a correct reference genome and bedfile attached
+- Treat mappings without bedfile in the database as fixed references (i.e. skip bedfiltering)   
 
 ## [v2.6]
 

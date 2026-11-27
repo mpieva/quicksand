@@ -18,3 +18,7 @@
 - rerun: after taxlvl order with fixed references (default) --> 20260525
 - rerun: after taxlvl order with fixed references (and taxlvl o) --> 20260525
 - rerun: after taxlvl genus
+
+
+## To test
+One bedfile removed from the test data, then a check that the taxon still appears in final_report.tsv with ReadsBedfiltered = -.

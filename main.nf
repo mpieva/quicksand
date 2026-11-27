@@ -178,7 +178,7 @@ ch_final = Channel.empty()
 workflow {
 
     //
-    // 0. Setup the folders etc.
+    // 0. Setup the folders, check database etc.
     //
 
     setup([])
@@ -317,7 +317,7 @@ workflow {
 
     best = best
         .map{meta,bam -> [meta.id, meta.Genus, meta.Family, meta.CoveredBP, meta, bam]} // for taxlvl f, Genus should be empty!
-        .toSortedList({ a,b -> a[0]+a[1]+a[2] <=> b[0]+b[1]+a[2] ?: a[3] <=> b[3]}) // if id, genus and family are the same, go by coeredBP
+        .toSortedList({ a,b -> a[0]+a[1]+a[2] <=> b[0]+b[1]+b[2] ?: a[3] <=> b[3]}) // if id, genus and family are the same, go by CoveredBP
         .flatten()
         .collate(6)
         .groupTuple(by:[0,1,2])   //[[rg, genus, fam, [covered_bp < .. < covered_bp][meta,meta,meta],[bam,bam,bam]]

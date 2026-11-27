@@ -49,24 +49,36 @@ workflow bedfilterbam {
         // Take the "best subset"
         // find the species bed file in the masked folder
 
+        // collect all bedfiles into one map [species: bedfile]
+        // so that each entry can check whether its bedfile exists
         ch_bedfiles.map{ bedfile ->
             def matcher = bedfile.name =~ /(.+)\.masked\.bed/
             def speciesName = matcher ? matcher[0][1] : null
             [speciesName, bedfile]
         }
+        .filter{ sp, bed -> sp }
+        .toList()
+        .map{ list -> list.collectEntries() }
         .set{ ch_bedfiles }
 
-        // now combine with the bedfile
-        // so that bedtools intersect works
-        // first, create the species as key
-        ch_best.map{ meta, bam ->
-            [ meta.Species, meta, bam ]
+        // split into entries with and without a bedfile
+        // entries without a bedfile skip the bedfiltering (instead of being dropped)
+        ch_best.combine( ch_bedfiles )
+        .branch{ meta, bam, beds ->
+            bed: beds.containsKey(meta.Species)
+            nobed: true
         }
-        .combine( ch_bedfiles, by:0 ) // [sp, meta, bam, bed] --> now remove the sp again
-        .map{ sp, meta, bam, bed ->
-            [ meta, bam, bed ]
+        .set{ ch_best }
+
+        ch_nobed = ch_best.nobed.map{ meta, bam, beds ->
+            log.warn "[quicksand]: No bedfile '${meta.Species}.masked.bed' found for ${meta.id}. Skip bedfiltering"
+            [ meta, bam ]
         }
-        .mix(ch_new_bedfiles) // its empty or the bedfiles of the fixed references 
+
+        ch_best.bed.map{ meta, bam, beds ->
+            [ meta, bam, beds[meta.Species] ]
+        }
+        .mix(ch_new_bedfiles) // its empty or the bedfiles of the fixed references
         .set{ ch_best }
 
         // And run bedtools instersect
@@ -93,6 +105,7 @@ workflow bedfilterbam {
                 bam
             ]
         }
+        .mix( ch_nobed ) // ReadsBedfiltered and PostBedCoveredBP stay '-'
         .set{ ch_best }
 
     emit:
