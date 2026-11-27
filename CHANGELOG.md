@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [v2.7]
+
+### Updates
+- This version changes the way the "best" species is parsed from the KrakenUniq report
+  - Use higher kmer-coverage instead of the number of unique kmers (accounts for differences in the genome-size)
+  - Remove the subspecies-hierarchy and always use species-level as best reference. A single kmer on the subspecies level was enough to push the assignment further down, so quicksand was almost "always" finding a subspecies, which lead to confusion.
+
 ## [v2.6]
 
 ### Updates
